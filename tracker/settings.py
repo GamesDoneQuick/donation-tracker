@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.core.checks import Error, Warning, register
+from django.core.exceptions import ValidationError
+from django.core.validators import EmailValidator
 
 
 # noinspection PyPep8Naming
@@ -53,6 +55,20 @@ class TrackerSettings(object):
             settings,
             'TRACKER_CONTRIBUTORS_URL',
             'https://github.com/GamesDoneQuick/donation-tracker/graphs/contributors',
+        )
+
+    @property
+    def TRACKER_REGISTRATION_FROM_EMAIL(self):
+        return getattr(
+            settings, 'TRACKER_REGISTRATION_FROM_EMAIL', settings.DEFAULT_FROM_EMAIL
+        )
+
+    @property
+    def TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL(self):
+        return getattr(
+            settings,
+            'TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL',
+            self.TRACKER_REGISTRATION_FROM_EMAIL,
         )
 
     # pass everything else through for convenience
@@ -129,4 +145,39 @@ def tracker_settings_checks(app_configs, **kwargs):
         errors.append(
             Error('TRACKER_CONTRIBUTORS_URL should be a string', id='tracker.E109')
         )
+    if not isinstance(TrackerSettings().TRACKER_REGISTRATION_FROM_EMAIL, str):
+        errors.append(
+            Error(
+                'TRACKER_REGISTRATION_FROM_EMAIL should be a string', id='tracker.E114'
+            )
+        )
+    else:
+        try:
+            EmailValidator()(TrackerSettings().TRACKER_REGISTRATION_FROM_EMAIL)
+        except ValidationError:
+            errors.append(
+                Error(
+                    'TRACKER_REGISTRATION_FROM_EMAIL is not a valid email address',
+                    id='tracker.E115',
+                )
+            )
+    if not isinstance(TrackerSettings().TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL, str):
+        errors.append(
+            Error(
+                'TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL should be a string',
+                id='tracker.E116',
+            )
+        )
+    else:
+        try:
+            EmailValidator()(
+                TrackerSettings().TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL
+            )
+        except ValidationError:
+            errors.append(
+                Error(
+                    'TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL is not a valid email address',
+                    id='tracker.E117',
+                )
+            )
     return errors

@@ -23,7 +23,7 @@ import tracker.prizemail as prizemail
 import tracker.util
 import tracker.viewutil as viewutil
 import tracker.widgets
-from tracker import models
+from tracker import models, settings
 from tracker.validators import nonzero, positive
 
 __all__ = [
@@ -329,7 +329,9 @@ class SendVolunteerEmailsForm(forms.Form):
     template = forms.ModelChoiceField(
         post_office.models.EmailTemplate.objects.all(), empty_label=None
     )
-    sender = forms.EmailField()
+    sender = forms.EmailField(
+        initial=lambda: settings.TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL
+    )
     volunteers = forms.FileField()
 
 
@@ -812,9 +814,7 @@ class RegistrationForm(forms.Form):
         userSet = AuthUser.objects.filter(email__iexact=email)
         if userSet.count() > 1:
             raise forms.ValidationError(
-                'More than one user has the e-mail {0}. Ideally this would be a db constraint, but django is stupid. Contact SMK to get this sorted out.'.format(
-                    email
-                )
+                f'More than one user has the e-mail {email}. Please contact a server administrator.'
             )
         if userSet.exists():
             return userSet[0]

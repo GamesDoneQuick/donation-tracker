@@ -19,7 +19,7 @@ class TestMergeObjectsForm(TestCase):
         self.assertEqual(form.choices[0][1], '#%d: Justin' % d1.pk)
 
 
-@override_settings(EMAIL_FROM_USER='example@example.com')
+@override_settings(TRACKER_REGISTRATION_FROM_EMAIL='example@example.com')
 class TestRegistrationForm(TransactionTestCase):
     def setUp(self):
         self.factory = RequestFactory()

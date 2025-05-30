@@ -116,6 +116,24 @@ Default: `'https://github.com/GamesDoneQuick/donation-tracker/graphs/contributor
 If set, will display this link in the common template footer. If you want to hide the link you can set it to a blank
 string.
 
+#### TRACKER_REGISTRATION_FROM_EMAIL
+
+Type: `str` (must pass `EmailValidator`)
+
+Default: `settings.DEFAULT_FROM_EMAIL`
+
+If you want to override the email address that registration emails come from, you can do so with this setting.
+
+#### TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL
+
+Type: `str` (must pass `EmailValidator`)
+
+Default: `settings.TRACKER_REGISTRATION_FROM_EMAIL`
+
+If you want to override the default email address that volunteer import registration emails (i.e. the `Send Volunteer
+Emails` via the Event Admin action dropdown) come from, you can do so with this setting. You can still override it in
+the form itself before doing the import.
+
 ### Testing Your Deploy (WIP)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
@@ -243,6 +261,9 @@ Other variables that take string values:
 
 - `STATIC_ROOT` - defaults to `/static/gen`, i.e. `http://yourserver/static/gen`, if your static files are deployed at
   a different path you'll need to override this
+
+Same with the following, except they only matter for development:
+
 - `TRACKER_API_HOST` - if you want to send `/tracker/api` requests to a different host, you can override this, will
   prefer this over `TRACKER_HOST`
 - `TRACKER_HOST` - if you want to send most HTTP/WS requests to a different host, you can override this - check
