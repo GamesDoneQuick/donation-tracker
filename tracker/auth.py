@@ -7,7 +7,7 @@ from django.utils.http import urlsafe_base64_encode
 
 from tracker import settings
 
-from . import mailutil, viewutil
+from . import mailutil
 
 
 def default_registration_template_name():
@@ -149,7 +149,7 @@ def send_registration_mail(
     template = template or mailutil.get_email_template(
         default_registration_template_name(), default_registration_template()
     )
-    sender = sender or viewutil.get_default_email_from_user()
+    sender = sender or settings.DEFAULT_FROM_EMAIL
     extra_context = extra_context or {}
     confirmation_url = request.build_absolute_uri(
         reverse(

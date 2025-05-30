@@ -4,7 +4,11 @@ from tracker import settings
 
 
 class TestTrackerSettings(TestCase):
-    @override_settings(TRACKER_SWEEPSTAKES_URL=None, TOTAL_NONSENSE='flibbertygibbit')
+    @override_settings(
+        TRACKER_SWEEPSTAKES_URL=None,
+        TOTAL_NONSENSE='flibbertygibbit',
+        DEFAULT_FROM_EMAIL='foo@example.com',
+    )
     def test_defaults(self):
         self.assertEqual(settings.TRACKER_PAGINATION_LIMIT, 500)
         self.assertEqual(settings.TRACKER_HAS_CELERY, False)
@@ -13,6 +17,10 @@ class TestTrackerSettings(TestCase):
         self.assertEqual(settings.TRACKER_PRIVACY_POLICY_URL, '')
         self.assertEqual(settings.TRACKER_SWEEPSTAKES_URL, '')
         self.assertEqual(settings.TOTAL_NONSENSE, 'flibbertygibbit')
+        self.assertEqual(settings.TRACKER_REGISTRATION_FROM_EMAIL, 'foo@example.com')
+        self.assertEqual(
+            settings.TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL, 'foo@example.com'
+        )
 
     @override_settings(
         HAS_CELERY=True,

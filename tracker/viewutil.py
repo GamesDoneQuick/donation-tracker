@@ -8,16 +8,8 @@ from django.db.models import Q
 from django.http import Http404
 from django.urls import reverse
 
-from tracker import search_filters, settings
+from tracker import search_filters
 from tracker.models import Donor, Event, Log
-
-
-def get_default_email_host_user():
-    return getattr(settings, 'EMAIL_HOST_USER', '')
-
-
-def get_default_email_from_user():
-    return getattr(settings, 'EMAIL_FROM_USER', get_default_email_host_user())
 
 
 def admin_url(obj):
