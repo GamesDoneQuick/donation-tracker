@@ -18,6 +18,9 @@ class TestTrackerSettings(TestCase):
         self.assertEqual(settings.TRACKER_SWEEPSTAKES_URL, '')
         self.assertEqual(settings.TOTAL_NONSENSE, 'flibbertygibbit')
         self.assertEqual(settings.TRACKER_REGISTRATION_FROM_EMAIL, 'foo@example.com')
+        self.assertEqual(
+            settings.TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL, 'foo@example.com'
+        )
 
     @override_settings(
         HAS_CELERY=True,

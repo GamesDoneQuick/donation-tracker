@@ -25,7 +25,7 @@ def get_event_default_sender_email(event):
     if event and event.prizecoordinator:
         return event.prizecoordinator.email
     else:
-        return viewutil.get_default_email_from_user()
+        return settings.DEFAULT_FROM_EMAIL
 
 
 def event_sender_replyto_defaults(event, sender=None, reply_to=None):
