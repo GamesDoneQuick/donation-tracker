@@ -2,6 +2,7 @@ import urllib.parse
 
 import post_office.models
 from django.contrib.auth import get_user_model
+from django.contrib.sites.shortcuts import get_current_site
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -20,7 +21,7 @@ class TestRegistrationFlow(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.template = post_office.models.EmailTemplate.objects.create(
-            content='user:{{user}}\nurl:{{confirmation_url}}\npassword_reset_url:{{password_reset_url}}'
+            content='user:{{user}}\nurl:{{confirmation_url}}\npassword_reset_url:{{password_reset_url}}\ndomain:{{domain}}'
         )
 
     def test_registration_flow(self):
@@ -33,6 +34,7 @@ class TestRegistrationFlow(TestCase):
         )
         contents = util.parse_test_mail(sent_mail)
         self.assertEqual(new_user.username, contents['user'][0])
+        self.assertEqual(get_current_site(request).domain, contents['domain'][0])
         parsed = urllib.parse.urlparse(contents['url'][0])
         self.assertIn(
             reverse('tracker:password_reset'), contents['password_reset_url'][0]
@@ -58,6 +60,7 @@ class TestRegistrationFlow(TestCase):
         )
         self.assertContains(resp, 'Your user account has been confirmed')
         new_user.refresh_from_db()
+        self.assertEqual(new_user.username, 'dummyuser')
         self.assertTrue(new_user.is_active)
         self.assertTrue(new_user.check_password('foobar'))
 
