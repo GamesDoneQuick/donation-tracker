@@ -1,6 +1,7 @@
 import post_office.mail
 import post_office.models
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.sites.shortcuts import get_current_site
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -174,6 +175,7 @@ def send_registration_mail(
         context={
             **extra_context,
             'user': user,
+            'domain': get_current_site(request).domain,
             'confirmation_url': confirmation_url,
             'reset_url': reset_url,
             'password_reset_url': password_reset_url,
