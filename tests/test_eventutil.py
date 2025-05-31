@@ -36,6 +36,7 @@ class TestPostDonation(TransactionTestCase):
             domain='PAYPAL',
             donor=self.donor,
             event=self.event,
+            currency='USD',
             transactionstate='COMPLETED',
         )
 
@@ -51,6 +52,7 @@ class TestPostDonation(TransactionTestCase):
                 self.event.timezone
             ).isoformat(),
             'comment': '',
+            'currency': 'USD',
             'amount': 1.5,
             'donor__visibility': 'FIRST',
             'donor__visiblename': '(No Name)',
