@@ -29,6 +29,7 @@ def post_donation_to_postbacks(donation):
         ).isoformat(),
         'comment': donation.comment,
         'amount': float(donation.amount),
+        'currency': donation.currency,
         # FIXME: donor being None only happens in tests
         'donor__visibility': donation.donor and donation.donor.visibility,
         'donor__visiblename': donation.donor and donation.donor.visible_name,
