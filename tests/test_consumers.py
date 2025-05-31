@@ -107,6 +107,7 @@ class TestDonationConsumer(TransactionTestCase):
             ).isoformat(),
             'comment': self.donation.comment,
             'amount': self.donation.amount,
+            'currency': self.donation.currency,
             'donor__visibility': self.donor.visibility,
             'donor__visiblename': self.donor.visible_name,
             'new_total': self.donation.amount,
