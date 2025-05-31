@@ -36,9 +36,7 @@ describe('trackerApi', () => {
     store.dispatch(trackerApi.util.resetApiState());
     store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
-    mock
-      .onGet('//testserver/' + Endpoints.EVENTS, { totals: '' })
-      .reply(() => [200, getFixturePagedEvent({ amount: 25, donation_count: 1 })]);
+    mock.onGet('//testserver/' + Endpoints.EVENTS, { totals: '' }).reply(() => [200, getFixturePagedEvent({}, [25])]);
     mock
       .onGet('//testserver/' + Endpoints.BIDS({ eventId: 1, feed: 'all', tree: false }))
       .reply(() => [200, getFixtureMixedBidsFlat()]);

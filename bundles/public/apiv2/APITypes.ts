@@ -332,6 +332,10 @@ export interface DonationCommentPatch {
 }
 
 export interface DonorGet {
+  totals?: string;
+  /**
+   * @deprecated use `totals` instead
+   */
   include_totals?: string;
 }
 
