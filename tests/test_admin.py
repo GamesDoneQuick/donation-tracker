@@ -405,6 +405,18 @@ class TestReadOnlyEventMixin(TestCase):
         event_field = resp.context['adminform'].fields['event']
         self.assertIsInstance(event_field, ModelChoiceField)
         self.assertFalse(event_field.disabled)
+        resp = self.client.post(
+            reverse('admin:tracker_milestone_add'),
+            data={
+                'event': self.event.id,
+                'name': self.milestone.name,
+                'amount': self.milestone.amount + 20,
+                'start': self.milestone.start,
+            },
+            follow=True,
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.resolver_match.url_name.endswith('changelist'))
 
     def test_change_form(self):
         self.client.force_login(self.super_user)
