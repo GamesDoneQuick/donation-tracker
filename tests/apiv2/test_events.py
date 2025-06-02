@@ -97,6 +97,7 @@ class TestEventSerializer(TransactionTestCase):
             'datetime',
             'timezone',
             'use_one_step_screening',
+            'screening_mode',
         ]
 
         serialized_event = EventSerializer(self.event).data
