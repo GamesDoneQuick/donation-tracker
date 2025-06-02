@@ -40,7 +40,48 @@ class TestEvent(TestCase):
         self.run.refresh_from_db()
         self.assertEqual(self.run.starttime, self.event.datetime)
 
-    def test_approve_flagged_donations_with_one_step(self):
+    def test_mark_ready_to_read_with_host_only(self):
+        self.event.screening_mode = 'two_pass'
+        self.event.save()
+
+        donation = randgen.generate_donation(self.rand, readstate='FLAGGED')
+        donation.save()
+
+        other_donation = randgen.generate_donation(self.rand, readstate='PENDING')
+        other_donation.save()
+
+        self.event.screening_mode = 'host_only'
+        self.event.save()
+
+        donation.refresh_from_db()
+        self.assertEqual(
+            donation.readstate,
+            'READY',
+            msg='Donation did not fix readstate when event modified',
+        )
+
+        other_donation.refresh_from_db()
+        self.assertEqual(
+            other_donation.readstate,
+            'READY',
+            msg='Donation did not fix readstate when event modified',
+        )
+
+        donation.readstate = 'FLAGGED'
+        donation.save()
+
+        self.assertEqual(
+            donation.readstate, 'READY', msg='Donation did not fix readstate when saved'
+        )
+
+        donation.readstate = 'PENDING'
+        donation.save()
+
+        self.assertEqual(
+            donation.readstate, 'READY', msg='Donation did not fix readstate when saved'
+        )
+
+    def test_approve_flagged_donations_with_one_pass(self):
         donation = randgen.generate_donation(self.rand, readstate='FLAGGED')
         donation.save()
 
@@ -48,7 +89,7 @@ class TestEvent(TestCase):
             donation.readstate, 'READY', msg='Donation did not fix readstate when saved'
         )
 
-        self.event.use_one_step_screening = False
+        self.event.screening_mode = 'two_pass'
         self.event.save()
 
         # neither side of this interaction should change from FLAGGED to READY
@@ -64,7 +105,7 @@ class TestEvent(TestCase):
             msg='Donation should not have fixed readstate when saved',
         )
 
-        self.event.use_one_step_screening = True
+        self.event.screening_mode = 'one_pass'
         self.event.save()
 
         donation.refresh_from_db()

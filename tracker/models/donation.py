@@ -254,11 +254,12 @@ class Donation(models.Model):
         """returns True if
         a) the event is set
          AND
-        b.1) the event is set to one-step screening
+        b.1) the event is not using two pass mode
          OR
         b.2) the user has `send_to_reader` permission"""
         return self.event and (
-            self.event.use_one_step_screening or user.has_perm('tracker.send_to_reader')
+            self.event.screening_mode != 'two_pass'
+            or user.has_perm('tracker.send_to_reader')
         )
 
     @property
@@ -340,15 +341,20 @@ class Donation(models.Model):
 
     def save(self, *args, **kwargs):
         if self.readstate == 'PENDING':
-            threshold = self.event.auto_approve_threshold
-            if threshold is not None and self.anonymous() and not self.comment:
+            if self.event.screening_mode == 'host_only':
+                self.readstate = 'READY'
+            elif (
+                (threshold := self.event.auto_approve_threshold) is not None
+                and self.anonymous()
+                and not self.comment
+            ):
                 # when a threshold is set, anonymous, no-comment donations are
                 # either sent right to the reader or ignored
                 if self.amount >= threshold:
                     self.readstate = 'READY'
                 else:
                     self.readstate = 'IGNORED'
-        elif self.readstate == 'FLAGGED' and self.event.use_one_step_screening:
+        elif self.readstate == 'FLAGGED' and self.event.screening_mode != 'two_pass':
             # this is one side of an edge case involving this flag, see the event model for the other
             self.readstate = 'READY'
         if not self.timereceived:

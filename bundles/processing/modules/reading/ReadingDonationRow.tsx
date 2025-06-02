@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, openPopout, PressEvent, Stack, Text, useTooltip } from '@faulty/gdq-design';
 
-import { useIgnoreDonationMutation, useReadDonationMutation } from '@public/apiv2/hooks';
+import { useEventFromRoute, useIgnoreDonationMutation, useReadDonationMutation } from '@public/apiv2/hooks';
 import { Donation } from '@public/apiv2/Models';
 import Approve from '@uikit/icons/Approve';
 import Deny from '@uikit/icons/Deny';
@@ -20,6 +20,7 @@ interface ReadingActionsProps {
 }
 
 function ReadingActions(props: ReadingActionsProps) {
+  const { data: event } = useEventFromRoute();
   const { donation } = props;
 
   const [read, readResult] = useReadDonationMutation();
@@ -50,15 +51,19 @@ function ReadingActions(props: ReadingActionsProps) {
         label="Mark as Read"
         variant="success"
         disabled={disabled}
+        data-testid="action-read"
       />
-      <MutationButton
-        mutation={ignore}
-        donationId={donation.id}
-        icon={Deny}
-        label="Mark as Ignored"
-        variant="danger"
-        disabled={disabled}
-      />
+      {event?.screening_mode !== 'host_only' && (
+        <MutationButton
+          mutation={ignore}
+          donationId={donation.id}
+          icon={Deny}
+          label="Mark as Ignored"
+          variant="danger"
+          disabled={disabled}
+          data-testid="action-ignore"
+        />
+      )}
       <Button {...moreActionsTooltipProps} onPress={handleMoreActions} variant="default">
         <Dots />
       </Button>

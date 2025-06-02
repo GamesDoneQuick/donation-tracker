@@ -235,7 +235,7 @@ class TestDonation(TestCase):
             models.Donation.objects.filter(id=completed_donation.id),
         )
 
-        self.event.use_one_step_screening = False
+        self.event.screening_mode = 'two_pass'
         self.event.save()
         completed_donation.refresh_from_db()
         completed_donation.commentstate = 'APPROVED'
@@ -473,7 +473,7 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
                 'readstate', form.base_fields, msg='Field is editable when not READY'
             )
 
-            self.event.use_one_step_screening = False
+            self.event.screening_mode = 'two_pass'
             self.event.save()
             self.donation.refresh_from_db()
             self.donation.readstate = 'READY'

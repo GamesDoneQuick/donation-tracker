@@ -91,10 +91,14 @@ class Event(models.Model):
         help_text='Normally you can use the short id for this, but this value can override it.',
         blank=True,
     )
-    use_one_step_screening = models.BooleanField(
-        default=True,
-        verbose_name='Use One-Step Screening',
-        help_text='Turn this off if you use the "Head Donations" flow',
+    screening_mode = models.CharField(
+        default='one_pass',
+        choices=(
+            ('host_only', 'Host Only'),
+            ('one_pass', 'One Pass'),
+            ('two_pass', 'Two Pass'),
+        ),
+        help_text='See the README for more details.',
     )
     receivername = models.CharField(
         max_length=128, blank=True, null=False, verbose_name='Receiver Name'
@@ -327,8 +331,11 @@ class Event(models.Model):
         super(Event, self).save(*args, **kwargs)
 
         # one side of an event setting edge case, see Donation.save() for the other
-        if self.use_one_step_screening:
-            # TODO: send notifications?
+        if self.screening_mode == 'host_only':
+            self.donation_set.completed().filter(
+                readstate__in=['PENDING', 'FLAGGED']
+            ).update(readstate='READY')
+        elif self.screening_mode == 'one_pass':
             self.donation_set.completed().to_approve().update(readstate='READY')
         first_run = self.speedrun_set.all().first()
         if first_run and first_run.starttime and first_run.starttime != self.datetime:

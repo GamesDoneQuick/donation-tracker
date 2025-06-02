@@ -37,8 +37,8 @@ const NavRoutes = {
 };
 
 function usePath(route: string) {
-  const { ADMIN_ROOT } = useConstants();
-  return ADMIN_ROOT + route;
+  const { ROOT_PATH } = useConstants();
+  return ROOT_PATH + route;
 }
 
 function CurrentUser() {
