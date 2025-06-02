@@ -77,7 +77,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'receiver_solicitation_text',
                     'receiver_logo',
                     'receiver_privacy_policy',
-                    'use_one_step_screening',
+                    'screening_mode',
                     'minimumdonation',
                     'maximum_paypal_donation',
                     'auto_approve_threshold',

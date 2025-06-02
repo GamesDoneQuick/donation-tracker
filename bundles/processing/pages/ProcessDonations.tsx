@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router';
 import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 
 import {
@@ -85,15 +86,15 @@ function Sidebar(props: SidebarProps) {
   const { processingMode, setProcessingMode } = useProcessingStore();
   const canAddGroups = usePermission('tracker.add_donationgroup');
   const canSendToReader = usePermission('tracker.send_to_reader');
-  const canSelectModes = canSendToReader && !event?.use_one_step_screening;
+  const canSelectModes = canSendToReader && event?.screening_mode === 'two_pass';
 
   // TODO: pull this logic out into a helper
   React.useEffect(() => {
-    if (event?.use_one_step_screening) {
+    if (event?.screening_mode !== 'two_pass') {
       setProcessingMode('onestep');
     } else if (event) {
       if (
-        (!event.use_one_step_screening && processingMode === 'onestep') ||
+        (event.screening_mode === 'two_pass' && processingMode === 'onestep') ||
         (processingMode === 'confirm' && !canSelectModes)
       ) {
         setProcessingMode('flag');
@@ -159,6 +160,8 @@ function Sidebar(props: SidebarProps) {
 export default function ProcessDonations() {
   const { partition, partitionCount, processingMode } = useProcessingStore();
   const process = PROCESSES[processingMode];
+  const { data: event } = useEventFromRoute();
+  const navigate = useNavigate();
 
   const [selectedTab, setSelectedTab] = React.useState<FilterGroupTabItem>(FILTER_ITEMS[0]);
   const {
@@ -185,6 +188,11 @@ export default function ProcessDonations() {
     ),
     [process],
   );
+
+  if (event?.screening_mode === 'host_only') {
+    navigate(`/v2/${event.id}/processing/read`);
+    return <React.Fragment />;
+  }
 
   return (
     <SidebarLayout

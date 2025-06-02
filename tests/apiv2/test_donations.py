@@ -47,7 +47,7 @@ class TestDonations(APITestCase):
             state='PENDING',
         )[0]
         self.pending_child.save()
-        self.event.use_one_step_screening = False
+        self.event.screening_mode = 'two_pass'
         self.event.save()
         self.other_event = randgen.build_random_event(
             self.rand, num_runs=2, num_donors=2
@@ -221,13 +221,13 @@ class TestDonations(APITestCase):
                 with self.suppressSnapshot(), self.subTest('error cases'):
                     self.patch_noun(donation, noun='flag', status_code=403, user=None)
                     self.patch_noun(donation, noun='flag', status_code=403, user=user)
-                    self.event.use_one_step_screening = True
+                    self.event.screening_mode = 'one_pass'
                     self.event.save()
                     self.patch_noun(
                         donation, noun='flag', status_code=400, user=self.add_user
                     )
 
-                self.event.use_one_step_screening = False
+                self.event.screening_mode = 'two_pass'
                 self.event.save()
                 data = self.patch_noun(donation, noun='flag', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
@@ -253,8 +253,8 @@ class TestDonations(APITestCase):
                 donation.readstate = 'PENDING'
                 donation.save()
 
-                # no special permission for one step screening
-                self.event.use_one_step_screening = True
+                # no special permission for one pass screening
+                self.event.screening_mode = 'one_pass'
                 self.event.save()
                 data = self.patch_noun(
                     donation, noun='send-to-reader', user=self.add_user
@@ -266,7 +266,7 @@ class TestDonations(APITestCase):
                 donation.readstate = 'PENDING'
                 donation.save()
 
-                self.event.use_one_step_screening = False
+                self.event.screening_mode = 'two_pass'
                 self.event.save()
                 self.add_user.user_permissions.add(
                     Permission.objects.get(codename='send_to_reader')

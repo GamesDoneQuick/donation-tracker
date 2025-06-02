@@ -184,6 +184,20 @@ If you want to override the default email address that volunteer import registra
 Emails` via the Event Admin action dropdown) come from, you can do so with this setting. You can still override it in
 the form itself before doing the import.
 
+### Event Configuration
+
+`Screening Mode` has three options:
+
+- `Host Only` - donations are sent to the `Read Donations` page immediately, but will still show as pending on public
+  pages once the donation has either been read or skipped/ignored. If your donation volume is low enough that the host
+  can handle screening on their own, you can probably use this.
+- `One Pass` - donations require one extra layer of moderation via `Process Donations` before they will show up in
+  `Read Donations`. This is the default mode.
+- `Two Pass` - donations require two layers of moderation before showing up on the read page. When this mode is active
+  you will need users with the `Can Send to Reader` permission to use the `Confirm` mode in `Process Donations` before
+  anything will show up on `Read Donations`. Most events probably won't need this, as it is intended for high volume
+  events (e.g. AGDQ/SGDQ).
+
 ### Testing Your Deploy (WIP)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed.
