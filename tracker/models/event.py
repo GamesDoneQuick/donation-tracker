@@ -2,20 +2,18 @@ import datetime
 import decimal
 import itertools
 import logging
-from decimal import Decimal
 
 import post_office.models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_slug
 from django.db import models
-from django.db.models import Case, Count, F, Q, Sum, When
-from django.db.models.functions import Coalesce
+from django.db.models import Prefetch
 from django.urls import reverse
 from timezone_field import TimeZoneField
 
 from tracker import compat, util
-from tracker.validators import nonzero, positive
+from tracker.validators import nonzero, positive, validate_locale
 
 from .fields import TimestampField
 from .util import LatestEvent
@@ -35,7 +33,6 @@ _currencyChoices = (
     ('CAD', 'Canadian Dollars'),
     ('EUR', 'Euros'),
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -64,29 +61,15 @@ class EventQuerySet(models.QuerySet):
         timestamp = util.parse_time(timestamp)
         return self.filter(datetime__gte=timestamp, archived=False)
 
-    def with_annotations(self, ignore_order=False):
-        annotated = self.annotate(
-            amount=Coalesce(
-                Sum(
-                    Case(
-                        When(
-                            Q(donation__transactionstate='COMPLETED'),
-                            then=F('donation__amount'),
-                        ),
-                        output_field=models.DecimalField(decimal_places=2),
-                    )
-                ),
-                Decimal('0.00'),
-            ),
-            donation_count=Coalesce(
-                Count('donation', filter=Q(donation__transactionstate='COMPLETED')), 0
-            ),
+    def with_cache(self):
+        from .donation import DonorCache
+
+        return self.prefetch_related(
+            Prefetch(
+                'donorcache_set',
+                queryset=DonorCache.objects.filter(donor=None),
+            )
         )
-
-        if not ignore_order:
-            annotated = annotated.order_by(*self.model._meta.ordering)
-
-        return annotated
 
 
 class EventManager(models.Manager):
@@ -153,6 +136,12 @@ class Event(models.Model):
         blank=True,
         null=True,
         help_text='Leave blank to turn off auto-approval behavior. If set, anonymous, no-comment donations at or above this amount get sent to the reader. Below this amount, they are ignored.',
+    )
+    locale_code = models.CharField(
+        max_length=16,
+        blank=True,
+        validators=[validate_locale],
+        help_text='Overrides the global LANGUAGE_CODE setting specifically for this event.',
     )
     paypalemail = models.EmailField(
         max_length=128, null=False, blank=False, verbose_name='Receiver Paypal'

@@ -44,7 +44,7 @@
               {{ milestone.description }}
             </td>
             <td>
-              {{ milestone.amount | money }}
+              {% money event milestone.amount %}
             </td>
           </tr>
         {% endfor %}

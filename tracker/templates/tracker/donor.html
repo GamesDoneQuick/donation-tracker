@@ -12,9 +12,9 @@
   <h3 class="text-center">
     <small>
       {% trans "Total Donations" %}:
-      {{ cache.donation_total|money }} ({{ cache.donation_count }}) &mdash;
+      {% money event cache.donation_total %} ({{ cache.donation_count }}) &mdash;
       {% trans "Max/Avg Donation" %}:
-      {{ cache.donation_max|money }}/{{ cache.donation_avg|money }}
+      {% money event cache.donation_max %}/{% money event cache.donation_avg %}
     </small>
   </h3>
 	<table  class="table table-condensed table-striped small">
@@ -37,7 +37,7 @@
 				{{ donation.timereceived|date:"c" }}
 			</td>
 			<td>
-				<a href="{% url 'tracker:donation' pk=donation.id %}">{{ donation.amount|money }}</a>
+				<a href="{% url 'tracker:donation' pk=donation.id %}">{% money event donation.amount %}</a>
 			</td>
 			<td>
 				{{ donation.comment|length|yesno:_("Yes,No") }}

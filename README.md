@@ -35,6 +35,8 @@ For further reading on what else your server needs to look like:
 
 Docker should also work but support is still in the experimental phases.
 
+If `tqdm` is installed, certain long-running migrations and commands will use it to display progress on your console.
+
 **Ensure that `PAYPAL_TEST` is present in your settings.** It should be set to True for development/testing and False for
 production mode.
 

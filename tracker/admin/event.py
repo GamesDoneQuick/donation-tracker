@@ -80,6 +80,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'auto_approve_threshold',
                     'datetime',
                     'timezone',
+                    'locale_code',
                     'draft',
                     'archived',
                     'allow_donations',
@@ -520,6 +521,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
         donors = (
             tracker.models.DonorCache.objects.filter(event=event)
             .exclude(donor__visibility='ANON')
+            .exclude(donor=None)
             .select_related('donor')
             .iterator()
         )

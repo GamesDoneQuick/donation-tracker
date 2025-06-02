@@ -217,38 +217,50 @@ class TestEventManager(TransactionTestCase):
         )
         self.manager = models.Event.objects
 
-    def test_donation_count_annotation(self):
-        manager = models.Event.objects.with_annotations()
-        event = manager.get(pk=self.event.pk)
-        self.assertEqual(event.donation_count, len(self.completed_donations))
-
-    def test_amount_annotation(self):
-        manager = models.Event.objects.with_annotations()
-        event = manager.get(pk=self.event.pk)
-        total_amount = sum(donation.amount for donation in self.completed_donations)
-        self.assertAlmostEqual(event.amount, total_amount)
-
 
 class TestEventViews(TransactionTestCase):
     def setUp(self):
         self.event = models.Event.objects.create(
             datetime=today_noon, short='short', name='Short'
         )
+        self.eu_event = models.Event.objects.create(
+            datetime=today_noon,
+            short='eu',
+            name='EU',
+            paypalcurrency='EUR',
+        )
+        donor = models.Donor.objects.create()
+        models.Donation.objects.create(
+            event=self.event, amount=5, transactionstate='COMPLETED', donor=donor
+        )
+        models.Donation.objects.create(
+            event=self.event, amount=10, transactionstate='COMPLETED', donor=donor
+        )
+        models.Donation.objects.create(
+            event=self.event, amount=60, transactionstate='COMPLETED', donor=donor
+        )
+        models.Donation.objects.create(
+            event=self.eu_event, amount=25, transactionstate='COMPLETED', donor=donor
+        )
+        models.Donation.objects.create(
+            event=self.eu_event, amount=10, transactionstate='COMPLETED', donor=donor
+        )
 
     @override_settings(TRACKER_LOGO='example-logo.png')
     def test_main_index(self):
-        models.Donation.objects.create(
-            event=self.event, amount=5, transactionstate='COMPLETED'
-        )
-        models.Donation.objects.create(
-            event=self.event, amount=10, transactionstate='COMPLETED'
-        )
         response = self.client.get(reverse('tracker:index_all'))
         self.assertContains(response, 'All Events')
         self.assertContains(response, 'example-logo.png')
-        self.assertContains(response, '$15.00 (2)', 1)
-        self.assertContains(response, '$10.00', 1)
-        self.assertContains(response, '$7.50', 2)
+        self.assertContains(
+            response,
+            'Donation Total (USD): $75.00 (3) &mdash; Max/Avg/Median Donation: $60.00/$25.00/$10.00',
+            html=True,
+        )
+        self.assertContains(
+            response,
+            'Donation Total (EUR): €35.00 (2) &mdash; Max/Avg/Median Donation: €25.00/€17.50/€17.50',
+            html=True,
+        )
 
     def test_json(self):
         response = self.client.get(reverse('tracker:index_all'), data={'json': ''})

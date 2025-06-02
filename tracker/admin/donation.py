@@ -459,4 +459,52 @@ class MilestoneAdmin(EventArchivedMixin, EventReadOnlyMixin, CustomModelAdmin):
     list_display = ('name', 'event', 'start', 'amount', 'visible')
 
 
+@admin.register(models.DonorCache)
+class DonorCacheAdmin(admin.ModelAdmin):
+    list_display = [
+        '__str__',
+        'event',
+        'donor',
+        'currency',
+        'donation_total',
+        'donation_count',
+    ]
+    list_filter = ['event', 'currency']
+    search_fields = [f'donor__{f}' for f in DonorAdmin.search_fields]
+    readonly_fields = [
+        'donation_total',
+        'donation_count',
+        'donation_avg',
+        'donation_max',
+        'donation_med',
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('event', 'donor')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.has_perm('tracker.view_donor') or request.user.has_perm(
+            'tracker.view_donor_cache'
+        )
+
+    def get_search_fields(self, request):
+        search_fields = list(super().get_search_fields(request))
+        if not request.user.has_perm('tracker.view_emails'):
+            search_fields.remove('donor__email')
+            search_fields.remove('donor__paypalemail')
+        if not request.user.has_perm('tracker.view_full_names'):
+            search_fields.remove('donor__firstname')
+            search_fields.remove('donor__lastname')
+        return tuple(search_fields)
+
+
 admin.site.register(models.DonationGroup, AbstractTagAdmin)

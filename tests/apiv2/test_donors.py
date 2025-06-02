@@ -1,5 +1,3 @@
-from django.db.models import Q
-
 from tests import randgen
 from tests.util import APITestCase
 from tracker.api.serializers import DonorSerializer
@@ -18,17 +16,19 @@ class TestDonor(APITestCase):
                 {
                     'totals': [
                         {
-                            'event': c.event_id,
                             'total': float(c.donation_total),
                             'count': c.donation_count,
                             'avg': float(c.donation_avg),
                             'max': float(c.donation_max),
+                            'med': float(c.donation_med),
+                            **(
+                                {'event': c.event_id}
+                                if c.event_id
+                                else {'currency': c.currency}
+                            ),
                         }
-                        for c in (
-                            donor.cache.filter(Q(event__isnull=True) | Q(event=event))
-                            if event
-                            else donor.cache.all()
-                        )
+                        for c in donor.cache.all()
+                        if event is None or c.event_id == event.id
                     ]
                 }
                 if include_totals
@@ -55,6 +55,14 @@ class TestDonor(APITestCase):
             data = self.get_list(user=self.view_user)
             self.assertExactV2Models([self.visible_donor, self.anonymous_donor], data)
 
+            data = self.get_list(user=self.view_user, data={'totals': ''})
+            self.assertExactV2Models(
+                [self.visible_donor, self.anonymous_donor],
+                data,
+                serializer_kwargs={'include_totals': True},
+            )
+
+            # just to assert the old version still works
             data = self.get_list(user=self.view_user, data={'include_totals': ''})
             self.assertExactV2Models(
                 [self.visible_donor, self.anonymous_donor],
@@ -65,7 +73,7 @@ class TestDonor(APITestCase):
             data = self.get_list(
                 user=self.view_user,
                 kwargs={'event_pk': self.event.id},
-                data={'include_totals': ''},
+                data={'totals': ''},
             )
             self.assertExactV2Models(
                 [self.visible_donor, self.anonymous_donor],
@@ -77,7 +85,7 @@ class TestDonor(APITestCase):
             self.assertV2ModelPresent(self.visible_donor, data)
 
             data = self.get_detail(
-                self.visible_donor, user=self.view_user, data={'include_totals': ''}
+                self.visible_donor, user=self.view_user, data={'totals': ''}
             )
             self.assertV2ModelPresent(
                 self.visible_donor, data, serializer_kwargs={'include_totals': True}
@@ -87,7 +95,7 @@ class TestDonor(APITestCase):
                 self.visible_donor,
                 user=self.view_user,
                 kwargs={'event_pk': self.event.id},
-                data={'include_totals': ''},
+                data={'totals': ''},
             )
             self.assertV2ModelPresent(
                 self.visible_donor,
@@ -117,8 +125,14 @@ class TestDonor(APITestCase):
         data = self._serialize_models(self.visible_donor, include_totals=True)
         formatted = self._format_donor(self.visible_donor, include_totals=True)
         # FIXME
-        data['totals'] = sorted(data['totals'], key=lambda t: t['event'] or 0)
-        formatted['totals'] = sorted(formatted['totals'], key=lambda t: t['event'] or 0)
+        data['totals'] = sorted(
+            data['totals'],
+            key=lambda c: (c['event'], '') if 'event' in c else (-1, c['currency']),
+        )
+        formatted['totals'] = sorted(
+            formatted['totals'],
+            key=lambda c: (c['event'], '') if 'event' in c else (-1, c['currency']),
+        )
         self.assertEqual(data, formatted)
         self.assertEqual(
             len(data['totals']),

@@ -20,7 +20,7 @@ from .util import (
 )
 
 
-class TestDonorTotals(TestCase):
+class TestDonorTotals(TestCase, AssertionHelpers):
     def setUp(self):
         self.john = models.Donor.objects.create(
             firstname='John', lastname='Doe', email='johndoe@example.com'
@@ -29,10 +29,13 @@ class TestDonorTotals(TestCase):
             firstname='Jane', lastname='Doe', email='janedoe@example.com'
         )
         self.ev1 = models.Event.objects.create(
-            short='ev1', name='Event 1', datetime=today_noon
+            short='ev1', name='Event 1', datetime=today_noon, paypalcurrency='USD'
         )
         self.ev2 = models.Event.objects.create(
-            short='ev2', name='Event 2', datetime=today_noon
+            short='ev2', name='Event 2', datetime=today_noon, paypalcurrency='USD'
+        )
+        self.ev3 = models.Event.objects.create(
+            short='ev3', name='Event 3', datetime=today_noon, paypalcurrency='EUR'
         )
 
     def test_donor_cache(self):
@@ -44,7 +47,12 @@ class TestDonorTotals(TestCase):
             domain='PAYPAL',
             transactionstate='COMPLETED',
         )
-        self.assertEqual(2, models.DonorCache.objects.count())
+        # base case:
+        #  one for donor-event
+        #  one for donor-currency
+        #  one for event
+        #  one for currency
+        self.assertEqual(4, models.DonorCache.objects.count())
         d2 = models.Donation.objects.create(
             donor=self.john,
             event=self.ev2,
@@ -52,7 +60,10 @@ class TestDonorTotals(TestCase):
             domain='PAYPAL',
             transactionstate='COMPLETED',
         )
-        self.assertEqual(3, models.DonorCache.objects.count())
+        # additional:
+        #   one for donor-event
+        #   one for event
+        self.assertEqual(6, models.DonorCache.objects.count())
         d3 = models.Donation.objects.create(
             donor=self.john,
             event=self.ev2,
@@ -60,7 +71,8 @@ class TestDonorTotals(TestCase):
             domain='PAYPAL',
             transactionstate='COMPLETED',
         )
-        self.assertEqual(3, models.DonorCache.objects.count())
+        # no additional entries
+        self.assertEqual(6, models.DonorCache.objects.count())
         d4 = models.Donation.objects.create(
             donor=self.jane,
             event=self.ev1,
@@ -68,194 +80,215 @@ class TestDonorTotals(TestCase):
             domain='PAYPAL',
             transactionstate='COMPLETED',
         )
-        self.assertEqual(5, models.DonorCache.objects.count())
-        self.assertEqual(
-            5,
-            models.DonorCache.objects.get(
-                donor=self.john, event=self.ev1
-            ).donation_total,
+        # additional:
+        #   one for donor-event
+        #   one for donor-currency
+        self.assertEqual(8, models.DonorCache.objects.count())
+        d5 = models.Donation.objects.create(
+            donor=self.jane,
+            event=self.ev2,
+            amount=25,
+            domain='PAYPAL',
+            transactionstate='COMPLETED',
         )
-        self.assertEqual(
-            1,
-            models.DonorCache.objects.get(
-                donor=self.john, event=self.ev1
-            ).donation_count,
+        # additional:
+        #   one for donor-event
+        self.assertEqual(9, models.DonorCache.objects.count())
+        d6 = models.Donation.objects.create(
+            donor=self.jane,
+            event=self.ev3,
+            amount=50,
+            domain='PAYPAL',
+            transactionstate='COMPLETED',
         )
-        self.assertEqual(
-            5,
-            models.DonorCache.objects.get(donor=self.john, event=self.ev1).donation_max,
+        # additional:
+        #   one for donor-event
+        #   one for donor-currency
+        #   one for event
+        #   one for currency
+        self.assertEqual(13, models.DonorCache.objects.count())
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 5,
+                'donation_count': 1,
+                'donation_max': 5,
+                'donation_avg': 5,
+                'donation_med': 5,
+            },
+            models.DonorCache.objects.get(donor=self.john, event=self.ev1).__dict__,
         )
-        self.assertEqual(
-            5,
-            models.DonorCache.objects.get(donor=self.john, event=self.ev1).donation_avg,
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 15,
+                'donation_count': 2,
+                'donation_max': 10,
+                'donation_avg': 7.5,
+                'donation_med': 7.5,
+            },
+            models.DonorCache.objects.get(donor=self.john, event=self.ev2).__dict__,
         )
-        self.assertEqual(
-            15,
-            models.DonorCache.objects.get(
-                donor=self.john, event=self.ev2
-            ).donation_total,
-        )
-        self.assertEqual(
-            2,
-            models.DonorCache.objects.get(
-                donor=self.john, event=self.ev2
-            ).donation_count,
-        )
-        self.assertEqual(
-            10,
-            models.DonorCache.objects.get(donor=self.john, event=self.ev2).donation_max,
-        )
-        self.assertEqual(
-            7.5,
-            models.DonorCache.objects.get(donor=self.john, event=self.ev2).donation_avg,
-        )
-        self.assertEqual(
-            20,
-            models.DonorCache.objects.get(donor=self.john, event=None).donation_total,
-        )
-        self.assertEqual(
-            3, models.DonorCache.objects.get(donor=self.john, event=None).donation_count
-        )
-        self.assertEqual(
-            10, models.DonorCache.objects.get(donor=self.john, event=None).donation_max
-        )
-        self.assertAlmostEqual(
-            Decimal(20 / 3.0),
-            models.DonorCache.objects.get(donor=self.john, event=None).donation_avg,
-            2,
-        )
-        self.assertEqual(
-            20,
-            models.DonorCache.objects.get(
-                donor=self.jane, event=self.ev1
-            ).donation_total,
-        )
-        self.assertEqual(
-            1,
-            models.DonorCache.objects.get(
-                donor=self.jane, event=self.ev1
-            ).donation_count,
-        )
-        self.assertEqual(
-            20,
-            models.DonorCache.objects.get(donor=self.jane, event=self.ev1).donation_max,
-        )
-        self.assertEqual(
-            20,
-            models.DonorCache.objects.get(donor=self.jane, event=self.ev1).donation_avg,
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 20,
+                'donation_count': 3,
+                'donation_max': 10,
+                'donation_avg': Decimal(20 / 3.0).quantize(Decimal('0.00')),
+                'donation_med': 5,
+            },
+            models.DonorCache.objects.get(donor=self.john, currency='USD').__dict__,
         )
         self.assertFalse(
-            models.DonorCache.objects.filter(donor=self.jane, event=self.ev2).exists()
+            models.DonorCache.objects.filter(donor=self.john, event=self.ev3).exists()
         )
-        self.assertEqual(
-            20,
-            models.DonorCache.objects.get(donor=self.jane, event=None).donation_total,
+        self.assertFalse(
+            models.DonorCache.objects.filter(donor=self.john, currency='EUR').exists()
         )
-        self.assertEqual(
-            1, models.DonorCache.objects.get(donor=self.jane, event=None).donation_count
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 20,
+                'donation_count': 1,
+                'donation_max': 20,
+                'donation_avg': 20,
+                'donation_med': 20,
+            },
+            models.DonorCache.objects.get(donor=self.jane, event=self.ev1).__dict__,
         )
-        self.assertEqual(
-            20, models.DonorCache.objects.get(donor=self.jane, event=None).donation_max
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 25,
+                'donation_count': 1,
+                'donation_max': 25,
+                'donation_avg': 25,
+                'donation_med': 25,
+            },
+            models.DonorCache.objects.get(donor=self.jane, event=self.ev2).__dict__,
         )
-        self.assertEqual(
-            20, models.DonorCache.objects.get(donor=self.jane, event=None).donation_avg
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 45,
+                'donation_count': 2,
+                'donation_max': 25,
+                'donation_avg': 22.5,
+                'donation_med': 22.5,
+            },
+            models.DonorCache.objects.get(donor=self.jane, currency='USD').__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 50,
+                'donation_count': 1,
+                'donation_max': 50,
+                'donation_avg': 50,
+                'donation_med': 50,
+            },
+            models.DonorCache.objects.get(donor=self.jane, event=self.ev3).__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 50,
+                'donation_count': 1,
+                'donation_max': 50,
+                'donation_avg': 50,
+                'donation_med': 50,
+            },
+            models.DonorCache.objects.get(donor=self.jane, currency='EUR').__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 25,
+                'donation_count': 2,
+                'donation_max': 20,
+                'donation_avg': 12.5,
+                'donation_med': 12.5,
+            },
+            models.DonorCache.objects.get(donor=None, event=self.ev1).__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 40,
+                'donation_count': 3,
+                'donation_max': 25,
+                'donation_avg': Decimal(40.0 / 3).quantize(Decimal('0.00')),
+                'donation_med': 10,
+            },
+            models.DonorCache.objects.get(donor=None, event=self.ev2).__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 50,
+                'donation_count': 1,
+                'donation_max': 50,
+                'donation_avg': 50,
+                'donation_med': 50,
+            },
+            models.DonorCache.objects.get(donor=None, event=self.ev3).__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 65,
+                'donation_count': 5,
+                'donation_max': 25,
+                'donation_avg': 13,
+                'donation_med': 10,
+            },
+            models.DonorCache.objects.get(donor=None, currency='USD').__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 50,
+                'donation_count': 1,
+                'donation_max': 50,
+                'donation_avg': 50,
+                'donation_med': 50,
+            },
+            models.DonorCache.objects.get(donor=None, currency='EUR').__dict__,
         )
         # now change them all to pending to make sure the delete logic for that
         # works
         d2.transactionstate = 'PENDING'
         d2.save()
-        self.assertEqual(
-            5,
-            models.DonorCache.objects.get(
-                donor=self.john, event=self.ev1
-            ).donation_total,
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 5,
+                'donation_count': 1,
+                'donation_max': 5,
+                'donation_avg': 5,
+                'donation_med': 5,
+            },
+            models.DonorCache.objects.get(donor=self.john, event=self.ev1).__dict__,
         )
-        self.assertEqual(
-            1,
-            models.DonorCache.objects.get(
-                donor=self.john, event=self.ev1
-            ).donation_count,
-        )
-        self.assertEqual(
-            5,
-            models.DonorCache.objects.get(donor=self.john, event=self.ev1).donation_max,
-        )
-        self.assertEqual(
-            5,
-            models.DonorCache.objects.get(donor=self.john, event=self.ev1).donation_avg,
-        )
-        self.assertEqual(
-            10,
-            models.DonorCache.objects.get(
-                donor=self.john, event=self.ev2
-            ).donation_total,
-        )
-        self.assertEqual(
-            1,
-            models.DonorCache.objects.get(
-                donor=self.john, event=self.ev2
-            ).donation_count,
-        )
-        self.assertEqual(
-            10,
-            models.DonorCache.objects.get(donor=self.john, event=self.ev2).donation_max,
-        )
-        self.assertEqual(
-            10,
-            models.DonorCache.objects.get(donor=self.john, event=self.ev2).donation_avg,
-        )
-        self.assertEqual(
-            15,
-            models.DonorCache.objects.get(donor=self.john, event=None).donation_total,
-        )
-        self.assertEqual(
-            2, models.DonorCache.objects.get(donor=self.john, event=None).donation_count
-        )
-        self.assertEqual(
-            10, models.DonorCache.objects.get(donor=self.john, event=None).donation_max
-        )
-        self.assertAlmostEqual(
-            Decimal(15 / 2.0),
-            models.DonorCache.objects.get(donor=self.john, event=None).donation_avg,
-            2,
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 15,
+                'donation_count': 2,
+                'donation_max': 10,
+                'donation_avg': 7.5,
+                'donation_med': 7.5,
+            },
+            models.DonorCache.objects.get(donor=self.john, currency='USD').__dict__,
         )
         d1.transactionstate = 'PENDING'
         d1.save()
         self.assertFalse(
             models.DonorCache.objects.filter(donor=self.john, event=self.ev1).exists()
         )
-        self.assertEqual(
-            10,
-            models.DonorCache.objects.get(donor=self.john, event=None).donation_total,
-        )
-        self.assertEqual(
-            1, models.DonorCache.objects.get(donor=self.john, event=None).donation_count
-        )
-        self.assertEqual(
-            10, models.DonorCache.objects.get(donor=self.john, event=None).donation_max
-        )
-        self.assertEqual(
-            10, models.DonorCache.objects.get(donor=self.john, event=None).donation_avg
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 10,
+                'donation_count': 1,
+                'donation_max': 10,
+                'donation_avg': 10,
+                'donation_med': 10,
+            },
+            models.DonorCache.objects.get(donor=self.john, currency='USD').__dict__,
         )
         d3.transactionstate = 'PENDING'
         d3.save()
-        self.assertFalse(
-            models.DonorCache.objects.filter(donor=self.john, event=self.ev2).exists()
-        )
-        self.assertFalse(
-            models.DonorCache.objects.filter(donor=self.john, event=None).exists()
-        )
-        self.assertEqual(
-            2, models.DonorCache.objects.count()
-        )  # jane's stuff still exists
+        self.assertFalse(models.DonorCache.objects.filter(donor=self.john).exists())
         d4.delete()  # delete the last of it to make sure it's all gone
-        self.assertFalse(
-            models.DonorCache.objects.filter(donor=self.jane, event=self.ev1).exists()
-        )
-        self.assertFalse(
-            models.DonorCache.objects.filter(donor=self.jane, event=None).exists()
-        )
-        self.assertEqual(0, models.DonorCache.objects.count())
+        d5.delete()
+        d6.delete()
+        self.assertFalse(0, models.DonorCache.objects.exists())
 
 
 class TestDonorEmailSave(TestCase):
@@ -475,3 +508,137 @@ class TestDonorAdmin(TestCase, AssertionHelpers):
             request.user = AnonymousUser()
             search_fields = self.admin.get_search_fields(request)
             self.assertSetEqual({'alias'}, set(search_fields))
+
+
+class TestDonorCacheCurrencyMigration(MigrationsTestCase, AssertionHelpers):
+    migrate_from = [('tracker', '0069_donor_cache_enhancements')]
+    migrate_to = [('tracker', '0070_backfill_donor_cache_enhancements')]
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'Event')
+        Donation = apps.get_model('tracker', 'Donation')
+        Donor = apps.get_model('tracker', 'Donor')
+        DonorCache = apps.get_model('tracker', 'DonorCache')
+        self.us_event_id = Event.objects.create(
+            short='us', name='US', datetime=today_noon, paypalcurrency='USD'
+        ).id
+        self.eu_event_id = Event.objects.create(
+            short='eu', name='EU', datetime=long_ago_noon, paypalcurrency='EUR'
+        ).id
+        self.empty_event_id = Event.objects.create(
+            short='empty', name='Empty', datetime=tomorrow_noon, paypalcurrency='EUR'
+        ).id
+        self.donor1_id = Donor.objects.create().id
+        self.donor2_id = Donor.objects.create().id
+        Donation.objects.create(
+            event_id=self.us_event_id,
+            amount=5,
+            transactionstate='COMPLETED',
+            donor_id=self.donor1_id,
+            domainId='deadbeef',
+        )
+        Donation.objects.create(
+            event_id=self.us_event_id,
+            amount=25,
+            transactionstate='COMPLETED',
+            donor_id=self.donor1_id,
+            domainId='deedbeef',
+        )
+        Donation.objects.create(
+            event_id=self.us_event_id,
+            amount=10,
+            transactionstate='COMPLETED',
+            donor_id=self.donor2_id,
+            domainId='deafbeef',
+        )
+        Donation.objects.create(
+            event_id=self.eu_event_id,
+            amount=20,
+            transactionstate='COMPLETED',
+            donor_id=self.donor1_id,
+            domainId='feedbeef',
+        )
+        # should be deleted
+        DonorCache.objects.create(donor_id=self.donor1_id, event=None)
+
+    def test_currency_split(self):
+        DonorCache = self.apps.get_model('tracker', 'DonorCache')
+        self.assertEqual(
+            DonorCache.objects.filter(donor_id=self.donor1_id, event=None).count(), 2
+        )
+        self.assertEqual(
+            DonorCache.objects.filter(donor_id=self.donor2_id, event=None).count(), 1
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_count': 2,
+                'donation_total': 30,
+                'donation_max': 25,
+                'donation_avg': 15,
+                'donation_med': 15,
+            },
+            DonorCache.objects.get(donor_id=self.donor1_id, currency='USD').__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_count': 1,
+                'donation_total': 20,
+                'donation_max': 20,
+                'donation_avg': 20,
+                'donation_med': 20,
+            },
+            DonorCache.objects.get(donor_id=self.donor1_id, currency='EUR').__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_count': 1,
+                'donation_total': 10,
+                'donation_max': 10,
+                'donation_avg': 10,
+                'donation_med': 10,
+            },
+            DonorCache.objects.get(donor_id=self.donor2_id, currency='USD').__dict__,
+        )
+        self.assertFalse(
+            DonorCache.objects.filter(event_id=self.empty_event_id).exists()
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 40,
+                'donation_count': 3,
+                'donation_max': 25,
+                'donation_avg': Decimal(40.0 / 3).quantize(Decimal('0.00')),
+                'donation_med': 10,
+            },
+            DonorCache.objects.get(donor=None, event_id=self.us_event_id).__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 20,
+                'donation_count': 1,
+                'donation_max': 20,
+                'donation_avg': 20,
+                'donation_med': 20,
+            },
+            DonorCache.objects.get(donor=None, event_id=self.eu_event_id).__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 40,
+                'donation_count': 3,
+                'donation_max': 25,
+                'donation_avg': Decimal(40.0 / 3).quantize(Decimal('0.00')),
+                'donation_med': 10,
+            },
+            DonorCache.objects.get(donor=None, event=None, currency='USD').__dict__,
+        )
+        self.assertDictContainsSubset(
+            {
+                'donation_total': 20,
+                'donation_count': 1,
+                'donation_max': 20,
+                'donation_avg': 20,
+                'donation_med': 20,
+            },
+            DonorCache.objects.get(donor=None, event=None, currency='EUR').__dict__,
+        )
