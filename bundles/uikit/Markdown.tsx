@@ -1,10 +1,11 @@
 import React from 'react';
+import cn from 'classnames';
 import ReactMarkdown from 'react-markdown';
 
 import Anchor from './Anchor';
 
 type MarkdownProps = {
-  className?: string;
+  className?: cn.Argument;
   children: string;
 };
 
@@ -34,7 +35,7 @@ const Markdown = (props: MarkdownProps) => {
 
   return (
     <ReactMarkdown
-      className={className}
+      className={cn(className)}
       allowedElements={DEFAULT_ALLOWED_NODE_TYPES}
       components={DEFAULT_RENDERERS}
       unwrapDisallowed>

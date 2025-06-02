@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { Anchor, Button, Card, FormSwitch, Header, Spacer, Stack, Text, usePopout } from '@faulty/gdq-design';
 
 import { useConstants } from '@common/Constants';
@@ -90,7 +90,7 @@ export function PrimaryNavPopout(props: PrimaryNavPopoutProps) {
   const hasPrizes = SWEEPSTAKES_URL !== '';
 
   return (
-    <Card floating className={classNames(styles.container, styles.test)}>
+    <Card floating className={cn(styles.container, styles.test)}>
       <Stack direction="horizontal" spacing="space-xl" justify="stretch">
         <Stack spacing="space-lg">
           <CurrentUser />

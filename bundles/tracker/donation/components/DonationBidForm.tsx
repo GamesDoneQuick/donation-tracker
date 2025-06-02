@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { shallowEqual, useSelector } from 'react-redux';
 
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
@@ -25,7 +25,7 @@ type DonationBidFormProps = {
   incentiveId: number;
   step: number;
   total: number;
-  className?: string;
+  className?: cn.Argument;
   onSubmit: (bid: Bid) => void;
 };
 
@@ -103,14 +103,14 @@ const DonationBidForm = (props: DonationBidFormProps) => {
 
   if (incentive == null) {
     return (
-      <div className={classNames(styles.container, className)}>
+      <div className={cn(styles.container, className)}>
         <Text>You have {remainingDonationTotalString} remaining.</Text>
       </div>
     );
   }
 
   return (
-    <div className={classNames(styles.container, className)}>
+    <div className={cn(styles.container, className)}>
       <Header size={Header.Sizes.H4}>{incentive.runname}</Header>
       <Header size={Header.Sizes.H5}>{incentive.name}</Header>
       <Text size={Text.Sizes.SIZE_14}>{incentive.description}</Text>

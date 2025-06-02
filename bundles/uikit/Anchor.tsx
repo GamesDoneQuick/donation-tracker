@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { Link } from 'react-router-dom';
 
 import styles from './Anchor.mod.css';
@@ -8,7 +8,7 @@ type AnchorProps = {
   href?: string;
   target?: string;
   rel?: string;
-  className?: string;
+  className?: cn.Argument;
   children: React.ReactNode;
 };
 
@@ -23,7 +23,7 @@ const Anchor = (props: AnchorProps) => {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className={classNames(styles.anchor, 'block-external', className)}
+        className={cn(styles.anchor, 'block-external', className)}
         {...linkProps}>
         {children}
       </a>
@@ -31,7 +31,7 @@ const Anchor = (props: AnchorProps) => {
   }
 
   return (
-    <Link to={href} {...linkProps} className={classNames(styles.anchor, className)}>
+    <Link to={href} {...linkProps} className={cn(styles.anchor, className)}>
       {children}
     </Link>
   );

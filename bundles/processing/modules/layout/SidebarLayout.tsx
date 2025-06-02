@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { Header, Stack, Text } from '@faulty/gdq-design';
 
 import { useEventFromRoute } from '@public/apiv2/hooks';
@@ -57,7 +57,7 @@ export default function SidebarLayout(props: SidebarLayoutProps) {
         <LayoutHeader subtitle={subtitle} />
         {sidebar}
       </Stack>
-      <main className={classNames(styles.main, mainClassName)}>{children}</main>
+      <main className={cn(styles.main, mainClassName)}>{children}</main>
     </div>
   );
 }

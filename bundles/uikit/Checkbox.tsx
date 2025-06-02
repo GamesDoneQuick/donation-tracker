@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import Clickable from './Clickable';
 import Icon from './Icon';
@@ -12,7 +12,7 @@ const CheckboxLooks = {
 };
 
 type CheckboxHeaderProps = {
-  className?: string;
+  className?: cn.Argument;
   children: React.ReactNode;
   [headerProp: string]: any;
 };
@@ -21,7 +21,7 @@ const CheckboxHeader = (props: CheckboxHeaderProps) => {
   const { children, className, ...headerProps } = props;
 
   return (
-    <div className={classNames(styles.header, className)} {...headerProps}>
+    <div className={cn(styles.header, className)} {...headerProps}>
       {children}
     </div>
   );
@@ -33,7 +33,7 @@ type CheckboxProps = {
   name?: string;
   checked: boolean;
   disabled?: boolean;
-  className?: string;
+  className?: cn.Argument;
   contentClassName?: string;
   children?: React.ReactNode;
   onChange: (checked: boolean) => void;
@@ -61,12 +61,12 @@ const Checkbox = (props: CheckboxProps) => {
       tag="label"
       role="checkbox"
       aria-checked={!!checked}
-      className={classNames(styles.container, look, className, { [styles.disabled]: disabled })}
+      className={cn(styles.container, look, className, { [styles.disabled]: disabled })}
       onClick={handleClick}
       data-testid={name}>
       <Icon className={styles.check} name={checked ? Icon.Types.CHECKBOX_CHECKED : Icon.Types.CHECKBOX_OPEN} />
 
-      <div className={classNames(styles.content, contentClassName)}>
+      <div className={cn(styles.content, contentClassName)}>
         {label && <CheckboxHeader>{label}</CheckboxHeader>}
         {children}
       </div>

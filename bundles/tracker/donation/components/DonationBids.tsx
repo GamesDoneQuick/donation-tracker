@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { shallowEqual, useSelector } from 'react-redux';
 
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
@@ -65,7 +65,7 @@ const BidItem = (props: BidItemProps) => {
 };
 
 type DonationBidsProps = {
-  className?: string;
+  className?: cn.Argument;
 };
 
 const DonationBids = (props: DonationBidsProps) => {
@@ -89,7 +89,7 @@ const DonationBids = (props: DonationBidsProps) => {
   );
 
   return (
-    <div className={classNames(styles.container, className)}>
+    <div className={cn(styles.container, className)}>
       {bids.map((bid, i) => {
         if (bid.incentiveId) {
           const incentive = incentives[bid.incentiveId];

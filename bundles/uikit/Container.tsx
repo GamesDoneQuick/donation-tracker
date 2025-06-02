@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import styles from './Container.mod.css';
 
@@ -11,14 +11,14 @@ const ContainerSizes = {
 
 type ContainerProps = {
   size?: (typeof ContainerSizes)[keyof typeof ContainerSizes];
-  className?: string;
+  className?: cn.Argument;
   children: React.ReactNode;
 };
 
 const Container = (props: ContainerProps) => {
   const { size = ContainerSizes.NORMAL, className, children } = props;
 
-  return <div className={classNames(styles.container, size, className)}>{children}</div>;
+  return <div className={cn(styles.container, size, className)}>{children}</div>;
 };
 
 Container.Sizes = ContainerSizes;

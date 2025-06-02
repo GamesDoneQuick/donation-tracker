@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import styles from './Clickable.mod.css';
 
@@ -7,7 +7,7 @@ type ClickableProps = {
   tag?: 'div' | 'a' | 'span' | 'label' | 'img';
   role?: string;
   tabIndex?: -1 | 0;
-  className?: string;
+  className?: cn.Argument;
   children: React.ReactNode;
   onClick?: () => void;
   [divProp: string]: any;
@@ -32,7 +32,7 @@ const Clickable = (props: ClickableProps) => {
   return (
     <Tag
       {...clickableProps}
-      className={classNames(styles.clickable, className)}
+      className={cn(styles.clickable, className)}
       tabIndex={tabIndex}
       role={role}
       onClick={onClick}
