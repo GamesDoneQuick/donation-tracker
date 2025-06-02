@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import styles from './Header.mod.css';
 
@@ -23,7 +23,7 @@ type HeaderProps = {
   color?: (typeof HeaderColors)[keyof typeof HeaderColors];
   marginless?: boolean;
   oneline?: boolean;
-  className?: string;
+  className?: cn.Argument;
   children: React.ReactNode;
 };
 
@@ -39,7 +39,7 @@ const Header = (props: HeaderProps) => {
 
   return (
     <h1
-      className={classNames(styles.header, color, size, className, {
+      className={cn(styles.header, color, size, className, {
         [styles.oneline]: oneline,
         [styles.marginless]: marginless,
       })}>

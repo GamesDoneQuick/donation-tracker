@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import Text from './Text';
 
@@ -19,7 +19,7 @@ type InputWrapperProps = {
   leader?: React.ReactNode;
   trailer?: React.ReactNode;
   marginless?: boolean;
-  className?: string;
+  className?: cn.Argument;
   children: React.ReactNode;
 };
 
@@ -39,7 +39,7 @@ const InputWrapper = (props: InputWrapperProps) => {
   } = props;
 
   return (
-    <div className={classNames(styles.container, size, className, { [styles.marginless]: marginless })}>
+    <div className={cn(styles.container, size, className, { [styles.marginless]: marginless })}>
       {label != null && (
         <label className={styles.label} htmlFor={name}>
           {label}

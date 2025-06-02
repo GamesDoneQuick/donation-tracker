@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { Box, Clickable, Stack, Tag, Text } from '@faulty/gdq-design';
 
@@ -114,7 +114,7 @@ export default function DonationRow(props: DonationRowProps) {
   const donationComment = (
     <Text
       variant={hasComment ? 'text-md/normal' : 'text-md/secondary'}
-      className={classNames(styles.comment, { [styles.noCommentHint]: !hasComment })}>
+      className={cn(styles.comment, { [styles.noCommentHint]: !hasComment })}>
       {hasComment ? <HighlightKeywords>{donation.comment || ''}</HighlightKeywords> : <em>No comment was provided</em>}
     </Text>
   );
@@ -125,7 +125,7 @@ export default function DonationRow(props: DonationRowProps) {
         ref={rowRef}
         radius="large"
         border="subtle"
-        className={classNames(styles.container, {
+        className={cn(styles.container, {
           [styles.isDropOver]: isOver && canDrop,
           [styles.dragging]: isDragging,
         })}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import ReactNumeric from 'react-numeric';
 
 import * as CurrencyUtils from '@public/util/currency';
@@ -51,7 +51,7 @@ const CurrencyInput = (props: CurrencyInputProps) => {
 
   return (
     <InputWrapper
-      className={classNames(className, { [styles.disabled]: disabled })}
+      className={cn(className, { [styles.disabled]: disabled })}
       label={label}
       name={name}
       hint={hint}

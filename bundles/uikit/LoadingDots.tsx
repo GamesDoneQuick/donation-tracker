@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import times from 'lodash/times';
 
 import styles from './LoadingDots.mod.css';
@@ -18,7 +18,7 @@ type LoadingDotsProps = {
   count?: number;
   spacing?: number;
   radius?: number;
-  className?: string;
+  className?: cn.Argument;
 };
 
 const LoadingDots = (props: LoadingDotsProps) => {
@@ -37,7 +37,7 @@ const LoadingDots = (props: LoadingDotsProps) => {
   const verticalCenter = radius + spacing / 2;
 
   return (
-    <svg className={classNames(styles.dots, className)} viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`} width={width}>
+    <svg className={cn(styles.dots, className)} viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`} width={width}>
       {times(count, index => (
         <g key={index} transform={`translate(${spacing * (index + 1)} ${verticalCenter})`}>
           <circle cx="0" cy="0" r={radius} fill="currentColor" transform="scale(0.5 0.5)">

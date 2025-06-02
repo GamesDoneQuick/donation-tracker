@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 import { shallowEqual, useSelector } from 'react-redux';
 
 import { useCachedCallback } from '@public/hooks/useCachedCallback';
@@ -25,7 +25,7 @@ import styles from './DonationIncentives.mod.css';
 type DonationIncentivesProps = {
   step: number;
   total: number;
-  className?: string;
+  className?: cn.Argument;
 };
 
 const DonationIncentives = (props: DonationIncentivesProps) => {
@@ -60,7 +60,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
   const selectIncentive = useCachedCallback(resultId => setSelectedIncentiveId(resultId), []);
 
   return (
-    <div className={className}>
+    <div className={cn(className)}>
       {bids.length > 0 && <DonationBids className={styles.bids} />}
 
       {showForm ? (
@@ -70,7 +70,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
             <div className={styles.results}>
               {searchResults.map(result => (
                 <Clickable
-                  className={classNames(styles.result, {
+                  className={cn(styles.result, {
                     [styles.resultSelected]: selectedIncentiveId === result.id,
                   })}
                   key={result.id}

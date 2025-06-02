@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import InputWrapper, { InputWrapperPassthroughProps } from './InputWrapper';
 
@@ -56,7 +56,7 @@ const TextInput = (props: TextInputProps) => {
 
   return (
     <InputWrapper
-      className={classNames(className, { [styles.disabled]: disabled })}
+      className={cn(className, { [styles.disabled]: disabled })}
       label={label}
       name={name}
       hint={hint}
@@ -65,7 +65,7 @@ const TextInput = (props: TextInputProps) => {
       trailer={trailer}
       size={size}>
       <Tag
-        className={classNames(styles.input, { [styles.multiline]: multiline })}
+        className={cn(styles.input, { [styles.multiline]: multiline })}
         placeholder={placeholder}
         type={type}
         name={name}
@@ -79,7 +79,7 @@ const TextInput = (props: TextInputProps) => {
         {...inputProps}
       />
       {maxLength != null && (
-        <div className={classNames(styles.lengthLimit, { [styles.invalidLength]: invalidLength })} aria-hidden>
+        <div className={cn(styles.lengthLimit, { [styles.invalidLength]: invalidLength })} aria-hidden>
           {usedLength} / {maxLength}
         </div>
       )}

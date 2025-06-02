@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import cn from 'classnames';
 
 import styles from './Button.mod.css';
 
@@ -25,7 +25,7 @@ type ButtonProps = {
   fullwidth?: boolean;
   disabled?: boolean;
   tabIndex?: -1 | 0;
-  className?: string;
+  className?: cn.Argument;
   children: React.ReactNode;
   onClick?: () => void;
 };
@@ -60,7 +60,7 @@ const Button = (props: ButtonProps) => {
       disabled={disabled}
       type="button"
       tabIndex={tabIndex}
-      className={classNames(styles.button, color, size, look, className, {
+      className={cn(styles.button, color, size, look, className, {
         [styles.isFullwidth]: fullwidth,
       })}>
       {children}
