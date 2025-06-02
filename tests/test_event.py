@@ -245,6 +245,29 @@ class TestEventViews(TransactionTestCase):
         models.Donation.objects.create(
             event=self.eu_event, amount=10, transactionstate='COMPLETED', donor=donor
         )
+        models.SpeedRun.objects.create(
+            event=self.event,
+            order=1,
+            run_time='5:00',
+        )
+        models.Bid.objects.create(
+            event=self.event,
+            istarget=True,
+            name='Test Bid',
+            goal=50,
+        )
+        models.Milestone.objects.create(
+            event=self.event,
+            amount=1000,
+            name='Test Milestone',
+            visible=True,
+        )
+        models.Prize.objects.create(
+            event=self.event,
+            minimumbid=5,
+            name='Test Prize',
+            state='ACCEPTED',
+        )
 
     @override_settings(TRACKER_LOGO='example-logo.png')
     def test_main_index(self):
@@ -261,6 +284,41 @@ class TestEventViews(TransactionTestCase):
             'Donation Total (EUR): €35.00 (2) &mdash; Max/Avg/Median Donation: €25.00/€17.50/€17.50',
             html=True,
         )
+        self.assertContains(response, 'View Runs (1)', html=True)
+        self.assertContains(response, 'View Prizes (1)', html=True)
+        self.assertContains(response, 'View Bids (1)', html=True)
+        self.assertContains(response, 'View Milestones (1)', html=True)
+        self.assertContains(response, 'View Donations (5)', html=True)
+
+    @override_settings(TRACKER_LOGO='example-logo.png')
+    def test_event_detail(self):
+        response = self.client.get(reverse('tracker:index', args=(self.event.id,)))
+        self.assertContains(response, self.event.name)
+        self.assertContains(response, 'example-logo.png')
+        self.assertContains(
+            response,
+            'Donation Total: $75.00 (3) &mdash; Max/Avg/Median Donation: $60.00/$25.00/$10.00',
+            html=True,
+        )
+        self.assertContains(response, 'View Runs (1)', html=True)
+        self.assertContains(response, 'View Prizes (1)', html=True)
+        self.assertContains(response, 'View Bids (1)', html=True)
+        self.assertContains(response, 'View Milestones (1)', html=True)
+        self.assertContains(response, 'View Donations (3)', html=True)
+
+        response = self.client.get(reverse('tracker:index', args=(self.eu_event.id,)))
+        self.assertContains(response, self.eu_event.name)
+        self.assertContains(response, 'example-logo.png')
+        self.assertContains(
+            response,
+            'Donation Total: €35.00 (2) &mdash; Max/Avg/Median Donation: €25.00/€17.50/€17.50',
+            html=True,
+        )
+        self.assertContains(response, 'View Runs (0)', html=True)
+        self.assertContains(response, 'View Prizes (0)', html=True)
+        self.assertContains(response, 'View Bids (0)', html=True)
+        self.assertContains(response, 'View Milestones (0)', html=True)
+        self.assertContains(response, 'View Donations (2)', html=True)
 
     def test_json(self):
         response = self.client.get(reverse('tracker:index_all'), data={'json': ''})

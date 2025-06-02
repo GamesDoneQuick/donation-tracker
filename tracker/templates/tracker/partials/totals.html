@@ -1,0 +1,12 @@
+{% load i18n %}
+{% load donation_tags %}
+
+{% for cache in caches %}
+  <br />
+  <small>
+    {% trans "Donation Total" %}{% if cache.currency %} ({{ cache.currency }}){% endif %}:
+    {% money cache cache.donation_total %} ({{ cache.donation_count }}) &mdash;
+    {% trans "Max/Avg/Median Donation" %}:
+    {% money cache cache.donation_max %}/{% money cache cache.donation_avg %}/{% money cache cache.donation_med %}
+  </small>
+{% endfor %}

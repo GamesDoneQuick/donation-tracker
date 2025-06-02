@@ -15,15 +15,7 @@
     <h2 class="text-center">
         {{ event.name }}
         {% if not event.draft %}
-          {% for cache in caches %}
-            <br/>
-            <small>
-              {% trans "Donation Total" %}{% if cache.currency %} ({{ cache.currency }}){% endif %}:
-              {% money cache.currency cache.donation_total %} ({{ cache.donation_count }}) &mdash;
-              {% trans "Max/Avg/Median Donation" %}:
-              {% money cache.currency cache.donation_max %}/{% money cache.currency cache.donation_avg %}/{% money cache.currency cache.donation_med %}
-            </small>
-          {% endfor %}
+          {% include "tracker/partials/totals.html" with caches=caches only %}
         {% endif %}
     </h2>
     <div class="col-xs-4 col-xs-offset-4">

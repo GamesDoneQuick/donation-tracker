@@ -61,10 +61,11 @@ def eventlist(request):
 
 def index(request, event=None):
     event = viewutil.get_event(event)
-    eventParams = {}
+    filter_params = {}
 
     if event.id:
         caches = DonorCache.objects.filter(donor=None, event=event)
+        filter_params['event'] = event
     else:
         caches = DonorCache.objects.filter(donor=None, event=None)
 
@@ -72,10 +73,12 @@ def index(request, event=None):
     if not event.draft:
         count.update(
             {
-                'runs': SpeedRun.objects.public().filter(**eventParams).count(),
-                'prizes': Prize.objects.public().filter(**eventParams).count(),
-                'bids': Bid.objects.public().filter(level=0, **eventParams).count(),
-                'milestones': Milestone.objects.public().filter(**eventParams).count(),
+                'runs': SpeedRun.objects.public().filter(**filter_params).count(),
+                'prizes': Prize.objects.public().filter(**filter_params).count(),
+                'bids': Bid.objects.public().filter(level=0, **filter_params).count(),
+                'milestones': Milestone.objects.public()
+                .filter(**filter_params)
+                .count(),
                 'donations': caches.aggregate(count=Coalesce(Sum('donation_count'), 0))[
                     'count'
                 ],
