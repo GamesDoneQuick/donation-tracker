@@ -2,6 +2,7 @@ import { APIEvent, PaginationInfo } from '@public/apiv2/APITypes';
 import { sum } from '@public/util/reduce';
 
 type ComputedFields =
+  | 'use_one_step_screening'
   | 'locked'
   | 'amount'
   | 'donation_count'
@@ -23,6 +24,7 @@ function median(values: number[], fallback = 0) {
 export function getFixtureEvent(overrides?: Omit<Partial<APIEvent>, ComputedFields>, amounts?: number[]): APIEvent {
   const computed: Pick<APIEvent, ComputedFields> = {
     locked: overrides?.archived ?? false,
+    use_one_step_screening: overrides?.screening_mode !== 'two_pass',
   };
   if (amounts) {
     computed.donation_count = amounts.length;
@@ -46,7 +48,7 @@ export function getFixtureEvent(overrides?: Omit<Partial<APIEvent>, ComputedFiel
     receiver_logo: 'https://example.com/logo.png',
     receiver_privacy_policy: 'https://example.com/privacy/',
     paypalcurrency: 'USD',
-    use_one_step_screening: true,
+    screening_mode: 'one_pass',
     allow_donations: true,
     archived: false,
     draft: false,

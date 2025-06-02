@@ -156,8 +156,22 @@ class ProcessDonationsAndBidsBrowserTest(TrackerSeleniumTestCase):
             f'tr[data-testid="bid-{bid_id}"] button[data-testid="action-{action}"]',
         ).click()
 
-    def test_one_step_screening(self):
-        self.event.use_one_step_screening = True
+    def test_host_only(self):
+        self.event.screening_mode = 'host_only'
+        self.event.save()
+        self.tracker_login(self.processor.username)
+        self.webdriver.get(
+            f'{self.live_server_url}{reverse("admin:process_donations")}'
+        )
+        self.click_donation(self.donation.pk, 'read')
+        # FIXME: what element can we look for?
+        time.sleep(1)
+        self.donation.refresh_from_db()
+        self.assertEqual(self.donation.readstate, 'READ')
+        self.assertEqual(self.donation.commentstate, 'APPROVED')
+
+    def test_one_pass_screening(self):
+        self.event.screening_mode = 'one_pass'
         self.event.save()
         self.tracker_login(self.processor.username)
         self.webdriver.get(
@@ -167,9 +181,10 @@ class ProcessDonationsAndBidsBrowserTest(TrackerSeleniumTestCase):
         self.webdriver.find_element(By.CSS_SELECTOR, 'button[aria-name="undo"]')
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'READY')
+        self.assertEqual(self.donation.commentstate, 'APPROVED')
 
-    def test_two_step_screening(self):
-        self.event.use_one_step_screening = False
+    def test_two_pass_screening(self):
+        self.event.screening_mode = 'two_pass'
         self.event.save()
         self.tracker_login(self.processor.username)
         self.webdriver.get(
@@ -179,6 +194,7 @@ class ProcessDonationsAndBidsBrowserTest(TrackerSeleniumTestCase):
         self.webdriver.find_element(By.CSS_SELECTOR, 'button[aria-name="undo"]')
         self.donation.refresh_from_db()
         self.assertEqual(self.donation.readstate, 'FLAGGED')
+        self.assertEqual(self.donation.commentstate, 'APPROVED')
         self.tracker_logout()
         self.tracker_login(self.head_processor.username)
         self.webdriver.get(
