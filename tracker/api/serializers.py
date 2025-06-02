@@ -908,6 +908,7 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
     # allowed_prize_countries = CountrySerializer(many=True)
     # disallowed_prize_regions = CountryRegionSerializer(many=True)
     timezone = serializers.SerializerMethodField()
+    use_one_step_screening = serializers.SerializerMethodField()
     amount = (
         serializers.SerializerMethodField()
     )  # deprecated alias for `donation_total`
@@ -945,6 +946,7 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             'receiver_logo',
             'receiver_privacy_policy',
             'use_one_step_screening',
+            'screening_mode',
             'locked',
             'archived',
             'draft',
@@ -984,6 +986,9 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             return None
 
         return self._get_cache(obj).donation_count
+
+    def get_use_one_step_screening(self, obj):
+        return obj.screening_mode != 'two_pass'
 
     def get_amount(self, obj):
         return self.get_donation_total(obj)

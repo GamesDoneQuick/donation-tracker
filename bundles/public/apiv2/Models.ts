@@ -41,6 +41,8 @@ interface ModelBase {
   readonly id: number;
 }
 
+export type EventScreeningMode = 'host_only' | 'one_pass' | 'two_pass';
+
 export interface Event extends ModelBase {
   readonly type: 'event';
   short: string;
@@ -56,7 +58,11 @@ export interface Event extends ModelBase {
   receiver_logo: string;
   receiver_privacy_policy: string;
   paypalcurrency: string;
+  /**
+   * @deprecated pseudo-alias for `screening_mode`
+   */
   use_one_step_screening: boolean;
+  screening_mode: EventScreeningMode;
   allow_donations: boolean;
   /**
    * @deprecated alias for `archived`
