@@ -3,7 +3,7 @@ import datetime
 from django.contrib import admin, messages
 from django.contrib.auth.decorators import permission_required
 from django.db.models import Q
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -316,7 +316,21 @@ class DonationAdmin(EventArchivedMixin, CustomModelAdmin):
     def process_donations_view(self, request):
         event = models.Event.objects.current_or_next()
         if event is None:
-            raise Http404
+            future = models.Event.objects.all()
+            if future.count() == 0:
+                raise Http404
+            urls = ''.join(
+                format_html(
+                    "<a href='{0}'>{1}</a><br/>",
+                    reverse(
+                        'admin:tracker_ui',
+                        kwargs={'extra': f'v2/{e.pk}/processing/donations'},
+                    ),
+                    e.name,
+                )
+                for e in future
+            )
+            return HttpResponse(f"<html><body>{urls}</body></html>")
         return HttpResponseRedirect(
             reverse(
                 'admin:tracker_ui',
@@ -327,7 +341,21 @@ class DonationAdmin(EventArchivedMixin, CustomModelAdmin):
     def read_donations_view(self, request):
         event = models.Event.objects.current_or_next()
         if event is None:
-            raise Http404
+            future = models.Event.objects.all()
+            if future.count() == 0:
+                raise Http404
+            urls = ''.join(
+                format_html(
+                    "<a href='{0}'>{1}</a><br/>",
+                    reverse(
+                        'admin:tracker_ui',
+                        kwargs={'extra': f'v2/{e.pk}/processing/read'},
+                    ),
+                    e.name,
+                )
+                for e in future
+            )
+            return HttpResponse(f"<html><body>{urls}</body></html>")
         return HttpResponseRedirect(
             reverse(
                 'admin:tracker_ui', kwargs={'extra': f'v2/{event.pk}/processing/read'}
