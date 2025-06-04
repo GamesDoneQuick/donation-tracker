@@ -23,12 +23,14 @@ import ProcessPendingBids from './processPendingBids';
 
 describe('ProcessPendingBids', () => {
   let subject: ReturnType<typeof render>;
-  const eventId = 1;
+  let eventId: number | '@all' = 1;
 
   let mock: MockAdapter;
   let me: Me;
 
-  const params: BidQuery = { urlParams: { eventId, feed: 'pending' } };
+  function params(): BidQuery {
+    return { urlParams: { ...(eventId === '@all' ? {} : { eventId }), feed: 'pending' } };
+  }
 
   function treeParams(params: BidQuery['urlParams']) {
     if (typeof params === 'number') {
@@ -46,6 +48,7 @@ describe('ProcessPendingBids', () => {
   });
 
   beforeEach(() => {
+    eventId = 1;
     store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     me = {
@@ -56,7 +59,7 @@ describe('ProcessPendingBids', () => {
     };
     mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
     mock.onGet('//testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent());
-    mock.onGet('//testserver/' + Endpoints.BIDS(treeParams(params.urlParams))).reply(200, getFixtureMixedBidsTree());
+    mock.onGet('//testserver/' + Endpoints.BIDS(treeParams(params().urlParams))).reply(200, getFixtureMixedBidsTree());
   });
 
   afterEach(() => {
@@ -69,7 +72,7 @@ describe('ProcessPendingBids', () => {
 
   it('loads bids on mount', async () => {
     await renderComponent();
-    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'bidTree')).toContain(params);
+    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'bidTree')).toContain(params());
   });
 
   describe('when the bids have loaded', () => {
@@ -93,7 +96,7 @@ describe('ProcessPendingBids', () => {
       beforeEach(async () => {
         me.permissions = ['tracker.approve_bid'];
         await renderComponent();
-        const tree = trackerApi.endpoints.bidTree.select(params)(store.getState()).data;
+        const tree = trackerApi.endpoints.bidTree.select(params())(store.getState()).data;
         expect(tree).withContext('tree did not exist').toBeDefined();
         const pendingId = findChildInTree(tree ?? [], o => o.state === 'PENDING')?.id;
         expect(pendingId).withContext('pending child could not be found').toBeDefined();
@@ -122,6 +125,13 @@ describe('ProcessPendingBids', () => {
         expect(row.getByText(/Denied/)).not.toBeNull();
       });
     });
+  });
+
+  it('supports "@all" as a quick hack for all events', async () => {
+    eventId = '@all';
+    await renderComponent();
+    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'bidTree')).toContain(params());
+    expect(subject.getByText('All Events')).not.toBeNull();
   });
 
   async function renderComponent() {
