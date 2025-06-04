@@ -32,6 +32,11 @@ function EventMenu(name) {
         <Spinner spinning={isLoading}>
           {name}
           <ul style={{ display: 'block' }}>
+            {name === 'Process Pending Bids' && (
+              <li>
+                <Link to="@all">All Events</Link>
+              </li>
+            )}
             {sortedEvents &&
               sortedEvents.map(e => (
                 <li key={e.id}>
@@ -65,6 +70,11 @@ function DropdownMenu({ name, path }) {
           overflowY: 'auto',
         }}>
         <ul style={{ display: 'block' }}>
+          {name === 'Process Pending Bids' && (
+            <li>
+              <Link to={`${path}/@all`}>All Events</Link>
+            </li>
+          )}
           {sortedEvents &&
             sortedEvents.map(e => (
               <li key={e.id}>

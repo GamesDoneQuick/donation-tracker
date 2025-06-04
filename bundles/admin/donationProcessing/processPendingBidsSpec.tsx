@@ -23,19 +23,21 @@ import ProcessPendingBids from './processPendingBids';
 
 describe('ProcessPendingBids', () => {
   let subject: ReturnType<typeof render>;
-  const eventId = 1;
+  let eventId: number | '@all' = 1;
 
   let mock: MockAdapter;
   let me: Me;
 
-  const params: BidQuery = { urlParams: { eventId, feed: 'pending', tree: true } };
+  function params(): BidQuery {
+    return { urlParams: { ...(eventId === '@all' ? {} : { eventId }), feed: 'pending', tree: true } };
+  }
 
   function actualParams() {
-    expect(typeof params.urlParams).not.toBe('number');
+    expect(typeof params().urlParams).not.toBe('number');
     // @ts-expect-error I AM NOT A NUMBER
-    const { tree, ...urlParams } = params.urlParams;
+    const { tree, ...urlParams } = params().urlParams;
     expect(tree).toBeTrue();
-    return { ...params, urlParams };
+    return { ...params(), urlParams };
   }
 
   function treeParams(params: BidQuery['urlParams']) {
@@ -54,6 +56,7 @@ describe('ProcessPendingBids', () => {
   });
 
   beforeEach(() => {
+    eventId = 1;
     store.dispatch(setRoot({ root: 'http://testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     me = {
@@ -65,7 +68,7 @@ describe('ProcessPendingBids', () => {
     mock.onGet('http://testserver/' + Endpoints.ME).reply(() => [200, me]);
     mock.onGet('http://testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent());
     mock
-      .onGet('http://testserver/' + Endpoints.BIDS(treeParams(params.urlParams)))
+      .onGet('http://testserver/' + Endpoints.BIDS(treeParams(params().urlParams)))
       .reply(200, getFixtureMixedBidsTree());
   });
 
@@ -128,6 +131,13 @@ describe('ProcessPendingBids', () => {
         expect(row.getByText(/Denied/)).not.toBeNull();
       });
     });
+  });
+
+  it('supports "@all" as a quick hack for all events', async () => {
+    eventId = '@all';
+    await renderComponent();
+    expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'bidTree')).toContain(actualParams());
+    expect(subject.getByText('All Events')).not.toBeNull();
   });
 
   async function renderComponent() {
