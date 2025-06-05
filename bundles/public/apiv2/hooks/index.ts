@@ -2,6 +2,7 @@ import React from 'react';
 import { produce } from 'immer';
 import { ReactReduxContext, shallowEqual } from 'react-redux';
 import { useParams } from 'react-router';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useConstants } from '@common/Constants';
 import { Permission } from '@common/Permissions';
@@ -104,16 +105,35 @@ export function useEventParam() {
   return +eventId;
 }
 
-export function useEventFromQuery(id: number | string, params?: Parameters<typeof useEventsQuery>[0]) {
-  id = idOrShort(id);
+export const allEvents = Symbol('all_events');
+
+export function useEventAllParam(): number | typeof allEvents {
+  const { eventId } = useParams<{ eventId: string }>();
+  if (eventId === '@all') {
+    return allEvents;
+  }
+  if (!eventId || !+eventId) {
+    throw new Error('could not find a valid numeric event id in url');
+  }
+  return +eventId;
+}
+
+export function useEventFromQuery(
+  id: number | string | typeof skipToken,
+  params?: Parameters<typeof useEventsQuery>[0],
+) {
+  if (id !== skipToken) {
+    id = idOrShort(id);
+  }
   const finder = typeof id === 'number' ? (e: Event) => e.id === id : (e: Event) => e.short === id;
   return useEventsQuery(params, {
+    skip: id === skipToken,
     selectFromResult: ({ data, error, ...rest }) => {
       const event = data?.find(finder);
       return {
         data: event,
         id: typeof id === 'number' ? id : event?.id,
-        path: id,
+        path: id === skipToken ? '@all' : id,
         // fetch succeeded, but we couldn't find a matching event
         error: !event && rest.isSuccess ? { status: 404, statusText: 'Event does not exist in provided query' } : error,
         ...rest,

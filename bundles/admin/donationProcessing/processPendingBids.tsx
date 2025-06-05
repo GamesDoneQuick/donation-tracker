@@ -1,14 +1,16 @@
 import React from 'react';
 import cn from 'classnames';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
 import {
+  allEvents,
   useApproveBidMutation,
   useBidTreeQuery,
   useDenyBidMutation,
+  useEventAllParam,
   useEventFromQuery,
-  useEventParam,
   usePermission,
 } from '@public/apiv2/hooks';
 import { BidState } from '@public/apiv2/Models';
@@ -53,16 +55,24 @@ const stateMap: Record<LocalBidState, string> = {
 
 export default React.memo(function ProcessPendingBids() {
   const { ADMIN_ROOT } = useConstants();
-  const eventId = useEventParam();
+  const eventId = useEventAllParam();
+  const eventFilter: { eventId?: number } = {};
+  if (eventId !== allEvents) {
+    eventFilter.eventId = eventId;
+  }
   const {
     data: bids,
     error: bidError,
     refetch: refetchBids,
     isFetching: bidFetching,
   } = useBidTreeQuery({
-    urlParams: { eventId, feed: 'pending' },
+    urlParams: { ...eventFilter, feed: 'pending' },
   });
-  const { data: event, error: eventError, isLoading: eventLoading } = useEventFromQuery(eventId);
+  const {
+    data: event,
+    error: eventError,
+    isLoading: eventLoading,
+  } = useEventFromQuery(eventFilter.eventId ?? skipToken);
 
   const canApproveBids = usePermission('tracker.approve_bid');
   const canChangeBids = usePermission('tracker.change_bid');
@@ -98,7 +108,7 @@ export default React.memo(function ProcessPendingBids() {
 
   return (
     <div>
-      <h3>{event?.name}</h3>
+      <h3>{eventId === allEvents ? 'All Events' : event?.name}</h3>
       <div>
         <button onClick={refetch}>Refresh</button>
       </div>
