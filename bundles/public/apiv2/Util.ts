@@ -1,6 +1,17 @@
-import { PaginationInfo } from '@public/apiv2/APITypes';
+import { PageOrInfinite } from '@public/apiv2/reducers/trackerBaseApi';
 
-export function compressInfinitePages(pages: Array<PaginationInfo<unknown>>, limit: number) {
+/**
+ * Will take the provided InfiniteData structure and resize each page to the desired limit
+ * @param data either a bare array (for convenience with standard queries), or InfiniteData
+ * @param limit the new size of the desired pages
+ */
+
+export function compressInfinitePages(data: PageOrInfinite<unknown>, limit: number) {
+  // if it's just a bare array then don't do anything, for convenience
+  if (Array.isArray(data)) {
+    return;
+  }
+  const { pages } = data;
   if (limit < 1) {
     throw new Error('limit must be at least 1');
   }

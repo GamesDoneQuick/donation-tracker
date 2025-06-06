@@ -132,7 +132,7 @@ function optimisticMutation<const MK extends keyof TrackerApiMutationEndpoints>(
                           }
                         }
                       });
-                    } else if (data != null) {
+                    } else if (data != null && 'id' in data) {
                       const i = drafts.findIndex(draft => draft.id === data.id && draft.type === data.type);
                       if (i !== -1) {
                         drafts[i] = { ...drafts[i], ...data };
@@ -153,6 +153,9 @@ function optimisticMutation<const MK extends keyof TrackerApiMutationEndpoints>(
                   // @ts-expect-error typing system can't agree
                   const d: MaybeDrafted<QueryData> = drafts;
                   pessimistic(mutationArgs, data, o)(d);
+                  if (d && 'pages' in d) {
+                    compressInfinitePages(d, getLimit(api));
+                  }
                 }),
               );
             });
@@ -670,9 +673,7 @@ const socketDonation: TrackerQueryOnCacheEntryAdded<'donations' | 'allDonations'
             // replace or delete depending on if it belongs or not
             page.splice(currentIndex, 1, ...(matches ? [newDonation] : []));
           }
-          if (!Array.isArray(donations)) {
-            compressInfinitePages(donations.pages, limit);
-          }
+          compressInfinitePages(donations, limit);
         });
       } else if (data.action === 'group_deleted') {
         api.updateCachedData(donations => {
@@ -769,7 +770,7 @@ const socketBids: TrackerQueryOnCacheEntryAdded<'bids' | 'bidTree'> = async (arg
                 if (flat && 'level' in bid && bid.chain) {
                   let next: FlatBid | undefined = bid;
                   while ((next = flat.find(c => c.parent === next?.id))) {
-                    // @ts-expect-error goal is never null here in practice
+                    // @ts-expect-error next.goal is never null here in practice
                     chain_steps.push(next);
                   }
                 } else if ('chain_steps' in bid && bid.chain_steps != null) {

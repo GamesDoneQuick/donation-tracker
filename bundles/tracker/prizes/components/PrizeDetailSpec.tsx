@@ -29,11 +29,11 @@ describe('PrizeDetail', () => {
   });
 
   beforeEach(() => {
-    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(setRoot({ root: 'http://testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
-    mock.onGet('//testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent({ id: eventId }));
-    mock.onGet('//testserver/' + Endpoints.PRIZES(eventId)).reply(200, getFixturePagedPrizes());
-    mock.onGet('//testserver/' + Endpoints.RUNS(eventId)).reply(200, getFixturePagedRuns());
+    mock.onGet('http://testserver/' + Endpoints.EVENTS).reply(200, getFixturePagedEvent({ id: eventId }));
+    mock.onGet('http://testserver/' + Endpoints.PRIZES(eventId)).reply(200, getFixturePagedPrizes());
+    mock.onGet('http://testserver/' + Endpoints.RUNS(eventId)).reply(200, getFixturePagedRuns());
   });
 
   it('displays "No Image Found" if an error occurs while loading the image', async () => {
@@ -42,10 +42,6 @@ describe('PrizeDetail', () => {
     fireEvent.error(await subject.findByRole('img'));
     expect(subject.queryByRole('img')).toBeNull();
     expect(subject.getByText('No Image Provided')).not.toBeNull();
-  });
-
-  afterEach(() => {
-    cleanup();
   });
 
   afterAll(() => {

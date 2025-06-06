@@ -1,4 +1,5 @@
 import React from 'react';
+import cn from 'classnames';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Button } from '@faulty/gdq-design';
@@ -48,7 +49,7 @@ export function setCurrentThemeFromQuery() {
 darkThemeQuery.addEventListener('change', setCurrentThemeFromQuery);
 lightThemeQuery.addEventListener('change', setCurrentThemeFromQuery);
 
-export function ThemeButton({ className }: { className?: string }) {
+export function ThemeButton({ className }: { className?: cn.Argument }) {
   const store = useThemeStore();
 
   const toggleTheme = React.useCallback(() => {
@@ -56,7 +57,7 @@ export function ThemeButton({ className }: { className?: string }) {
   }, [store]);
 
   return (
-    <Button className={className} onPress={toggleTheme} icon={store.theme === 'dark' ? Sun : Moon}>
+    <Button className={cn(className)} onPress={toggleTheme} icon={store.theme === 'dark' ? Sun : Moon}>
       Switch Themes
     </Button>
   );

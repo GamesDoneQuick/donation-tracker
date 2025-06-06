@@ -5,12 +5,42 @@
 
 {% block head %}
     <link rel="stylesheet" type="text/css" href="{% static 'queueindex.css' %}" />
+    <script type="application/javascript">
+      document.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        const cm = params.get('cm');
+        const parts = cm ? cm.split(':') : null;
+        if (parts) {
+          let id;
+          if (/^\d+$/.test(parts[0])) {
+            id = +parts[0];
+          } else if (/^\d+$/.test(parts[1])) {
+            id = +parts[1];
+          }
+          let interval = 0;
+          function check() {
+            const view = "{% url 'tracker:donation' pk=0 %}".replace('0', id);
+            fetch(view).then(resp => {
+              if (resp.status === 200) {
+                window.location.href = view;
+              } else {
+                interval = Math.max(Math.min(interval * 2, 64000), 1000);
+                setTimeout(check, interval);
+              }
+            });
+          }
+          check();
+        }
+      });
+    </script>
 {% endblock %}
 
 {% block nav %}
 {% endblock %}
 
 {% block content %}
-    Thank you, for your contribution.  Enjoy the event!
+  <p>Thank you for your contribution.  Enjoy the event!</p>
+
+  <p>You will automatically be redirected when the donation is confirmed.</p>
 {% endblock %}
 {% block credits %}{% endblock %}
