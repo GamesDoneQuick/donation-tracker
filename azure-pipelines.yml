@@ -114,6 +114,7 @@ jobs:
           python setup.py package
         displayName: 'Build Package'
         env:
+          BUILD_NUMBER: $(Build.BuildNumber)
           PACKAGE_NAME_SUFFIX: $(Build.SourceVersion)
 
       - task: TwineAuthenticate@1
