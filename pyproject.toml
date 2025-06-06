@@ -1,6 +1,54 @@
 [tool.black]
-target-version = ['py39']
-exclude = 'migrations/'
+extend-exclude = 'migrations/'
 skip-string-normalization = 'True'
 [tool.isort]
 profile = 'black'
+[tool.setuptools.dynamic]
+version = { attr = "tracker.__version__"}
+[project]
+authors = [
+  { name = 'Games Done Quick, LLC', email = 'tracker@gamesdonequick.com' },
+]
+classifiers = [
+  'Development Status :: 5 - Production/Stable',
+  'Environment :: Web Environment',
+  'Framework :: Django',
+  'Intended Audience :: Other Audience',
+  'Operating System :: OS Independent',
+  'Programming Language :: Python',
+  'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3.9',
+  'Programming Language :: Python :: 3.10',
+  'Programming Language :: Python :: 3.11',
+  'Programming Language :: Python :: 3.12',
+  'Programming Language :: Python :: 3.13',
+  'Topic :: Internet :: WWW/HTTP',
+  'Topic :: Software Development :: Libraries :: Python Modules',
+]
+dependencies = [
+  'babel~=2.17.0',
+  'celery~=5.0',
+  'channels>=4.0',
+  'Django>=4.2,<6.0',
+  'django-ical~=1.7',
+  'django-mptt~=0.10',
+  'django-paypal~=1.1',
+  'django-post-office~=3.2',
+  'django-timezone-field>=7.0,<8.0',
+  'djangorestframework~=3.9',
+  'python-dateutil~=2.8.1;python_version<"3.11"',
+  'requests>=2.27.1,<2.33.0',
+]
+description = 'A Django app to assist in tracking donations for live broadcast events.'
+dynamic = ['version']
+license-files = ['LICENSE', 'tracker/static/gen/**/*.LICENSE.txt']
+name = 'django-donation-tracker'
+readme = 'README.md'
+requires-python = '>= 3.9'
+[project.optional-dependencies]
+development = [
+  'daphne~=4.0',
+]
+tqdm = [
+  'tqdm~=4.67.1',
+]
