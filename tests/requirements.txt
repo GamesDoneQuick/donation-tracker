@@ -16,7 +16,7 @@ babel==2.17.0
 # only for testing
 daphne==4.2.0
 lxml==5.4.0 ; python_version<"3.10" # azure issue?
-msgpack==1.1.0
+msgpack==1.1.1
 responses~=0.25.7
 selenium==4.33.0
 tblib==3.1.0
