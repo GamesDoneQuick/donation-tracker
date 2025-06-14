@@ -25,8 +25,8 @@ from tracker.models.prize import (
     DonorPrizeEntry,
     Prize,
     PrizeCategory,
+    PrizeClaim,
     PrizeKey,
-    PrizeWinner,
 )
 from tracker.models.profile import UserProfile
 from tracker.models.tag import AbstractTag, Tag
@@ -46,7 +46,7 @@ __all__ = [
     'Prize',
     'PrizeKey',
     'PrizeCategory',
-    'PrizeWinner',
+    'PrizeClaim',
     'DonorPrizeEntry',
     'SpeedRun',
     'Talent',

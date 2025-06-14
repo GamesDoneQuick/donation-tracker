@@ -34,6 +34,20 @@ class PrizeListFilter(SimpleListFilter):
             return queryset
 
 
+class PrizeEmailStateFilter(SimpleListFilter):
+    title = 'Email State'
+    parameter_name = 'email_state'
+
+    def lookups(self, request, model_admin):
+        return models.Prize.objects.email_state_lookups()
+
+    def queryset(self, request, queryset):
+        try:
+            return queryset.email_state(self.value())
+        except ValueError as e:
+            raise IncorrectLookupParameters from e
+
+
 class AdminActionLogEntryFlagFilter(SimpleListFilter):
     title = 'Action Type'
     parameter_name = 'action_flag'

@@ -6,21 +6,25 @@
         <td><a href="{% url 'admin:diagnostics' %}">Diagnostics</a></td>
       </tr>
     {% endif %}
-    {% if perms.tracker.change_prizewinner %}
+    {% if perms.tracker.change_prize %}
       <tr>
-        <td><a href="{% url 'admin:automail_prize_contributors' %}">Mail Prize Contributors</a></td>
+        <td><a href="{% url 'admin:tracker_automail_prize_contributors' %}">Mail Prize Contributors</a></td>
       </tr>
-      <tr>
-        <td><a href="{% url 'admin:automail_prize_winners' %}">Mail Prize Winners</a></td>
-      </tr>
-      <tr>
-        <td><a href="{% url 'admin:automail_prize_accept_notifications' %}">Mail Prize Winner Accept Notifications</a>
-        </td>
-      </tr>
-      <tr>
-        <td><a href="{% url 'admin:automail_prize_shipping_notifications' %}">Mail Prize Winner Shipping
-          Notifications</a></td>
-      </tr>
+      {% if perms.tracker.change_prizeclaim %}
+        {% if perms.tracker.view_donor %}
+          <tr>
+            <td><a href="{% url 'admin:tracker_automail_prize_winners' %}">Mail Prize Winners</a></td>
+          </tr>
+        {% endif %}
+        <tr>
+          <td><a href="{% url 'admin:tracker_automail_prize_accept_notifications' %}">Mail Prize Winner Accept Notifications</a></td>
+        </tr>
+        {% if perms.tracker.view_donor %}
+          <tr>
+            <td><a href="{% url 'admin:tracker_automail_prize_shipping_notifications' %}">Mail Prize Winner Shipping Notifications</a></td>
+          </tr>
+        {% endif %}
+      {% endif %}
     {% endif %}
     {% if perms.tracker.change_donation %}
       <tr>

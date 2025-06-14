@@ -1,17 +1,17 @@
 Hello {{ winner.contact_name }},
 <p>
-    The following prize{{ prize_count|pluralize }} {{ prize_count|pluralize:"has,have" }} been shipped to you:
+    The following prize{{ prize_count|pluralize }} {{ prize_count|pluralize:"has,have" }} been {{ action }} to you:
 </p>
 
 <ul>
-    {% for prize_win in prize_wins %}
-        <li><a href="{{ prize_win.claim_url }}">{{ prize_win.prize.name }}</a>
-            {% if prize_win.couriername %}
-                <p><b>Courier:</b> {{ prize_win.couriername }}</p>
-                {% if prize_win.trackingnumber %}<p><b>Tracking#:</b> {{ prize_win.trackingnumber }}</p>{% endif %}
+    {% for claim in claims %}
+        <li><a href="{{ claim.claim_url }}">{{ claim.prize.name }}</a>
+            {% if claim.couriername %}
+                <p><b>Courier:</b> {{ claim.couriername }}</p>
+                {% if claim.trackingnumber %}<p><b>Tracking#:</b> {{ claim.trackingnumber }}</p>{% endif %}
             {% endif %}
-            {% if prize_win.shippingnotes %}<p><b>Shipping Notes:</b> {{ prize_win.shippingnotes }}</p>{% endif %}
-            {% if prize_win.prize.key_code %}<p><b>Key:</b> {{ prize_win.prizekey.key }}</p>{% endif %}
+            {% if claim.shippingnotes %}<p><b>Shipping Notes:</b> {{ claim.shippingnotes }}</p>{% endif %}
+            {% if claim.prize.key_code %}<p><b>Key:</b> {{ claim.prize_key.key }}</p>{% endif %}
         </li>
     {% endfor %}
 </ul>

@@ -136,6 +136,100 @@ If you want to override the default email address that volunteer import registra
 Emails` via the Event Admin action dropdown) come from, you can do so with this setting. You can still override it in
 the form itself before doing the import.
 
+#### TRACKER_PUBLIC_SITE_ID
+
+Type: `int`
+
+Default: `SITE_ID` if `django.contrib.sites` is installed, else `None`
+
+If specified, allows you to override the domain used for generating certain urls. Right now it's just prize emails and
+"View on Site" admin links.
+
+If set, requires the `django.contrib.sites` application to be installed, or it will be ignored.
+
+Expects the domain from the specified site in one of three formats:
+- `one.com` - bare domain, treated the same as `//one.com`
+- `//two.com` - domain with scheme-relative specifier, will use scheme from the request
+- `https://three.com` - domain with scheme, will override the scheme from the request
+
+### Prizes
+
+The Tracker has a comprehensive prize flow once configured properly. You'll need to configure the sweepstakes URL as
+mentioned above, as well as ensure that your outgoing email configuration works. You can consider prizes to be in one
+of nine states. If you have the necessary API permissions (`tracker.view_prize` and `tracker.view_prizeclaim`) you can
+query the prize API endpoint with the parameter `?email_state={state}` to get a list of prizes in certain states.
+
+Prizes that are marked as key codes are considered Awarded as soon as they are drawn, and cannot be re-assigned without
+manual intervention.
+
+Suggested example email templates can be set up with the Django management command `default_email_templates`. See that
+command for further details, but the short version is that you probably want `default_email_templates -ao` to create
+the standard set of examples, or `-aop {your_prefix}` to create them with your custom prefix. The Prize mail pages will
+not let you choose a template whose name starts with `default`, and will verify that a) there are no invalid variables
+in the template and b) certain required variables are used.
+
+#### Submitted
+
+A user (contributor) has submitted a prize via the form, and is in a 'PENDING' state. Somebody with prize editing
+access should either accept or deny the prize, possibly after cleaning up the information.
+
+If you are letting the contributor handle shipping, you can leave the `handler` field alone, but if you are, for
+example, asking your contributors to send the prizes to a central location, you should edit the handler field, likely
+to your event's Prize Coordinator. For certain prizes this may not be practical, but that's the fun of logistics!
+
+#### Accepted/Denied
+
+API state: `contributor`
+
+The prize has been accepted or denied, but the contributor has not been notified. `Mail Prize Contributors` will show a
+list of all pending emails, grouped by contributor.
+
+#### Accepted/Denied w/notification
+
+Same as above, except the notification email has been sent.
+
+#### Won
+
+API state: `winner`
+
+The prize has been drawn, and a winner picked, but the winner has not been notified. `Mail Prize Winners` will show a
+list of prizes in this state, grouped by winner.
+
+#### Won w/notification
+
+Same as above, except the notification email has been sent.
+
+#### Claimed
+
+API state: `accepted`
+
+The winner has claimed at least one copy of the prize, but the handler has not been notified.
+`Mail Prize Winner Accept Notifications` will show a list of prizes in this state, grouped by handler. Note that if the
+handler is the same as the event's `prizecoordinator`, it will be excluded from this list.
+
+For physical prizes, the winner will be asked to fill in or verify address information.
+
+#### Claimed w/notification
+
+Same as above, but either the notification has been sent, or the handler is the same as the event's Prize Coordinator.
+
+#### Shipped/Awarded
+
+API state: `shipped`
+
+For physical prizes, the claim has been marked as `SHIPPED`, possibly with tracking information.
+
+For key prizes, it means that the key has been assigned to a winner. It cannot be re-assigned without manual
+intervention at this step, for example if the winner is not supposed to be eligible for the prize. If the winner doesn't
+want the key, it's a better idea to tell them to pass it on themselves rather than try and reassign it.
+
+A notification email still needs to be sent for prizes in this state.
+
+#### Shipped/Awarded w/notification
+
+Same as above, except that the email has been sent. At this point you can consider the prize lifecycle complete,
+barring something like the prize being returned or other catastrophic event.
+
 ### Testing Your Deploy (WIP)
 
 - PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed

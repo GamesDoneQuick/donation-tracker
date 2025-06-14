@@ -135,13 +135,13 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
 
     def test_todraw_feed_with_expired_winner(self):
         # hasn't expired yet
-        models.PrizeWinner.objects.create(
+        models.PrizeClaim.objects.create(
             winner=self.donations[0].donor,
             prize=self.accepted_prizes[0],
             acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=14),
         )
         # accepted
-        models.PrizeWinner.objects.create(
+        models.PrizeClaim.objects.create(
             winner=self.donations[0].donor,
             prize=self.accepted_prizes[1],
             acceptcount=1,
@@ -149,12 +149,12 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
             acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=12),
         )
         # no expiration
-        models.PrizeWinner.objects.create(
+        models.PrizeClaim.objects.create(
             winner=self.donations[0].donor,
             prize=self.accepted_prizes[2],
         )
         # expired
-        models.PrizeWinner.objects.create(
+        models.PrizeClaim.objects.create(
             winner=self.donations[0].donor,
             prize=self.accepted_prizes[3],
             acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=12),

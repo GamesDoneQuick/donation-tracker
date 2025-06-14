@@ -9,6 +9,7 @@ class TrackerPagination(LimitOffsetPagination):
     max_limit = settings.TRACKER_PAGINATION_LIMIT
 
     def get_limit(self, request):
+        # TIP: if you ONLY need a count, pass limit=0 as a query parameter
         try:
             limit = int(
                 request.query_params.get(self.limit_query_param, self.default_limit)
