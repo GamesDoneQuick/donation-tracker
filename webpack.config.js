@@ -1,9 +1,16 @@
 const webpack = require('webpack');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HTMLWebpackPlugin = require('html-webpack-plugin');
-const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+
+let ReactRefreshWebpackPlugin;
+let BundleAnalyzerPlugin;
+
+try {
+  ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+  BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+} catch {}
+
 const path = require('path');
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const compact = require('lodash/compact');
 
 const PROD = !(process.env.WEBPACK_SERVE === 'true' || process.env.WEBPACK_DEV_SERVER);

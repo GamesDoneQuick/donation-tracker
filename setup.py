@@ -18,27 +18,27 @@ class PackageCommand(Command):
         pass
 
     def run(self):
+        # TODO: replace this with a script instead of being a custom command
         subprocess.check_call(['git', 'clean', '-fxd', 'tracker'])
-        subprocess.check_call(['yarn'])
+        output = subprocess.check_output(['yarn', 'plugin', 'runtime', '--json'])
+        if not any(
+            json.loads(s).get('name', None) == '@yarnpkg/plugin-workspace-tools'
+            for s in output.decode('utf-8').split('\n')
+            if s
+        ):
+            subprocess.check_call(['yarn', 'plugin', 'import', 'workspace-tools'])
+        subprocess.check_call(['yarn', 'workspaces', 'focus', '--production'])
         subprocess.check_call(['yarn', 'build'])
+        # remove the plugin reference
+        subprocess.check_call(['git', 'checkout', '.yarnrc.yml'])
         self.run_command('sdist')
         self.run_command('bdist_wheel')
 
 
-def get_package_name(name):
-    if not PACKAGE_NAME_SUFFIX:
-        return name
-    return f'{name}-{PACKAGE_NAME_SUFFIX}'
-
-
 setup(
-    name=get_package_name('django-donation-tracker'),
-    version=json.load(open('package.json'))['version'],
-    author='Games Done Quick',
-    author_email='tracker@gamesdonequick.com',
+    name='django-donation-tracker',
     packages=find_packages(include=['tracker', 'tracker.*']),
     url='https://github.com/GamesDoneQuick/donation-tracker',
-    license='Apache2',
     description='A Django app to assist in tracking donations for live broadcast events.',
     long_description=open('README.md').read(),
     zip_safe=False,
@@ -48,40 +48,4 @@ setup(
     cmdclass={
         'package': PackageCommand,
     },
-    install_requires=[
-        'babel~=2.17.0',
-        'celery~=5.0',
-        'channels>=4.0',
-        'Django>=4.2,<6.0',
-        'django-ical~=1.7',
-        'django-mptt~=0.10',
-        'django-paypal~=1.1',
-        'django-post-office~=3.2',
-        'django-timezone-field>=7.0,<8.0',
-        'djangorestframework~=3.9',
-        'python-dateutil~=2.8.1;python_version<"3.11"',
-        'requests>=2.27.1,<2.33.0',
-    ],
-    extras_require={
-        'development': ['daphne~=4.0'],
-        'tdqm': ['tqdm~=4.67.1'],
-    },
-    python_requires='>=3.9, <3.14',
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Environment :: Web Environment',
-        'Framework :: Django',
-        'Intended Audience :: Other Audience',
-        'License :: OSI Approved :: Apache Software License 2.0 (Apache-2.0)',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
-        'Programming Language :: Python :: 3.13',
-        'Topic :: Internet :: WWW/HTTP',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-    ],
 )
