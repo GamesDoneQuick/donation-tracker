@@ -13,9 +13,7 @@ class TestPrizes(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.runs = randgen.generate_runs(
-            self.rand, num_runs=3, event=self.event, ordered=True
-        )
+        self.runs = randgen.generate_runs(self.rand, self.event, 3, ordered=True)
         self.accepted_prize = randgen.generate_prize(
             self.rand, start_run=self.runs[0], end_run=self.runs[1]
         )

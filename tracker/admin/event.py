@@ -1197,3 +1197,6 @@ class SpeedRunAdmin(EventArchivedMixin, CustomModelAdmin):
 class VideoLinkAdmin(EventArchivedMixin, CustomModelAdmin):
     autocomplete_fields = ('run',)
     event_child_fields = ('run',)
+
+    def get_event_filter_key(self):
+        return 'run__event'

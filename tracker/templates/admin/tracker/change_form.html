@@ -6,7 +6,10 @@
   'use strict';
   // can be removed when Django 4.2 is no longer supported
   django.jQuery(document).on('select2:open', () => {
-    document.querySelector('.select2-search--dropdown .select2-search__field').focus();
+    const element = document.querySelector('.select2-search--dropdown .select2-search__field');
+    if (element) {
+      element.focus();
+    }
   });
 })();
 </script>

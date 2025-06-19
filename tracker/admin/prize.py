@@ -64,6 +64,9 @@ class PrizeWinnerAdmin(EventArchivedMixin, CustomModelAdmin):
     def winner_email(self, obj):
         return obj.winner.email
 
+    def get_event_filter_key(self):
+        return 'prize__event'
+
 
 @admin.register(models.DonorPrizeEntry)
 class DonorPrizeEntryAdmin(EventArchivedMixin, CustomModelAdmin):

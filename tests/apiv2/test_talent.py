@@ -29,16 +29,14 @@ class TestTalent(APITestCase):
         self.subject = randgen.generate_subject(self.rand)
         self.subject.save()
         self.other_talent = randgen.generate_talent(
-            self.rand, 'not attached to anything'
+            self.rand, name='not attached to anything'
         )
         self.other_talent.save()
         self.spread_talent = randgen.generate_talent(self.rand)
         self.spread_talent.save()
         self.spread_draft_talent = randgen.generate_talent(self.rand)
         self.spread_draft_talent.save()
-        self.runs = randgen.generate_runs(
-            self.rand, num_runs=2, event=self.event, ordered=True
-        )
+        self.runs = randgen.generate_runs(self.rand, self.event, 2, ordered=True)
         self.runner.runs.add(*self.runs)
         self.host.hosting.add(*self.runs)
         self.commentator.commentating.add(*self.runs)
@@ -46,11 +44,9 @@ class TestTalent(APITestCase):
         self.interview.save()
         self.interview.interviewers.add(self.interviewer)
         self.interview.subjects.add(self.subject)
-        self.spread_runs = randgen.generate_runs(
-            self.rand, num_runs=3, event=self.event, ordered=True
-        )
+        self.spread_runs = randgen.generate_runs(self.rand, self.event, 3, ordered=True)
         self.spread_draft_runs = randgen.generate_runs(
-            self.rand, num_runs=3, event=self.draft_event, ordered=True
+            self.rand, self.draft_event, 3, ordered=True
         )
         self.spread_interviews = []
         self.spread_draft_interviews = []
@@ -72,7 +68,7 @@ class TestTalent(APITestCase):
         self.spread_draft_talent.interviewer_for.add(self.spread_draft_interviews[0])
         self.spread_draft_talent.subject_for.add(self.spread_draft_interviews[1])
         self.other_runs = randgen.generate_runs(
-            self.rand, num_runs=1, event=self.other_event, ordered=True
+            self.rand, self.other_event, 1, ordered=True
         )
         self.other_runner.runs.add(*self.other_runs)
 
