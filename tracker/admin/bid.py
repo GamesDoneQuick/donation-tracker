@@ -326,6 +326,9 @@ class DonationBidAdmin(EventArchivedMixin, DonationStatusMixin, CustomModelAdmin
         )
         return queryset
 
+    def get_event_filter_key(self):
+        return 'bid__event'
+
     @display
     def transactionstate(self, obj):
         return obj.donation.transactionstate

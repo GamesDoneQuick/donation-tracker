@@ -4,6 +4,8 @@ import random
 import time
 from unittest import skipIf
 
+import django
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.auth import get_user_model
 from django.contrib.auth import models as auth_models
@@ -21,7 +23,13 @@ from tracker.admin.bid import BidAdmin
 from tracker.admin.filters import RunEventListFilter
 
 from . import randgen
-from .util import TrackerSeleniumTestCase, today_noon, tomorrow_noon
+from .util import (
+    AssertionHelpers,
+    TrackerSeleniumTestCase,
+    long_ago_noon,
+    today_noon,
+    tomorrow_noon,
+)
 
 
 class MergeDonorsViewTests(TestCase):
@@ -319,9 +327,7 @@ class TestAdminFilters(TestCase):
         other_event = randgen.generate_event(self.rand, tomorrow_noon)
         other_event.save()
         runs = randgen.generate_runs(self.rand, event, 5, ordered=True)
-        other_runs = randgen.generate_runs(
-            self.rand, other_event, num_runs=5, ordered=True
-        )
+        other_runs = randgen.generate_runs(self.rand, other_event, 5, ordered=True)
         bid = randgen.generate_bid(self.rand, run=runs[0], allow_children=False)[0]
         bid.save()
         event_bid = randgen.generate_bid(self.rand, event=event, allow_children=False)[
@@ -383,6 +389,78 @@ class TestAdminFilters(TestCase):
             RunEventListFilter(request, {'run': 'foo'}, models.Bid, BidAdmin).queryset(
                 request, models.Bid.objects.all()
             )
+
+
+class TestEventArchivedMixin(TestCase, AssertionHelpers):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.super_user = auth_models.User.objects.create_superuser('superuser')
+        self.rand = random.Random()
+        self.event = randgen.generate_event(self.rand, today_noon)
+        self.event.save()
+        self.run = randgen.generate_run(self.rand, self.event)
+        self.run.save()
+        self.archived_event = randgen.generate_event(self.rand, long_ago_noon)
+        self.archived_event.archived = True
+        self.archived_event.save()
+        self.archived_run = randgen.generate_run(self.rand, self.archived_event)
+        self.archived_run.save()
+
+    @skipIf(
+        django.VERSION >= (5, 1, 0),
+        'delete_selected is broken for certain models on 4.2',
+    )
+    def test_delete_selected_disabled(self):
+        self.client.force_login(self.super_user)
+        response = self.client.get(
+            reverse('admin:tracker_speedrun_changelist'),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(
+            'delete_selected',
+            (c[0] for c in response.context['action_form'].fields['action'].choices),
+        )
+
+    @skipIf(
+        django.VERSION < (5, 1, 0),
+        'delete_selected is broken for certain models on 4.2',
+    )
+    def test_delete_selected(self):
+        self.client.force_login(self.super_user)
+        response = self.client.post(
+            reverse('admin:tracker_speedrun_changelist'),
+            data={
+                'action': 'delete_selected',
+                ACTION_CHECKBOX_NAME: [self.run.id, self.archived_run.id],
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Speed Run on Archived Event', response.context['perms_lacking'])
+        response = self.client.post(
+            reverse('admin:tracker_speedrun_changelist'),
+            data={
+                'action': 'delete_selected',
+                ACTION_CHECKBOX_NAME: [self.run.id, self.archived_run.id],
+                'post': 'yes',
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertQuerySetEqual(
+            models.SpeedRun.objects.all(), {self.run, self.archived_run}, ordered=False
+        )
+        response = self.client.post(
+            reverse('admin:tracker_speedrun_changelist'),
+            data={
+                'action': 'delete_selected',
+                ACTION_CHECKBOX_NAME: [self.run.id],
+                'post': 'yes',
+            },
+        )
+        self.assertRedirects(response, reverse('admin:tracker_speedrun_changelist'))
+        self.assertMessages(response, ['Successfully deleted 1 Speed Run.'])
+        self.assertQuerySetEqual(
+            models.SpeedRun.objects.all(), {self.archived_run}, ordered=False
+        )
 
 
 class TestReadOnlyEventMixin(TestCase):

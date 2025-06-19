@@ -241,7 +241,7 @@ class TestAutomailPrizesShipped(TransactionTestCase):
         ):
             prize.key_code = True
             prize.save()
-            randgen.generate_prize_key(self.rand, prize=prize).save()
+            randgen.generate_prize_key(self.rand, prize).save()
         self.templateEmail = post_office.models.EmailTemplate.objects.create(
             name='testing_prize_shipping_notification',
             description='',

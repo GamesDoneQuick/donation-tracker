@@ -18,6 +18,7 @@ from tracker import models, prizemail, prizeutil, settings, util
 
 from . import randgen
 from .util import (
+    AssertionHelpers,
     MigrationsTestCase,
     long_ago_noon,
     parse_test_mail,
@@ -1197,7 +1198,7 @@ class TestPrizeKey(TestCase):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand)
         self.event.save()
-        self.run = randgen.generate_run(self.rand, event=self.event)
+        self.run = randgen.generate_run(self.rand, self.event)
         self.run.order = 1
         self.run.save()
         self.prize = randgen.generate_prize(
@@ -1209,9 +1210,7 @@ class TestPrizeKey(TestCase):
         )
         self.prize.key_code = True
         self.prize.save()
-        models.PrizeKey.objects.bulk_create(
-            randgen.generate_prize_key(self.rand, prize=self.prize) for _ in range(100)
-        )
+        randgen.generate_prize_keys(self.rand, self.prize, 100)
         self.prize_keys = self.prize.prizekey_set.all()
 
     def test_leave_winners_alone_for_non_key_code(self):
@@ -1228,11 +1227,7 @@ class TestPrizeKey(TestCase):
         self.assertEqual(self.prize.maxmultiwin, 1)
 
     def test_set_winners_to_key_number_on_prize_key_create(self):
-        self.assertEqual(self.prize.maxwinners, 0)
-        self.prize_keys[0].save()  # only on create
-        self.prize.refresh_from_db()
-        self.assertEqual(self.prize.maxwinners, 0)
-        randgen.generate_prize_key(self.rand, prize=self.prize).save()
+        randgen.generate_prize_key(self.rand, self.prize).save()
         self.prize.refresh_from_db()
         self.assertEqual(self.prize.maxwinners, self.prize_keys.count())
         self.assertEqual(self.prize.maxmultiwin, 1)
@@ -1247,9 +1242,7 @@ class TestPrizeKey(TestCase):
         donors = list(models.Donor.objects.order_by('-id')[:donor_count])
         models.Donation.objects.bulk_create(
             [
-                randgen.generate_donation_for_prize(
-                    self.rand, donor=d, prize=self.prize
-                )
+                randgen.generate_donation_for_prize(self.rand, self.prize, donor=d)
                 for d in donors
             ]
         )
@@ -1285,9 +1278,7 @@ class TestPrizeKey(TestCase):
         old_ids = {d.id for d in old_donors}
         models.Donation.objects.bulk_create(
             [
-                randgen.generate_donation_for_prize(
-                    self.rand, donor=d, prize=self.prize
-                )
+                randgen.generate_donation_for_prize(self.rand, self.prize, donor=d)
                 for d in old_donors
             ]
         )
@@ -1303,9 +1294,7 @@ class TestPrizeKey(TestCase):
         new_donors = set(models.Donor.objects.order_by('-id')[:donor_count])
         models.Donation.objects.bulk_create(
             [
-                randgen.generate_donation_for_prize(
-                    self.rand, donor=d, prize=self.prize
-                )
+                randgen.generate_donation_for_prize(self.rand, self.prize, donor=d)
                 for d in new_donors
             ]
         )
@@ -1341,9 +1330,7 @@ class TestPrizeKey(TestCase):
         donors = list(models.Donor.objects.order_by('id')[:donor_count])
         models.Donation.objects.bulk_create(
             [
-                randgen.generate_donation_for_prize(
-                    self.rand, donor=d, prize=self.prize
-                )
+                randgen.generate_donation_for_prize(self.rand, self.prize, donor=d)
                 for d in donors
             ]
         )
@@ -1382,12 +1369,7 @@ class TestPrizeKey(TestCase):
         )
 
 
-class TestPrizeAdmin(TestCase):
-    def assertMessages(self, response, messages):  # TODO: util?
-        self.assertSetEqual(
-            {str(m) for m in response.wsgi_request._messages}, set(messages)
-        )
-
+class TestPrizeAdmin(TestCase, AssertionHelpers):
     def setUp(self):
         self.factory = RequestFactory()
         self.staff_user = User.objects.create_user(
@@ -1731,7 +1713,7 @@ class TestPrizeList(TestCase):
         key_prize.key_code = True
         key_prize.save()
         key_winners = randgen.generate_donors(self.rand, 50)
-        prize_keys = randgen.generate_prize_keys(self.rand, 50, prize=key_prize)
+        prize_keys = randgen.generate_prize_keys(self.rand, key_prize, 50)
         for w, k in zip(key_winners, prize_keys):
             k.prize_winner = models.PrizeWinner.objects.create(
                 prize=key_prize, winner=w

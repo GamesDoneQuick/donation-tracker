@@ -294,6 +294,11 @@ class TestErrorCheckMigration(MigrationsTestCase):
 
 
 class AssertionHelpers:
+    def assertMessages(self, response, messages):
+        self.assertSetEqual(
+            {str(m) for m in response.wsgi_request._messages}, set(messages)
+        )
+
     def assertDictContainsSubset(self, subset, dictionary, msg=None):
         if sys.version_info < (3, 12):
             super().assertDictContainsSubset(subset, dictionary, msg)

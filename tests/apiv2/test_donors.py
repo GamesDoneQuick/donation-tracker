@@ -42,12 +42,12 @@ class TestDonor(APITestCase):
         self.visible_donor = randgen.generate_donor(self.rand, visibility='ALIAS')
         self.visible_donor.save()
         randgen.generate_donations(
-            self.rand, self.event, num_donations=5, donors=[self.visible_donor]
+            self.rand, self.event, 5, donors=[self.visible_donor]
         )
         self.anonymous_donor = randgen.generate_donor(self.rand, visibility='ANON')
         self.anonymous_donor.save()
         randgen.generate_donations(
-            self.rand, self.event, num_donations=3, donors=[self.anonymous_donor]
+            self.rand, self.event, 3, donors=[self.anonymous_donor]
         )
 
     def test_fetch(self):
