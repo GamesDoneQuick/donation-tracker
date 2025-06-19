@@ -9,6 +9,7 @@ import {
 } from '@public/apiv2/hooks';
 import { Donation } from '@public/apiv2/Models';
 import { DonationState } from '@public/apiv2/reducers/trackerApi';
+import EventTitle from '@public/EventTitle';
 import Plus from '@uikit/icons/Plus';
 
 import CreateEditDonationGroupModal from '@processing/modules/donation-groups/CreateEditDonationGroupModal';
@@ -197,6 +198,7 @@ export default function ProcessDonations() {
           onTabSelect={setSelectedTab}
         />
       }>
+      <EventTitle>Process Donations</EventTitle>
       <DonationList
         isLoading={isLoading}
         isError={isError}

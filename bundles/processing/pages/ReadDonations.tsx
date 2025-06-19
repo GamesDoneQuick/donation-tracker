@@ -3,6 +3,7 @@ import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 
 import { useDonationsInState, usePermission } from '@public/apiv2/hooks';
 import { Donation } from '@public/apiv2/Models';
+import EventTitle from '@public/EventTitle';
 import Plus from '@uikit/icons/Plus';
 
 import DonationDropTarget from '@processing/modules/donations/DonationDropTarget';
@@ -183,6 +184,7 @@ export default function ReadDonations() {
         />
       }
       mainClassName={styles.main}>
+      <EventTitle>Read Donations</EventTitle>
       {!isAtBottom ? <ScrollToBottomButton onPress={scrollToBottom} /> : null}
       <div className={styles.scroller} ref={mainRef}>
         <DonationList

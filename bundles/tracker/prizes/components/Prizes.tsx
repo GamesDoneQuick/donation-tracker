@@ -5,6 +5,7 @@ import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
 import { useEventFromRoute, usePrizesQuery, useRunsQuery } from '@public/apiv2/hooks';
 import { comparePrize, Prize } from '@public/apiv2/Models';
+import EventTitle from '@public/EventTitle';
 import { useNow } from '@public/hooks/useNow';
 import Anchor from '@uikit/Anchor';
 import Container from '@uikit/Container';
@@ -76,6 +77,7 @@ const Prizes = () => {
 
   return (
     <Container size={Container.Sizes.WIDE}>
+      <EventTitle>Prizes</EventTitle>
       <APIErrorList errors={[eventError, prizesError, runsError]}>
         {eventLoading ? (
           <div className={styles.loadingDots}>
