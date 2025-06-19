@@ -25,7 +25,7 @@ Prize: {{ prize.name }}
     {% if prize.error %}
       <li> <span style="color: red">ERROR:</span> {{ prize.error }} </li>
     {% else %}
-      {% for prizewinner in prize.prizewinner_set.all %}
+      {% for prizewinner in prize.claims.all %}
         <li> {{ prizewinner.winner }} </li>
       {% endfor %}
     {% endif %}

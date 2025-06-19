@@ -19,7 +19,7 @@
     <form method="post" action="{{ request.path }}" enctype="multipart/form-data">
         <table>
             {% csrf_token %}
-            {{ form }}
+            {{ form.as_table }}
             {% for name, value in extra.items %}
               <input type="hidden" name="{{ name }}" value="{{ value }}" />
             {% endfor %}

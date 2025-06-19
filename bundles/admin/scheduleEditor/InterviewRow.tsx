@@ -24,6 +24,8 @@ export default function InterviewRow({ interview }: { interview: Interview }) {
           <span>{interview.suborder}</span>
         </span>
       </td>
+      {/* padding for prize column */}
+      <td />
       <td>{interview.topic}</td>
       <td>
         <TalentLinks talent={interview.interviewers} />

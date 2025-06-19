@@ -1,6 +1,10 @@
 from tracker.api.filters import PrizeFilter
 from tracker.api.pagination import TrackerPagination
-from tracker.api.permissions import PrizeFeedPermission, PrizeStatePermission
+from tracker.api.permissions import (
+    PrizeFeedPermission,
+    PrizeLifecyclePermission,
+    PrizeStatePermission,
+)
 from tracker.api.serializers import PrizeSerializer
 from tracker.api.views import (
     EventNestedMixin,
@@ -19,9 +23,26 @@ class PrizeViewSet(
         'event', 'startrun', 'endrun', 'prev_run', 'next_run'
     )
     serializer_class = PrizeSerializer
-    permission_classes = [PrizeFeedPermission, PrizeStatePermission]
+    permission_classes = [
+        PrizeFeedPermission,
+        PrizeLifecyclePermission,
+        PrizeStatePermission,
+    ]
     filter_backends = [PrizeFilter]
     pagination_class = TrackerPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if 'lifecycle' in self.request.query_params:
+            queryset = queryset.time_annotation().claim_annotations(
+                self.request.query_params.get('time', None)
+            )
+        return queryset
+
+    def get_serializer(self, *args, **kwargs):
+        return super().get_serializer(
+            *args, lifecycle='lifecycle' in self.request.query_params, **kwargs
+        )
 
     # TODO: how should draft events interact with prizes? should prizes be submittable? should they be able to be
     #  accepted? should they come back from the API if accepted but the event is still a draft?

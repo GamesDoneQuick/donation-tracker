@@ -2,7 +2,7 @@
 A collection of some generic useful methods
 
 IMPORTANT: do not import anything other than standard libraries here, this should be usable by _everywhere_ if possible.
-Specifically, do not include anything django or tracker specific, so that we
+Specifically, do not include anything django or tracker specific in the top level imports, so that we
 can use it in migrations, or inside the `model` files
 """
 
@@ -12,10 +12,13 @@ from __future__ import annotations
 import collections.abc
 import datetime
 import itertools
+import os
 import random
 import re
+import secrets
 import sys
-from typing import Iterable, Sized
+import urllib.parse
+from typing import Iterable, Optional, Sized
 
 
 def natural_list_parse(s, symbol_only=False):
@@ -69,20 +72,15 @@ def make_rand(rand_source=None, rand_seed=None):
     return rand_source
 
 
-def make_auth_code(length=64, rand_source=None, rand_seed=None):
-    rand_source = make_rand(rand_source, rand_seed)
-    result = ''
-    for i in range(0, length):
-        result += '{:x}'.format(rand_source.randrange(0, 16))
-    return result
+def make_auth_code(length=64):
+    """returns a securely generated hex string"""
+    assert length % 2 == 0
+    return secrets.token_hex(length // 2)
 
 
-def random_num_replace(
-    s, replacements, rand_source=None, rand_seed=None, max_length=None
-):
+def random_num_replace(s, replacements, max_length=None):
     """Attempts to 'uniquify' a string by adding/replacing characters with a hex string
     of the specified length"""
-    rand_source = make_rand(rand_source, rand_seed)
     if max_length is None:
         max_length = len(s) + replacements
     if max_length < replacements:
@@ -93,12 +91,12 @@ def random_num_replace(
         )
     originalLength = len(s)
     endReplacements = min(max_length - len(s), replacements)
-    s += make_auth_code(endReplacements, rand_source=rand_source)
+    s += make_auth_code(endReplacements)
     if endReplacements < replacements:
         replacementsLeft = replacements - endReplacements
         s = (
             s[: originalLength - replacementsLeft]
-            + make_auth_code(replacementsLeft, rand_source)
+            + make_auth_code(replacementsLeft)
             + s[originalLength:]
         )
     return s
@@ -187,6 +185,74 @@ def parse_time(time: None | str | int | datetime.datetime) -> datetime.datetime:
         )
 
 
+def get_public_site_prefix(url: Optional[str] = None, request=None) -> str:
+    """
+    returns either the domain for TRACKER_PUBLIC_SITE_ID/SITE_ID, or extracts the domain from the provided URL.
+    Includes the scheme if one is provided, or a scheme-relative prepended URL if not.
+
+    e.g.
+
+    - `one.com/foo` returns `//one.com`
+    - `//two.com/foo` returns `//two.com`
+    - `https://three.com/foo` returns `https://three.com`
+
+    :param url: a string representing a domain to use, or a url that can be parsed as such
+    :param request: an HttpRequest instance, will be used as a fallback if url is not provided and Sites support is
+      not active
+    :return: see above
+    """
+    from django.apps import apps
+    from django.contrib.sites.models import Site
+
+    from tracker import settings
+
+    if not url:
+        if apps.is_installed('django.contrib.sites'):
+            site_id = settings.TRACKER_PUBLIC_SITE_ID or settings.SITE_ID
+            url = Site.objects.get(id=site_id).domain
+        elif request:
+            url = request.get_full_path()
+        else:
+            raise ValueError(
+                'must provide a fallback value if the Sites framework is not configured and no request is passed.'
+            )
+
+    if (parsed := urllib.parse.urlparse(url)).netloc == '':
+        parsed = urllib.parse.urlparse(f'//{url}')
+
+    if parsed.scheme:
+        domain = f'{parsed.scheme}://{parsed.netloc}'
+    else:
+        domain = f'//{parsed.netloc}'
+
+    return domain
+
+
+def build_public_url(url: str, request=None):
+    """
+    allows requests from a given site to override the domain for generated URLs to use a specific
+    site, e.g. for sending out prize winner notifications from a private domain that point to the
+    public one. If not set, will attempt to fall back on the provided request, if there is one.
+
+    See `TRACKER_PUBLIC_SITE_ID` for more details.
+    """
+    from tracker import settings
+
+    if settings.TRACKER_PUBLIC_SITE_ID is None:
+        if request:
+            return request.build_absolute_uri(url)
+        else:
+            return url
+    else:
+        domain = get_public_site_prefix()
+        if request:
+            return urllib.parse.urljoin(
+                urllib.parse.urljoin(f'{request.scheme}://', domain), url
+            )
+        else:
+            return urllib.parse.urljoin(domain, url)
+
+
 def ellipsify(s: str, n: int) -> str:
     if len(s) > n:
         return s[: n - 3] + '...'
@@ -195,16 +261,26 @@ def ellipsify(s: str, n: int) -> str:
 
 
 def tqdm_groupby(iterable: Iterable, *args, key, **kwargs):
+    """
+    attempts to provide a sensible tqdm bar when using groupby, if the passed in iterable is sized
+    it will use that information for the completion estimate, and updates the bar every time a group
+    is processed
+
+    if tqdm is not installed, it acts as a simple passthrough
+    """
     from itertools import groupby
 
-    try:
-        from tqdm import tqdm
+    if not os.environ.get('TRACKER_DISABLE_TQDM', ''):
+        try:
+            from tqdm import tqdm
 
-        total = len(iterable) if isinstance(iterable, Sized) else None
-        with tqdm(iterable, *args, total=total, **kwargs) as t:
-            for k, g in groupby(iterable, key):
-                yield k, g
-                if total is not None:
-                    t.update(len(list(g)))
-    except ImportError:
-        yield from groupby(iterable, key)
+            total = len(iterable) if isinstance(iterable, Sized) else None
+            with tqdm(iterable, *args, total=total, **kwargs) as t:
+                for k, g in groupby(iterable, key):
+                    yield k, g
+                    if total is not None:
+                        t.update(len(list(g)))
+        except ImportError:
+            pass
+
+    yield from groupby(iterable, key)

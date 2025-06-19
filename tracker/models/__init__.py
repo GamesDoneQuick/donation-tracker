@@ -21,13 +21,7 @@ from tracker.models.event import (
 from tracker.models.interstitial import Ad, Interstitial, Interview
 from tracker.models.log import Log
 from tracker.models.mod_filter import AmountFilter, WordFilter
-from tracker.models.prize import (
-    DonorPrizeEntry,
-    Prize,
-    PrizeCategory,
-    PrizeKey,
-    PrizeWinner,
-)
+from tracker.models.prize import DonorPrizeEntry, Prize, PrizeClaim, PrizeKey
 from tracker.models.profile import UserProfile
 from tracker.models.tag import AbstractTag, Tag
 
@@ -45,8 +39,7 @@ __all__ = [
     'Milestone',
     'Prize',
     'PrizeKey',
-    'PrizeCategory',
-    'PrizeWinner',
+    'PrizeClaim',
     'DonorPrizeEntry',
     'SpeedRun',
     'Talent',

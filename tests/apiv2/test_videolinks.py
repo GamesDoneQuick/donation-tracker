@@ -11,7 +11,7 @@ class TestVideoLinkSerializer(APITestCase):
         super().setUp()
         self.event = randgen.generate_event(self.rand)
         self.event.save()
-        self.run = randgen.generate_run(self.rand, event=self.event)
+        self.run = randgen.generate_run(self.rand, self.event)
         self.run.save()
         self.link_type = models.VideoLinkType.objects.create(name='youtube')
         self.link1 = models.VideoLink.objects.create(

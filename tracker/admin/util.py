@@ -93,16 +93,6 @@ def mass_assign_action(self, request, queryset, field, value):
     self.message_user(request, 'Updated %s to %s' % (field, value))
 
 
-def api_urls():
-    return {
-        'adminBaseURL': reverse('admin:app_list', kwargs={'app_label': 'tracker'}),
-        'searchURL': reverse('tracker:api_v1:search'),
-        'editURL': reverse('tracker:api_v1:edit'),
-        'addURL': reverse('tracker:api_v1:add'),
-        'deleteURL': reverse('tracker:api_v1:delete'),
-    }
-
-
 class EventArchivedMixin:
     def get_ordering(self, request):
         ordering = super().get_ordering(request) or self.opts.ordering
@@ -112,11 +102,17 @@ class EventArchivedMixin:
             for o in ordering
         ]
 
+    def delete_queryset(self, request, queryset):
+        super().delete_queryset(request, self.exclude_archived_events(queryset))
+
+    def get_event_filter_key(self):
+        return 'event'
+
     def filter_to_event(self, queryset, event):
-        return queryset.filter(event=event)
+        return queryset.filter(**{self.get_event_filter_key(): event})
 
     def exclude_archived_events(self, queryset):
-        return queryset.exclude(event__archived=True)
+        return queryset.exclude(**{f'{self.get_event_filter_key()}__archived': True})
 
     def get_search_results(self, request, queryset, search_term):
         parent_model = self.get_parent_model(request)
@@ -153,13 +149,14 @@ class EventArchivedMixin:
         for field in self.get_event_child_fields():
             queryset = getattr(form.base_fields.get(field, None), 'queryset', None)
             if queryset:
+                # TODO: is there ever a case when this isn't the right lookup?
                 form.base_fields[field].queryset = queryset.filter(
                     event__archived=False
                 )
         return form
 
     def get_readonly_fields(self, request, obj=None):
-        # ensures that a child object won't accidentally get moved off a archived event
+        # ensures that a child object won't accidentally get moved off an archived event
         readonly_fields = tuple(super().get_readonly_fields(request, obj))
         if obj and obj.event.archived:
             readonly_fields += ('event', *self.get_event_child_fields())

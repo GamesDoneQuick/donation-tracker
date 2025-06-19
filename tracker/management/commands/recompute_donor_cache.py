@@ -1,3 +1,4 @@
+import os
 import re
 
 from django.db.models import Q
@@ -8,7 +9,9 @@ from tracker.util import tqdm_groupby
 
 
 class Command(commandutil.TrackerCommand):
-    help = 'Recomputes all DonorCache entries, optionally for certain events. Not particularly efficient. Will use tqdm for a progress bar if installed and verbosity is not 0.'
+    help = """Recomputes all DonorCache entries, optionally for certain events. Not particularly efficient. Will use
+tqdm for a progress bar if installed and verbosity is not 0, and the environment variable TRACKER_DISABLE_TQDM is set
+to any non-blank value."""
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -34,7 +37,9 @@ class Command(commandutil.TrackerCommand):
         events = Event.objects.all()
         ids = set()
 
-        disable = options['verbosity'] == 0
+        disable = options['verbosity'] == 0 or os.environ.get(
+            'TRACKER_DISABLE_TQDM', ''
+        )
 
         q = Q()
         eq = Q()

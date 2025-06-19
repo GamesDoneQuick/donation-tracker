@@ -1,0 +1,50 @@
+Hello {{ winner.contact_name }},
+
+<p>
+  Congratulations, you were selected as the winner of the following prize{{ claims|pluralize }}
+  during {{ event.name }}:
+</p>
+
+<ul>
+  {% for claim in claims %}
+    <li><a href="{{ claim.claim_url }}">{{ claim.prize.name }}</a>
+      {% if claim.prize.description %}
+        <p>
+          Description: {{ claim.prize.description }}
+        </p>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+
+<p>
+  To claim {{ claims|pluralize:"your prize,any of your prizes" }}, click the link on the prize name, and
+  submit the form on the page.
+</p>
+
+{% if requires_shipping %}
+  <p>
+    You will also be asked to fill in your mailing address
+    information{{ claims|pluralize:" on at least one of your prizes" }}.
+    Note that we may already have it on file from PayPal, or from a previous event, in which case
+    we ask you to simply confirm that the information is correct.
+  </p>
+{% endif %}
+
+<p>
+  You must accept/deny your prize{{ claims|pluralize }} on or before {{ accept_deadline }},
+  after which it will be automatically re-rolled.
+  If you do simply want to decline receiving your prize, we would still ask you do so promptly so we can re-roll to
+  another winner it as quickly as possible.
+</p>
+
+<p>
+  If you have any questions, please contact me at {{ reply_address }}.
+</p>
+
+<p>
+  Once again we would like to thank you for your contribution in helping to make our event a success.
+</p>
+
+Sincerely,
+- INSERT CORRESPONDENCE NAME HERE

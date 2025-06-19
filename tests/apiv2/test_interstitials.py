@@ -8,9 +8,9 @@ from tracker.api import messages
 class InterstitialTestCase(APITestCase):
     def setUp(self):
         super().setUp()
-        self.run = randgen.generate_run(self.rand, event=self.event, ordered=True)
+        self.run = randgen.generate_run(self.rand, self.event, ordered=True)
         self.run.save()
-        self.other_run = randgen.generate_run(self.rand, event=self.event, ordered=True)
+        self.other_run = randgen.generate_run(self.rand, self.event, ordered=True)
         self.other_run.save()
 
     def test_interstitial_common(self):

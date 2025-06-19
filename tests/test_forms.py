@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.sites.models import Site
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
@@ -23,6 +24,7 @@ class TestMergeObjectsForm(TestCase):
 class TestRegistrationForm(TransactionTestCase):
     def setUp(self):
         self.factory = RequestFactory()
+        Site.objects.create(domain='testserver', name='Test Server')
 
     def run_registration(self, email):
         regForm = tracker.forms.RegistrationForm(

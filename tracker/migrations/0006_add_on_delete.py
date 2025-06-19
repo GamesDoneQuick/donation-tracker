@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='event',
             name='prizeshippedemailtemplate',
-            field=models.ForeignKey(blank=True, default=None, help_text='Email template to use when the aprize has been shipped to its recipient).', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='event_prizeshippedtemplates', to='post_office.EmailTemplate', verbose_name='Prize Shipped Email Template'),
+            field=models.ForeignKey(blank=True, default=None, help_text='Email template to use when the a prize has been shipped to its recipient).', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='event_prizeshippedtemplates', to='post_office.EmailTemplate', verbose_name='Prize Shipped Email Template'),
         ),
         migrations.AlterField(
             model_name='event',
