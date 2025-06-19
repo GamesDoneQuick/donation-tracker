@@ -1331,6 +1331,10 @@ class PrizeSerializer(
     # startrun = SpeedRunSerializer()
     # endrun = SpeedRunSerializer()
 
+    def __init__(self, *args, lifecycle=False, **kwargs):
+        self.lifecycle = lifecycle
+        super().__init__(*args, **kwargs)
+
     class Meta:
         model = Prize
         fields = (
@@ -1357,7 +1361,14 @@ class PrizeSerializer(
             'creator',
             # 'creatoremail', TODO, maybe a privacy filter? how often does this get used?
             'creatorwebsite',
+            'lifecycle',
         )
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if not self.lifecycle:
+            fields.pop('lifecycle', None)
+        return fields
 
     def validate(self, data):
         # TODO: allow assigning other handlers, but figure out what those permissions need to look like first

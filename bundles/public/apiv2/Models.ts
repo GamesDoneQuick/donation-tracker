@@ -253,6 +253,19 @@ export interface Ad extends Interstitial {
 }
 
 export type PrizeState = 'ACCEPTED' | 'PENDING' | 'DENIED' | 'FLAGGED';
+export type PrizeLifecycle =
+  | 'pending'
+  | 'notify_contributor'
+  | 'denied'
+  | 'accepted'
+  | 'ready'
+  | 'drawn'
+  | 'winner_notified'
+  | 'claimed'
+  | 'accept_email_sent'
+  | 'needs_shipping'
+  | 'shipped'
+  | 'completed';
 
 export interface Prize extends ModelBase {
   readonly type: 'prize';
@@ -276,6 +289,7 @@ export interface Prize extends ModelBase {
   provider: string;
   creator: null | string;
   creatorwebsite: null | string;
+  lifecycle?: PrizeLifecycle;
 }
 
 export function comparePrize(a: Prize, b: Prize) {

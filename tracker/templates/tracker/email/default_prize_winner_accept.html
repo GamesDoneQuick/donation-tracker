@@ -1,16 +1,15 @@
 Hello {{ handler.username }},
 
 <p>
-    {% if prize_count > 1 %}Some prize winners have accepted your prizes.{% else %}A prize winner has accepted your
-        prize.{% endif %}
+    {{ claims|pluralize:"A,Some" }} prize winner{{ claims|pluralize }}s have accepted your prize{{ claims|pluralize }}.
 </p>
 
 <ul>
-    {% for prizeWin in prize_wins %}
-        <li>{{ prizeWin.prize }} for {{ prizeWin.winner.visible_name }}
-            {% if prizeWin.winnernotes %}
+    {% for claim in claims %}
+        <li>{{ claim.prize }} for {{ claim.winner.visible_name }}
+            {% if claim.winnernotes %}
                 <p>
-                    Winner's Notes: {{ prizeWin.winnernotes }}
+                    Winner's Notes: {{ claim.winnernotes }}
                 </p>
             {% endif %}
         </li>

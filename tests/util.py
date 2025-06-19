@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import csv
 import datetime
@@ -13,12 +15,14 @@ import re
 import sys
 import time
 import unittest
+import urllib.parse
 import zoneinfo
 from collections import defaultdict
 from decimal import Decimal
-from typing import Iterable
+from typing import Iterable, Optional
 
 import msgpack
+import post_office.models
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth.models import AnonymousUser, Permission, User
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -65,10 +69,31 @@ class PickledRandom(random.Random):
         pass
 
 
-def parse_test_mail(mail):
+def create_test_template(subject, keys, collection_keys=None, extra=''):
+    content_parts = []
+    if keys:
+        content_parts.append('\n'.join(f'{key}: {{{{{key}}}}}' for key in keys))
+    if collection_keys:
+        content_parts.append(
+            '\n'.join(
+                f'{{% for a in {key} %}}{key}: {{{{a}}}}\n{{% endfor %}}'
+                for key in collection_keys
+            )
+        )
+    if extra:
+        content_parts.append(extra)
+    return post_office.models.EmailTemplate.objects.create(
+        name='_'.join(keys)[:255],
+        subject=subject,
+        content='\n'.join(content_parts),
+    )
+
+
+def parse_test_mail(mail: post_office.models.Email | str):
+    mail = getattr(mail, 'message', mail)
     lines = [
         x.partition(':')
-        for x in [x for x in [x.strip() for x in mail.message.split('\n')] if x]
+        for x in [x for x in [x.strip() for x in mail.split('\n')] if x]
     ]
     result = {}
     for line in lines:
@@ -77,7 +102,7 @@ def parse_test_mail(mail):
             value = line[2]
             if name not in result:
                 result[name] = []
-            result[name].append(value)
+            result[name].append(value.strip())
     return result
 
 
@@ -328,6 +353,26 @@ class AssertionHelpers:
 
     def assertSubset(self, sub, sup, msg=None):
         self.assertSetEqual(set(sub) & set(sup), set(sub), msg)
+
+    def assertContainsUrl(
+        self, resp, url: str, count: Optional[int] = None, msg_prefix=''
+    ):
+        """tries both the passed url, and if the url is absolute, tries the relative version as well"""
+        try:
+            self.assertContains(resp, url, count=count, msg_prefix=msg_prefix)
+        except AssertionError:
+            split = urllib.parse.urlsplit(url)
+            if split.netloc:
+                url = urllib.parse.urlunsplit(('', '', *urllib.parse.urlsplit(url)[2:]))
+                self.assertContains(resp, url, count=count, msg_prefix=msg_prefix)
+
+    def assertNotContainsUrl(self, resp, url: str, msg_prefix=''):
+        """tries both the passed url, and if the url is absolute, tries the relative version as well"""
+        self.assertNotContains(resp, url, msg_prefix=msg_prefix)
+        split = urllib.parse.urlsplit(url)
+        if split.netloc:
+            url = urllib.parse.urlunsplit(('', '', *split[2:]))
+            self.assertNotContains(resp, url, msg_prefix=msg_prefix)
 
 
 class AssertionModelHelpers:
@@ -1242,8 +1287,12 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             draft=True,
         )
         self.event = models.Event.objects.create(
-            datetime=today_noon, short='test', name='Test Event'
+            datetime=today_noon,
+            short='test',
+            name='Test Event',
+            prize_drawing_date=(today_noon + datetime.timedelta(days=14)).date(),
         )
+
         self.anonymous_user = AnonymousUser()
         self.user = User.objects.create(username='test')
         self.view_user = User.objects.create(username='view')

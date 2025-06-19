@@ -1,7 +1,9 @@
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.checks import Error, Warning, register
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
+from django.db import OperationalError
 
 
 # noinspection PyPep8Naming
@@ -88,6 +90,17 @@ class TrackerSettings(object):
             self.TRACKER_REGISTRATION_FROM_EMAIL,
         )
 
+    @property
+    def TRACKER_PUBLIC_SITE_ID(self):
+        from django.apps import apps
+
+        if apps.is_installed('django.contrib.sites'):
+            return getattr(
+                settings, 'TRACKER_PUBLIC_SITE_ID', getattr(settings, 'SITE_ID', None)
+            )
+        else:
+            return None
+
     # pass everything else through for convenience
     def __getattr__(self, item):
         return getattr(settings, item)
@@ -95,6 +108,8 @@ class TrackerSettings(object):
 
 @register
 def tracker_settings_checks(app_configs, **kwargs):
+    from django.apps import apps
+
     errors = []
     if hasattr(settings, 'HAS_CELERY'):
         errors.append(
@@ -145,6 +160,7 @@ def tracker_settings_checks(app_configs, **kwargs):
         )
     if not isinstance(TrackerSettings().TRACKER_LOGO, str):
         errors.append(Error('TRACKER_LOGO should be a string', id='tracker.E105'))
+    # TODO: validate logo URL works?
     if not isinstance(TrackerSettings().TRACKER_ENABLE_BROWSABLE_API, bool):
         errors.append(
             Error('TRACKER_ENABLE_BROWSABLE_API should be a bool', id='tracker.E106')
@@ -222,4 +238,63 @@ def tracker_settings_checks(app_configs, **kwargs):
                     id='tracker.E114',
                 )
             )
+    if apps.is_installed('django.contrib.sites'):
+        site_id = TrackerSettings().TRACKER_PUBLIC_SITE_ID
+        if isinstance(site_id, int):
+            from django.contrib.sites.models import Site
+
+            try:
+                if not Site.objects.filter(id=site_id).exists():
+                    errors.append(
+                        Error(
+                            'Site specified by TRACKER_PUBLIC_SITE_ID/SITE_ID does not exist',
+                            id='tracker.E115',
+                        )
+                    )
+            except OperationalError as e:
+                errors.append(
+                    Error(
+                        f'TRACKER_PUBLIC_SITE_ID/SITE_ID is set, but had an error retrieving it\nEnsure that Sites is installed and migrated before you apply this setting\n{e}',
+                        id='tracker.E115',
+                    )
+                )
+        else:
+            errors.append(
+                Error(
+                    'TRACKER_PUBLIC_SITE_ID/SITE_ID should be an int', id='tracker.E115'
+                )
+            )
+    elif hasattr(settings, 'TRACKER_PUBLIC_SITE_ID'):
+        errors.append(
+            Warning(
+                'TRACKER_PUBLIC_SITE_ID is set, but will be ignored because the Sites application is not installed.',
+                id='tracker.W115',
+            )
+        )
+    if hasattr(settings, 'DOMAIN'):
+        errors.append(
+            Warning(
+                'DOMAIN is set. This is a deprecated setting for the Tracker, but it might have uses on other apps. If this is the case, you may safely silence this warning. See the SILENCED_SYSTEM_CHECKS setting.',
+                id='tracker.W116',
+            )
+        )
+    if username := getattr(settings, 'TRACKER_DEFAULT_PRIZE_COORDINATOR', None):
+        if not isinstance(username, str):
+            errors.append(
+                Error(
+                    'TRACKER_DEFAULT_PRIZE_COORDINATOR should be a string.',
+                    id='tracker.E117',
+                )
+            )
+        else:
+            User = get_user_model()
+
+            user = User.objects.filter(**{User.USERNAME_FIELD: username}).first()
+            if not user:
+                errors.append(
+                    Warning(
+                        'TRACKER_DEFAULT_PRIZE_COORDINATOR is set, but the username cannot be found. Double check spelling and case sensitivity.',
+                        id='tracker.W117',
+                    )
+                )
     return errors

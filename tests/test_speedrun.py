@@ -19,6 +19,7 @@ from .util import AssertionModelHelpers, MigrationsTestCase, today_noon
 class TestSpeedRunBase(TransactionTestCase):
     def setUp(self):
         super().setUp()
+        self.rand = random.Random()
         if not hasattr(self, 'event'):
             self.event = models.Event.objects.create(datetime=today_noon)
         self.run1 = models.SpeedRun.objects.create(
@@ -169,6 +170,45 @@ class TestSpeedRun(TestSpeedRunBase):
             self.run1.priority_tag = self.tag1
             self.run1.save()
             self.assertSetEqual(set(self.run1.tags.all()), {self.tag1, self.tag2})
+
+    def test_prize_attachments(self):
+        spanned_prize = randgen.generate_prize(
+            self.rand, start_run=self.run2, end_run=self.run3
+        )
+        spanned_prize.save()
+        single_prize = randgen.generate_prize(
+            self.rand, start_run=self.run1, end_run=self.run1
+        )
+        single_prize.save()
+        with self.subTest('cannot remove order from a run with prizes attached'):
+            with self.assertRaises(ValidationError):
+                self.run1.order = None
+                self.run1.clean()
+            self.run1.refresh_from_db()
+            with self.assertRaises(ValidationError):
+                self.run2.order = None
+                self.run2.clean()
+            self.run2.refresh_from_db()
+            with self.assertRaises(ValidationError):
+                self.run3.order = None
+                self.run3.clean()
+            self.run3.refresh_from_db()
+        with self.subTest('cannot reorder a run if it would invert prize span'):
+            with self.assertRaises(ValidationError):
+                self.run2.order = self.run3.order + 1
+                self.run2.clean()
+            self.run2.refresh_from_db()
+            with self.assertRaises(ValidationError):
+                self.run3.order = self.run2.order - 1
+                self.run3.clean()
+            self.run3.refresh_from_db()
+        with self.subTest('can reorder when prize spans are still ok'):
+            self.run1.order = self.run2.order
+            self.run1.clean()
+            self.run1.refresh_from_db()
+            self.run2.order = self.run1.order
+            self.run2.clean()
+            self.run2.refresh_from_db()
 
 
 class TestSpeedRunAdmin(TransactionTestCase, AssertionModelHelpers):

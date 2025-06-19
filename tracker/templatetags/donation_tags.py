@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import urllib.parse
 from decimal import Decimal
 
@@ -129,33 +128,6 @@ class PageLinkNode(template.Node):
         return sortlink('', page, sort=sort, order=order, page=page)
 
 
-@register.tag('rendertime')
-def do_rendertime(parser, token):
-    try:
-        tag_name, time = token.split_contents()
-    except ValueError:
-        raise template.TemplateSyntaxError(
-            '%r tag requires a single argument' % token.contents.split()[0]
-        )
-    return RenderTimeNode(time)
-
-
-class RenderTimeNode(template.Node):
-    def __init__(self, time):
-        self.time = template.Variable(time)
-
-    def render(self, context):
-        try:
-            time = self.time.resolve(context)
-            try:
-                now = datetime.datetime.now() - time
-            except TypeError:
-                return ''
-            return '%d.%d seconds' % (now.seconds, now.microseconds)
-        except template.VariableDoesNotExist:
-            return ''
-
-
 @register.filter
 def forumfilter(value, autoescape=None):
     if autoescape:
@@ -218,9 +190,9 @@ def admin_url(obj):
     return viewutil.admin_url(obj)
 
 
-@register.simple_tag(takes_context=True)
+@register.simple_tag
 def standardform(
-    context, form, formid='formid', submittext='Submit', action=None, showrequired=True
+    form, formid='formid', submittext='Submit', action=None, showrequired=True
 ):
     return template.loader.render_to_string(
         'standardform.html',
@@ -228,20 +200,18 @@ def standardform(
             'form': form,
             'formid': formid,
             'submittext': submittext,
-            action: action,
-            'csrf_token': context.get('csrf_token', None),
+            'action': action,
             'showrequired': showrequired,
         },
     )
 
 
-@register.simple_tag(takes_context=True)
-def form_innards(context, form, showrequired=True):
+@register.simple_tag
+def form_innards(form, showrequired=True):
     return template.loader.render_to_string(
         'form_innards.html',
         {
             'form': form,
             'showrequired': showrequired,
-            'csrf_token': context.get('csrf_token', None),
         },
     )
