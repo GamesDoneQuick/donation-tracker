@@ -1,12 +1,37 @@
 <head>
+  <!-- TODO: mount a React spinner? -->
+  <link rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"
+        integrity="sha384-yNuQMX46Gcak2eQsUzmBYgJ3eBeWYNKhnjyiBqLd1vvtE9kuMtgw6bjwN8J0JauQ"
+        crossorigin="anonymous">
   <script>
-    window.onload = function() {
+    window.onload = function () {
       document.querySelector("#form form").submit();
     }
   </script>
+  <style>
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .tracker__spinner {
+      animation-name: spin;
+      animation-duration: 2s;
+      animation-iteration-count: infinite;
+      animation-timing-function: ease-in-out;
+    }
+  </style>
 </head>
 <body>
-  <div id="form" style="display: none">
-    {{ form.render }}
-  </div>
+<div class="fa fa-spinner tracker__spinner"
+     style="animation-name: spin; animation-duration: 2s; animation-iteration-count: infinite; animation-timing-function: ease-in-out;">
+</div>
+<div id="form" style="display: none">
+  {{ form.render }}
+</div>
 </body>

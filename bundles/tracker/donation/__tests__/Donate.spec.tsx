@@ -1,56 +1,90 @@
 import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import MockAdapter from 'axios-mock-adapter';
+import { Provider } from 'react-redux';
+import { Route, Routes } from 'react-router';
+import { StaticRouter } from 'react-router-dom/server';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import * as EventDetailsActions from '@tracker/event_details/EventDetailsActions';
-import { createStore, fireEvent, render } from '@tracker/testing/test-utils';
+import Constants, { DefaultConstants } from '@common/Constants';
+import Endpoints from '@public/apiv2/Endpoints';
+import HTTPUtils from '@public/apiv2/HTTPUtils';
+import { setRoot } from '@public/apiv2/reducers/apiRoot';
+import { trackerApi } from '@public/apiv2/reducers/trackerApi';
+import { store } from '@public/apiv2/Store';
+
+import { getFixtureMixedBidsTree } from '@spec/fixtures/bid';
+import { getFixturePagedEvent } from '@spec/fixtures/event';
+import { waitForSpinner } from '@spec/helpers/rtl';
 
 import Donate from '../components/Donate';
 
-const renderDonate = (store?: ReturnType<typeof createStore>) => {
+const eventId = 2;
+
+const renderDonate = async () => {
   const rendered = render(
-    <MemoryRouter>
-      <Donate eventId="some-event" />
-    </MemoryRouter>,
-    { store },
+    <Constants.Provider value={{ ...DefaultConstants, PAYPAL_MAXIMUM_AMOUNT: 1000 }}>
+      <Provider store={store}>
+        <StaticRouter location={`/donate/${eventId}`}>
+          <Routes>
+            <Route path="/donate/:eventId" element={<Donate />} />
+          </Routes>
+        </StaticRouter>
+      </Provider>
+    </Constants.Provider>,
   );
   const getAddIncentivesButton = () => rendered.getByTestId('addincentives-button') as HTMLButtonElement;
   const getSubmitButton = () => rendered.getByTestId('donation-submit') as HTMLButtonElement;
   const getSubmitBidButton = () => rendered.getByTestId('incentiveBidForm-submitBid') as HTMLButtonElement;
 
-  const fillField = (fieldLabel: string | RegExp, value: string) => {
+  const fillField = async (fieldLabel: string | RegExp, value: string) => {
     const input = rendered.getByLabelText(fieldLabel);
-    userEvent.type(input, value);
+    if (fieldLabel.toString().includes('amount')) {
+      // ReactNumeric does not like fireEvent
+      await act(() => userEvent.type(input, value));
+    } else {
+      await act(() => fireEvent.change(input, { target: value }));
+    }
   };
 
-  const addIncentive = () => {
+  const addIncentive = async () => {
     const addButton = getAddIncentivesButton();
-    fireEvent.click(addButton);
+    await act(() => fireEvent.click(addButton));
   };
 
-  const fillBid = (incentiveId: string, bid: { choiceId?: string; amount?: number; custom?: string }) => {
-    fireEvent.click(rendered.getByTestId(`incentiveform-incentive-${incentiveId}`));
+  const fillBid = async (incentiveId: string, bid: { choiceId?: string; amount?: number; custom?: string }) => {
+    await act(() => fireEvent.click(rendered.getByTestId(`incentiveform-incentive-${incentiveId}`)));
     if (bid.amount != null) {
-      fillField(/Amount to put towards incentive/i, bid.amount.toString());
+      await fillField(/Amount to put towards incentive/i, bid.amount.toString());
     }
 
     if (bid.custom != null) {
-      const customOption = rendered.getByTestId('incentiveBidNewOption');
-      fireEvent.click(customOption);
-      const customInput = rendered.getByTestId('incentiveBidCustomOption');
-      userEvent.type(customInput, bid.custom);
+      await act(() => {
+        const customOption = rendered.getByTestId('incentiveBidNewOption');
+        fireEvent.click(customOption);
+      });
+      await act(() => {
+        const customInput = rendered.getByTestId('incentiveBidCustomOption');
+        fireEvent.change(customInput, { target: { value: bid.custom } });
+      });
     }
   };
 
-  const submitBid = () => {
+  const submitBid = async () => {
     const button = getSubmitBidButton();
-    fireEvent.click(button);
+    await act(() => fireEvent.click(button));
   };
 
-  const removeBid = (incentiveId: string) => {
+  const removeBid = async (incentiveId: string) => {
     const button = rendered.getByTestId(`donationbid-remove-${incentiveId}`);
-    fireEvent.click(button);
+    await act(() => fireEvent.click(button));
   };
+
+  await waitForSpinner(rendered);
+
+  await waitFor(() => expect(rendered.findByLabelText('Email Address')).not.toBeNull());
+
+  await waitForSpinner(rendered);
 
   return {
     ...rendered,
@@ -65,114 +99,102 @@ const renderDonate = (store?: ReturnType<typeof createStore>) => {
 };
 
 describe('Donate', () => {
-  it('is not submittable by default', () => {
-    const { getSubmitButton } = renderDonate();
+  let mock: MockAdapter;
+
+  beforeAll(() => {
+    mock = new MockAdapter(HTTPUtils.getInstance(), { onNoMatch: 'throwException' });
+  });
+
+  beforeEach(() => {
+    store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
+    store.dispatch(trackerApi.util.resetApiState());
+    mock.reset();
+    mock.onGet('//testserver/' + Endpoints.EVENTS).reply(() => [200, getFixturePagedEvent({ id: eventId })]);
+    mock
+      .onGet('//testserver/' + Endpoints.BIDS({ eventId: 2, feed: 'open', tree: true }))
+      .reply(() => [200, getFixtureMixedBidsTree({})]);
+  });
+
+  afterAll(() => {
+    mock.restore();
+  });
+
+  it('is not submittable by default', async () => {
+    const { getSubmitButton } = await renderDonate();
 
     expect(getSubmitButton().disabled).toBe(true);
   });
 
-  it('is submittable with just an amount set', () => {
-    const { getSubmitButton, fillField } = renderDonate();
-    fillField(/amount/i, '10');
+  it('is submittable with just an amount set', async () => {
+    const { getSubmitButton, fillField } = await renderDonate();
+    await fillField(/amount/i, '10');
 
     expect(getSubmitButton().disabled).toBe(false);
   });
 
-  it('is submittable with no alias set', () => {
-    const { getSubmitButton, fillField } = renderDonate();
-    fillField(/email/i, 'someone@example.com');
-    fillField(/amount/i, '10');
+  it('is submittable with no alias set', async () => {
+    const { getSubmitButton, fillField } = await renderDonate();
+    await fillField(/email/i, 'someone@example.com');
+    await fillField(/amount/i, '10');
 
     expect(getSubmitButton().disabled).toBe(false);
   });
 
-  it('is submittable with all donation fields filled out', () => {
-    const { getSubmitButton, fillField } = renderDonate();
-    fillField(/alias/i, 'my name');
-    fillField(/email/i, 'someone@example.com');
-    fillField(/amount/i, '10');
-    fillField(/comment/i, 'got a comment here');
+  it('is submittable with all donation fields filled out', async () => {
+    const { getSubmitButton, fillField } = await renderDonate();
+    await fillField(/alias/i, 'my name');
+    await fillField(/email/i, 'someone@example.com');
+    await fillField(/amount/i, '10');
+    await fillField(/comment/i, 'got a comment here');
 
     expect(getSubmitButton().disabled).toBe(false);
   });
 
   describe('adding incentives', () => {
-    const createStoreWithIncentives = () => {
-      const store = createStore();
-      store.dispatch(
-        EventDetailsActions.loadIncentives([
-          { id: 1, name: 'an incentive', amount: 0, runname: 'some run', order: 1 },
-          { id: 2, name: 'an incentive with children', amount: 0, runname: 'some run', custom: true, order: 1 },
-          {
-            id: 3,
-            name: 'child 1',
-            parent: { id: 2, name: 'parent', custom: true },
-            amount: 0,
-            runname: 'some run',
-            order: 1,
-          },
-          {
-            id: 4,
-            name: 'child 2',
-            parent: { id: 2, name: 'parent', custom: true },
-            amount: 0,
-            runname: 'some run',
-            order: 1,
-          },
-        ]),
-      );
-
-      return store;
-    };
-
-    it('is disabled with no amount set', () => {
-      const { getAddIncentivesButton } = renderDonate();
+    it('is disabled with no amount set', async () => {
+      const { getAddIncentivesButton } = await renderDonate();
       expect(getAddIncentivesButton().disabled).toBe(true);
     });
 
-    it('does not affect form submittability', () => {
-      const store = createStore();
-      const { addIncentive, getSubmitButton, fillField } = renderDonate(store);
-      fillField(/amount/i, '10');
-      addIncentive();
+    it('does not affect form submittability', async () => {
+      const { addIncentive, getSubmitButton, fillField } = await renderDonate();
+      await fillField(/amount/i, '10');
+      await addIncentive();
 
       expect(getSubmitButton().disabled).toBe(false);
     });
 
-    it('works with a valid bid', () => {
-      const store = createStoreWithIncentives();
-      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid } = renderDonate(store);
-      fillField(/amount/i, '10');
+    it('works with a valid bid', async () => {
+      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid } = await renderDonate();
+      await fillField(/amount/i, '10');
 
-      addIncentive();
-      fillBid('1', { amount: 4.2 });
-      submitBid();
-
-      expect(getSubmitButton().disabled).toBe(false);
-    });
-
-    it('works with a custom bid option', () => {
-      const store = createStoreWithIncentives();
-      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid } = renderDonate(store);
-      fillField(/amount/i, '10');
-
-      addIncentive();
-      fillBid('2', { choiceId: '3', amount: 3.7, custom: 'idk' });
-      submitBid();
+      await addIncentive();
+      await fillBid('121', { amount: 4.2 });
+      await submitBid();
 
       expect(getSubmitButton().disabled).toBe(false);
     });
 
-    it('can remove added bids', () => {
-      const store = createStoreWithIncentives();
-      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid, removeBid } = renderDonate(store);
-      fillField(/amount/i, '10');
+    it('works with a custom bid option', async () => {
+      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid } = await renderDonate();
+      await fillField(/amount/i, '10');
 
-      addIncentive();
-      fillBid('2', { choiceId: '3', amount: 3.7, custom: 'idk' });
-      submitBid();
+      await addIncentive();
+      await fillBid('122', { choiceId: '3', amount: 3.7, custom: 'idk' });
+      await submitBid();
 
-      removeBid('2');
+      expect(getSubmitButton().disabled).toBe(false);
+    });
+
+    it('can remove added bids', async () => {
+      const { addIncentive, fillField, fillBid, getSubmitButton, submitBid, removeBid } = await renderDonate();
+      await fillField(/amount/i, '10');
+
+      await addIncentive();
+      await fillBid('122', { choiceId: '3', amount: 3.7, custom: 'idk' });
+      await submitBid();
+
+      await removeBid('122-custom');
 
       expect(getSubmitButton().disabled).toBe(false);
     });

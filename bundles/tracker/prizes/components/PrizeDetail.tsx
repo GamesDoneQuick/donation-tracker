@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router';
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
 import { useEventFromRoute, usePrizesQuery, useRunsQuery, useSplitRuns } from '@public/apiv2/hooks';
-import { OrderedRun, Prize } from '@public/apiv2/Models';
+import { Prize } from '@public/apiv2/Models';
 import { useBooleanState } from '@public/hooks/useBooleanState';
-import * as CurrencyUtils from '@public/util/currency';
+import { useEventCurrency } from '@public/util/currency';
 import TimeUtils, { DateTime } from '@public/util/TimeUtils';
 import Anchor from '@uikit/Anchor';
 import Button from '@uikit/Button';
@@ -43,35 +43,6 @@ const PrizeDonateButton = ({ prize, now, onClick }: PrizeDonateButtonProps) => {
 
   return null;
 };
-
-function getPrizeDetails(prize: Prize | undefined, currency: string, runs: OrderedRun[]) {
-  return prize != null
-    ? [
-        {
-          name: 'Estimated Value',
-          value:
-            prize.estimatedvalue != null ? CurrencyUtils.asCurrency(prize.estimatedvalue, { currency }) : undefined,
-        },
-        {
-          name: 'Opening Run',
-          value: prize.startrun != null && runs.find(r => r.id === prize.startrun)?.name,
-        },
-        {
-          name: 'Opening Time',
-          value: prize.start_draw_time && `${prize.start_draw_time.toLocaleString(DateTime.DATETIME_MED)} (estimated)`,
-        },
-        {
-          name: 'Closing Run',
-          value: prize.endrun != null && runs.find(r => r.id === prize.endrun)?.name,
-        },
-        {
-          name: 'Closing Time',
-          value:
-            prize.end_draw_time != null && `${prize.end_draw_time.toLocaleString(DateTime.DATETIME_MED)} (estimated)`,
-        },
-      ]
-    : [];
-}
 
 type PrizeProps = {
   prizeId: number;
@@ -117,8 +88,6 @@ const PrizeDetail = (props: PrizeProps) => {
     },
   );
 
-  const currency = event?.paypalcurrency || 'USD';
-
   const navigate = useNavigate();
 
   const handleDonate = React.useCallback(() => {
@@ -135,7 +104,39 @@ const PrizeDetail = (props: PrizeProps) => {
     }
   }, [eventPath, navigate, prize]);
 
-  const prizeDetails = getPrizeDetails(prize, currency, orderedRuns);
+  const eventCurrency = useEventCurrency();
+
+  const prizeDetails = React.useMemo(
+    () =>
+      prize != null
+        ? [
+            {
+              name: 'Estimated Value',
+              value: prize.estimatedvalue != null ? eventCurrency(prize.estimatedvalue) : undefined,
+            },
+            {
+              name: 'Opening Run',
+              value: prize.startrun != null && orderedRuns.find(r => r.id === prize.startrun)?.name,
+            },
+            {
+              name: 'Opening Time',
+              value:
+                prize.start_draw_time && `${prize.start_draw_time.toLocaleString(DateTime.DATETIME_MED)} (estimated)`,
+            },
+            {
+              name: 'Closing Run',
+              value: prize.endrun != null && orderedRuns.find(r => r.id === prize.endrun)?.name,
+            },
+            {
+              name: 'Closing Time',
+              value:
+                prize.end_draw_time != null &&
+                `${prize.end_draw_time.toLocaleString(DateTime.DATETIME_MED)} (estimated)`,
+            },
+          ]
+        : [],
+    [eventCurrency, orderedRuns, prize],
+  );
   const [imageError, setImageErrorTrue] = useBooleanState(false);
   const prizeImage = imageError ? null : PrizeUtils.getPrimaryImage(prize);
 
@@ -182,7 +183,7 @@ const PrizeDetail = (props: PrizeProps) => {
                       ) : null}
                     </Text>
                     <Text size={Text.Sizes.SIZE_20}>
-                      <strong>{CurrencyUtils.asCurrency(prize.minimumbid, { currency })} </strong>
+                      <strong>{eventCurrency(prize.minimumbid)} </strong>
                       {prize.sumdonations ? 'Total Donations' : 'Minimum Single Donation'}
                     </Text>
 

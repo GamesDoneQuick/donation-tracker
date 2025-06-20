@@ -1,6 +1,5 @@
 import datetime
 import re
-from decimal import Decimal
 
 import django.core.exceptions
 import django.db.utils
@@ -11,7 +10,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core import validators
-from django.forms import formset_factory, modelformset_factory
+from django.forms import modelformset_factory
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
@@ -28,10 +27,6 @@ from tracker.validators import nonzero, positive
 
 __all__ = [
     'UsernameForm',
-    'DonationCredentialsForm',
-    'DonationEntryForm',
-    'DonationBidForm',
-    'DonationBidFormSet',
     'DonationSearchForm',
     'BidSearchForm',
     'DonorSearchForm',
@@ -69,177 +64,7 @@ class UsernameForm(forms.Form):
             if User.objects.filter(username=username).count() > 0:
                 raise forms.ValidationError(_('Username already in use'))
             return self.cleaned_data['username']
-
-
-class DonationCredentialsForm(forms.Form):
-    paypalemail = forms.EmailField(min_length=1, label='Paypal Email')
-    amount = forms.DecimalField(
-        decimal_places=2, min_value=Decimal('0.00'), label='Donation Amount'
-    )
-    transactionid = forms.CharField(min_length=1, label='Transaction ID')
-
-
-class DonationEntryForm(forms.Form):
-    def __init__(self, event=None, *args, **kwargs):
-        super(DonationEntryForm, self).__init__(*args, **kwargs)
-        minDonationAmount = (
-            event.minimumdonation if event is not None else Decimal('1.00')
-        )
-        self.fields['amount'] = forms.DecimalField(
-            decimal_places=2,
-            min_value=minDonationAmount,
-            max_value=Decimal('100000'),
-            label='Donation Amount (min ${0})'.format(minDonationAmount),
-            required=True,
-        )
-        self.fields['comment'] = forms.CharField(widget=forms.Textarea, required=False)
-        self.fields['requestedvisibility'] = forms.ChoiceField(
-            initial='CURR',
-            choices=models.Donation._meta.get_field('requestedvisibility').choices,
-            label='Name Visibility',
-        )
-        self.fields['requestedalias'] = forms.CharField(
-            max_length=32, label='Preferred Alias', required=False
-        )
-        self.fields['requestedemail'] = forms.EmailField(
-            max_length=128, label='Preferred Email', required=False
-        )
-        self.fields['requestedsolicitemail'] = forms.ChoiceField(
-            initial='CURR',
-            choices=models.Donation._meta.get_field('requestedsolicitemail').choices,
-            label='Charity Email Opt In',
-        )
-
-    def clean(self):
-        if (
-            self.cleaned_data['requestedvisibility'] == 'ALIAS'
-            and not self.cleaned_data['requestedalias']
-        ):
-            raise forms.ValidationError(
-                _("Must specify an alias with 'ALIAS' visibility")
-            )
-        if (
-            self.cleaned_data['requestedalias']
-            and self.cleaned_data['requestedalias'].lower() == 'anonymous'
-        ):
-            self.cleaned_data['requestedalias'] = ''
-            self.cleaned_data['requestedvisibility'] = 'ANON'
-        return self.cleaned_data
-
-
-class DonationBidForm(forms.Form):
-    bid = forms.fields.IntegerField(
-        label='',
-        required=True,
-    )
-    customoptionname = forms.fields.CharField(
-        max_length=models.Bid._meta.get_field('name').max_length,
-        label='New Option Name:',
-        required=False,
-    )
-    amount = forms.DecimalField(
-        decimal_places=2,
-        max_digits=20,
-        required=True,
-        validators=[positive, nonzero],
-    )
-
-    def clean_bid(self):
-        try:
-            bid = models.Bid.objects.get(id=self.cleaned_data['bid'])
-            if bid.state != 'OPENED':
-                raise forms.ValidationError(_('Bid is no longer open.'))
-            return bid
-        except models.Bid.DoesNotExist:
-            raise forms.ValidationError(_('Bid does not exist.'))
-
-    def clean_customoptionname(self):
-        return self.cleaned_data.get('customoptionname', '').strip()
-
-    def clean(self):
-        bid = self.cleaned_data.get('bid', None)
-        if bid and bid.allowuseroptions:
-            customoptionname = self.cleaned_data['customoptionname']
-            if not customoptionname:
-                raise forms.ValidationError(
-                    {'customoptionname': _('Suggestions cannot be blank.')}
-                )
-            elif (
-                bid.option_max_length and len(customoptionname) > bid.option_max_length
-            ):
-                raise forms.ValidationError(
-                    {
-                        'customoptionname': _(
-                            f'Suggestion was too long, it must be {bid.option_max_length} characters or less.'
-                        ),
-                    }
-                )
-            elif self.cleaned_data['amount'] < Decimal('1.00'):
-                raise forms.ValidationError(
-                    {
-                        'amount': _(
-                            'New suggestions must have at least a dollar allocated.'
-                        )
-                    }
-                )
-        return self.cleaned_data
-
-
-class DonationBidFormSetBase(forms.BaseFormSet):
-    max_bids = 10
-
-    def __init__(self, amount=Decimal('0.00'), *args, **kwargs):
-        self.amount = amount
-        super(DonationBidFormSetBase, self).__init__(*args, **kwargs)
-
-    def clean(self):
-        if any(self.errors):
-            # Don't bother validating the formset unless each form is valid on
-            # its own
-            return
-        if len(self.forms) > DonationBidFormSetBase.max_bids:
-            self.forms[0].errors['__all__'] = self.error_class(
-                [
-                    'Error, cannot submit more than '
-                    + str(DonationBidFormSetBase.max_bids)
-                    + ' bids.'
-                ]
-            )
-            raise forms.ValidationError(
-                'Error, cannot submit more than '
-                + str(DonationBidFormSetBase.max_bids)
-                + ' bids.'
-            )
-        sumAmount = Decimal('0.00')
-        bids = set()
-        for form in self.forms:
-            if 'bid' in form.cleaned_data:
-                if form.cleaned_data.get('amount', None):
-                    sumAmount += form.cleaned_data['amount']
-                if sumAmount > self.amount:
-                    form.errors['__all__'] = form.error_class(
-                        ['Error, total bid amount cannot exceed donation amount.']
-                    )
-                    raise forms.ValidationError(
-                        'Error, total bid amount cannot exceed donation amount.'
-                    )
-                if form.cleaned_data['bid'] in bids:
-                    form.errors['__all__'] = form.error_class(
-                        [
-                            'Error, cannot bid more than once for the same bid in the same donation.'
-                        ]
-                    )
-                    raise forms.ValidationError(
-                        'Error, cannot bid more than once for the same bid in the same donation.'
-                    )
-                bids.add(form.cleaned_data['bid'])
-
-
-DonationBidFormSet = formset_factory(
-    DonationBidForm,
-    formset=DonationBidFormSetBase,
-    max_num=DonationBidFormSetBase.max_bids,
-)
+        return None
 
 
 class DonorSearchForm(forms.Form):

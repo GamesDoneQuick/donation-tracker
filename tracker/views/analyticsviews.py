@@ -1,6 +1,7 @@
 import json
 
 from django.http.response import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from tracker.analytics import analytics
@@ -11,6 +12,7 @@ __all__ = [
 
 
 @require_POST
+@csrf_exempt
 def post_analytics(request):
     events = json.loads(request.body)
 

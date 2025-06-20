@@ -9,9 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {{ app_name|json_script:'app_name' }}
     {{ CONSTANTS|json_script:'CONSTANTS' }}
-    {{ ROOT_PATH|json_script:'ROOT_PATH' }}
-    {{ props|json_script:'props' }}
-    {{ form_errors|json_script:'form_errors' }}
+    {{ API_PREFETCH|json_script:'API_PREFETCH' }}
     <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}"/>
 
     <%= htmlWebpackPlugin.tags.headTags %>
@@ -20,40 +18,14 @@
       <!--
       window.webpackPublicPath = "{% static 'gen/' %}";
       document.addEventListener("DOMContentLoaded", function () {
-        window[JSON.parse(document.getElementById('app_name').textContent)](
-          Object.assign(
-            JSON.parse(document.getElementById('props').textContent),
-            {
-              CONSTANTS: JSON.parse(document.getElementById('CONSTANTS').textContent),
-              formErrors: JSON.parse(document.getElementById('form_errors').textContent),
-              // FIXME: use the global version everywhere
-              csrfToken: document.querySelector('input[name=csrfmiddlewaretoken]').value,
-              CSRF_TOKEN: document.querySelector('input[name=csrfmiddlewaretoken]').value,
-              ROOT_PATH: JSON.parse(document.getElementById('ROOT_PATH').textContent),
-            }
-          )
-        );
+        window[JSON.parse(document.getElementById('app_name').textContent)]();
       });
       -->
     </script>
 {% endblock %}
 
 {% block content %}
-    <form>
-        {% csrf_token %}
-    </form>
-    <div style='display: none'>
-        {% for key, form in forms.items %}
-            {% if form %}
-                {% if form.management_form %}
-                    <table data-form='{{ key }}' data-form-type='management'>{{ form.management_form }}</table>
-                {% else %}
-                    <table data-form='{{ key }}'>{{ form }}</table>
-                {% endif %}
-                {% if form.empty_form %}<table data-form='{{ key }}' data-form-type='empty'>{{ form.empty_form }}</table>{% endif %}
-            {% endif %}
-        {% endfor %}
-    </div>
+    {% csrf_token %}
     <div id="container"></div>
 {% endblock %}
 

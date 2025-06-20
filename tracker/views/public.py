@@ -511,7 +511,7 @@ def run_detail(request, pk):
         run = (
             SpeedRun.objects.prefetch_related('runners', 'hosts', 'commentators')
             .exclude(order=None)
-            .filter(event__draft=True)
+            .filter(event__draft=False)
             .get(pk=pk)
         )
         event = run.event

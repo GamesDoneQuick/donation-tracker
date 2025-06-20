@@ -118,10 +118,11 @@ function App({ rootPath }) {
   useTrackerInit();
   const { isLoading } = useEventsQuery();
   const canViewBids = usePermission('tracker.view_bid');
+  const { ROOT_PATH } = useConstants();
 
   return (
     <Spinner spinning={isLoading}>
-      <BrowserRouter>
+      <BrowserRouter basename={ROOT_PATH}>
         <Routes>
           <Route path={rootPath}>
             <Route

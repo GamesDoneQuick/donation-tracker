@@ -13,13 +13,24 @@ class TestDonationBids(APITestCase):
     view_user_permissions = ['view_bid']
 
     def _format_donation_bid(self, bid):
+        def full_name(bid):
+            parts = []
+            if bid.parent:
+                parts.append(full_name(bid.parent))
+            elif bid.speedrun:
+                parts.append(bid.speedrun.name)
+                if bid.speedrun.category:
+                    parts.append(bid.speedrun.category)
+            parts.append(bid.name)
+            return ' -- '.join(parts)
+
         bid.refresh_from_db()
         return {
             'type': 'donationbid',
             'id': bid.id,
             'donation': bid.donation_id,
             'bid': bid.bid_id,
-            'bid_name': bid.bid.fullname(),
+            'bid_name': full_name(bid.bid),
             'bid_state': bid.bid.state,
             'bid_count': bid.bid.count,
             'bid_total': float(bid.bid.total),

@@ -1,48 +1,45 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 
 import { useConstants } from '@common/Constants';
-import * as CurrencyUtils from '@public/util/currency';
+import { useEventFromRoute } from '@public/apiv2/hooks';
+import { Prize } from '@public/apiv2/Models';
+import { useEventCurrency } from '@public/util/currency';
 import Anchor from '@uikit/Anchor';
 import Header from '@uikit/Header';
+import LoadingDots from '@uikit/LoadingDots';
 import Text from '@uikit/Text';
 
-import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
-import { Prize } from '@tracker/event_details/EventDetailsTypes';
 import { Routes } from '@tracker/router/RouterUtils';
 
 import styles from './DonationPrizes.mod.css';
 
 type PrizeProps = {
   prize: Prize;
-  eventId: string | number;
 };
 
 const PrizeRow = (props: PrizeProps) => {
-  const { eventId, prize } = props;
-  const currency = useSelector(EventDetailsStore.getEventCurrency);
+  const { prize } = props;
+  const { data: event, path: eventPath } = useEventFromRoute();
+  const eventCurrency = useEventCurrency();
 
-  return (
+  return event ? (
     <div className={styles.prize}>
       <Text size={Text.Sizes.SIZE_16} marginless>
-        {prize.url != null ? <Anchor href={Routes.EVENT_PRIZE(eventId, prize.id)}>{prize.name}</Anchor> : prize.name}
+        <Anchor href={Routes.EVENT_PRIZE(eventPath, prize.id)}>{prize.name}</Anchor>
       </Text>
       <Text size={Text.Sizes.SIZE_14} marginless>
-        <strong>{CurrencyUtils.asCurrency(prize.minimumbid, { currency })}</strong>{' '}
+        <strong>{eventCurrency(prize.minimumbid)}</strong>{' '}
         {prize.sumdonations ? 'Total Donations' : 'Minimum Single Donation'}
       </Text>
     </div>
+  ) : (
+    <></>
   );
 };
 
-type PrizesProps = {
-  eventId: string | number;
-};
-
-const Prizes = (props: PrizesProps) => {
+const Prizes = ({ prizes }: { prizes: Prize[] }) => {
   const { SWEEPSTAKES_URL } = useConstants();
-  const { eventId } = props;
-  const { prizes } = useSelector(EventDetailsStore.getEventDetails);
+  const { id: eventId } = useEventFromRoute();
 
   return (
     <React.Fragment>
@@ -51,7 +48,7 @@ const Prizes = (props: PrizesProps) => {
         <div className={styles.prizeInfo}>
           <Text size={Text.Sizes.SIZE_16}>Donations can enter you to win prizes!</Text>
           <Text size={Text.Sizes.SIZE_16}>
-            <Anchor href={Routes.EVENT_PRIZES(eventId)}>Full prize list</Anchor>
+            {eventId != null ? <Anchor href={Routes.EVENT_PRIZES(eventId)}>Full prize list</Anchor> : <LoadingDots />}
           </Text>
           <React.Fragment>
             <Text size={Text.Sizes.SIZE_16}>
@@ -63,11 +60,7 @@ const Prizes = (props: PrizesProps) => {
           </React.Fragment>
         </div>
         <div className={styles.prizeList}>
-          <div className={styles.prizes}>
-            {prizes.map(prize => (
-              <PrizeRow key={prize.id} prize={prize} eventId={eventId} />
-            ))}
-          </div>
+          <div className={styles.prizes}>{prizes?.map(prize => <PrizeRow key={prize.id} prize={prize} />)}</div>
         </div>
       </div>
     </React.Fragment>

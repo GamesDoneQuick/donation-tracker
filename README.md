@@ -118,6 +118,54 @@ Default: `'https://github.com/GamesDoneQuick/donation-tracker/graphs/contributor
 If set, will display this link in the common template footer. If you want to hide the link you can set it to a blank
 string.
 
+#### TRACKER_PAYPAL_MAX_DONATE_AGE
+
+Type: `int`
+
+Default: `60`
+
+The maximum age in seconds for which a signed donation payload is considered valid. When a user donates via the standard
+PayPal form, the server will generate a signed payload string as a confirmation step, salted with the user's IP. If the
+payload is older than the specified age, it is no longer considered valid and will not redirect them to PayPal. This
+does not affect how much time the user has to complete the PayPal flow.
+
+#### TRACKER_PAYPAL_SIGNATURE_PREFIX
+
+Type: `str`
+
+Default: `'tracker'`
+
+To make it easier to determine if an IPN is from the Tracker or not, all outgoing PayPal requests
+use a signed payload in the `custom` field, using this prefix, and salted with the amount of the
+donation. Do not change this while an event is running or in-flight IPNs will not validate properly.
+Must be between 1 and 8 characters long, inclusive. You probably don't need to change this unless
+the recipient is already using the prefix for some other purpose.
+
+#### TRACKER_PAYPAL_ALLOW_OLD_IPN_FORMAT
+
+Type: `bool`
+
+Default: `False`
+
+Previously, outgoing PayPal donations were tagged with a custom string with the donation ID embedded, without any
+other sort of prefix. If you still have incoming IPNs using this format, set this to True. Most IPNs reconcile
+within an hour, except in the case of e-checks, which can take several days. Chargebacks can also complicate this.
+Generally speaking you should leave this as False unless you have recently upgraded to code that expects the new
+format. If set to False, IPNs using this format will be logged but not otherwise acted upon.
+
+#### TRACKER_PAYPAL_MAXIMUM_AMOUNT
+
+Type: `int`
+
+Default: `60000`
+
+PayPal enforces a maximum amount in USD per transaction, depending on a lot of arcane factors. See [PayPal Limits
+Explained](https://www.paypal.com/us/brc/article/understanding-account-limitations) for more information. As of this
+writing the absolute maximum is $60,000 USD, but if you wish to change the default limit, especially if most of your
+events are in a currency other than USD, you can do so here. This can also be overridden on a per-event basis. Note
+that this is a hint, not a hard enforcement, and if the donor or the recipient is not capable of the desired transfer,
+PayPal will give you an error.
+
 #### TRACKER_REGISTRATION_FROM_EMAIL
 
 Type: `str` (must pass `EmailValidator`)
@@ -138,10 +186,23 @@ the form itself before doing the import.
 
 ### Testing Your Deploy (WIP)
 
-- PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed
-  - The sandbox sends IPNs, so you should not need to use the IPN simulator unless you really want to
+- PayPal currently requires the receiver account to have IPNs turned on so that payment can be confirmed.
+  - You do -not- need to set the confirmation URL to your Tracker instance, as the callback url is part of the outgoing
+    payload, but it does need to be set to -some- URL that returns a 200 response, or PayPal will continuously retry
+    sending the IPN.
+  - The sandbox sends IPNs so you should be able to use the standard flow to test if your Tracker instance is publicly
+    accessible. All donations received this way will be flagged as test donations and will not be counted when you turn
+    sandbox mode off.
+  - You can also use the IPN simulator. The custom payload follows the format `{prefix}:{id}:{signature}`, where
+    `prefix` is the value of `TRACKER_PAYPAL_SIGNATURE_PREFIX`, `id` is the numeric ID of the donation row, and
+    `signature` is a signed JSON block from [Django's Cryptographic Signing](https://docs.djangoproject.com/en/dev/topics/signing/)
+    with an `id` key that matches the previous parameter, and salted with the amount of the donation as a string, e.g.
+    `123.45`. You can get a sample signature block from the admin page for any PayPal donation.
 - There is a Diagnostics page on the admin, accessible if you are a Django superuser, it will let you test or monitor
-  various pieces of Tracker functionality, which can give you early hints that something isn't working right
+  various pieces of Tracker functionality, which can give you early hints that something isn't working right.
+  - If Secure Request is False even when you are using HTTPS, Django might not be parsing your proxy headers correctly.
+    [SECURE_PROXY_SSL_HEADER](https://docs.djangoproject.com/en/5.2/ref/settings/#secure-proxy-ssl-header) is the most
+    likely culprit.
 
 ## Development Quick Start
 
