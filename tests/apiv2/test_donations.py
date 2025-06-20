@@ -173,14 +173,10 @@ class TestDonations(APITestCase):
         with self.saveSnapshot():
             with self.subTest('unprocess'), self.assertLogsChanges(1):
                 with self.suppressSnapshot(), self.subTest('error cases'):
-                    self.patch_noun(
-                        donation, noun='unprocess', status_code=403, user=None
-                    )
-                    self.patch_noun(
-                        donation, noun='unprocess', status_code=403, user=user
-                    )
+                    self.patch_noun(donation, 'unprocess', status_code=403, user=None)
+                    self.patch_noun(donation, 'unprocess', status_code=403, user=user)
 
-                data = self.patch_noun(donation, noun='unprocess', user=self.add_user)
+                data = self.patch_noun(donation, 'unprocess', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertEqual(donation.commentstate, 'PENDING')
                 self.assertEqual(donation.readstate, 'PENDING')
@@ -188,15 +184,13 @@ class TestDonations(APITestCase):
             with self.subTest('approve comment'), self.assertLogsChanges(1):
                 with self.suppressSnapshot(), self.subTest('error cases'):
                     self.patch_noun(
-                        donation, noun='approve-comment', status_code=403, user=None
+                        donation, 'approve-comment', status_code=403, user=None
                     )
                     self.patch_noun(
-                        donation, noun='approve-comment', status_code=403, user=user
+                        donation, 'approve-comment', status_code=403, user=user
                     )
 
-                data = self.patch_noun(
-                    donation, noun='approve-comment', user=self.add_user
-                )
+                data = self.patch_noun(donation, 'approve-comment', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertEqual(donation.commentstate, 'APPROVED')
                 self.assertEqual(donation.readstate, 'IGNORED')
@@ -204,32 +198,30 @@ class TestDonations(APITestCase):
             with self.subTest('deny comment'), self.assertLogsChanges(1):
                 with self.suppressSnapshot(), self.subTest('error cases'):
                     self.patch_noun(
-                        donation, noun='deny-comment', status_code=403, user=None
+                        donation, 'deny-comment', status_code=403, user=None
                     )
                     self.patch_noun(
-                        donation, noun='deny-comment', status_code=403, user=user
+                        donation, 'deny-comment', status_code=403, user=user
                     )
 
-                data = self.patch_noun(
-                    donation, noun='deny-comment', user=self.add_user
-                )
+                data = self.patch_noun(donation, 'deny-comment', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertEqual(donation.commentstate, 'DENIED')
                 self.assertEqual(donation.readstate, 'IGNORED')
 
             with self.subTest('flag comment'), self.assertLogsChanges(1):
                 with self.suppressSnapshot(), self.subTest('error cases'):
-                    self.patch_noun(donation, noun='flag', status_code=403, user=None)
-                    self.patch_noun(donation, noun='flag', status_code=403, user=user)
+                    self.patch_noun(donation, 'flag', status_code=403, user=None)
+                    self.patch_noun(donation, 'flag', status_code=403, user=user)
                     self.event.screening_mode = 'one_pass'
                     self.event.save()
                     self.patch_noun(
-                        donation, noun='flag', status_code=400, user=self.add_user
+                        donation, 'flag', status_code=400, user=self.add_user
                     )
 
                 self.event.screening_mode = 'two_pass'
                 self.event.save()
-                data = self.patch_noun(donation, noun='flag', user=self.add_user)
+                data = self.patch_noun(donation, 'flag', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertEqual(donation.commentstate, 'APPROVED')
                 self.assertEqual(donation.readstate, 'FLAGGED')
@@ -237,15 +229,15 @@ class TestDonations(APITestCase):
             with self.subTest('send to reader'), self.assertLogsChanges(2):
                 with self.suppressSnapshot(), self.subTest('error cases'):
                     self.patch_noun(
-                        donation, noun='send-to-reader', status_code=403, user=None
+                        donation, 'send-to-reader', status_code=403, user=None
                     )
                     self.patch_noun(
-                        donation, noun='send-to-reader', status_code=403, user=user
+                        donation, 'send-to-reader', status_code=403, user=user
                     )
                     # check permission if two-step screening is active
                     self.patch_noun(
                         donation,
-                        noun='send-to-reader',
+                        'send-to-reader',
                         status_code=403,
                         user=self.add_user,
                     )
@@ -256,9 +248,7 @@ class TestDonations(APITestCase):
                 # no special permission for one pass screening
                 self.event.screening_mode = 'one_pass'
                 self.event.save()
-                data = self.patch_noun(
-                    donation, noun='send-to-reader', user=self.add_user
-                )
+                data = self.patch_noun(donation, 'send-to-reader', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertEqual(donation.commentstate, 'APPROVED')
                 self.assertEqual(donation.readstate, 'READY')
@@ -272,62 +262,56 @@ class TestDonations(APITestCase):
                     Permission.objects.get(codename='send_to_reader')
                 )
                 self.add_user = User.objects.get(pk=self.add_user.pk)  # refresh perms
-                data = self.patch_noun(
-                    donation, noun='send-to-reader', user=self.add_user
-                )
+                data = self.patch_noun(donation, 'send-to-reader', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertEqual(donation.commentstate, 'APPROVED')
                 self.assertEqual(donation.readstate, 'READY')
 
             with self.subTest('pin'), self.assertLogsChanges(1):
                 with self.suppressSnapshot(), self.subTest('error cases'):
-                    self.patch_noun(donation, noun='pin', status_code=403, user=None)
-                    self.patch_noun(donation, noun='pin', status_code=403, user=user)
+                    self.patch_noun(donation, 'pin', status_code=403, user=None)
+                    self.patch_noun(donation, 'pin', status_code=403, user=user)
 
-                data = self.patch_noun(donation, noun='pin', user=self.add_user)
+                data = self.patch_noun(donation, 'pin', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertTrue(donation.pinned)
 
             with self.subTest('unpin'), self.assertLogsChanges(1):
                 with self.suppressSnapshot(), self.subTest('error cases'):
-                    self.patch_noun(donation, noun='unpin', status_code=403, user=None)
-                    self.patch_noun(donation, noun='unpin', status_code=403, user=user)
+                    self.patch_noun(donation, 'unpin', status_code=403, user=None)
+                    self.patch_noun(donation, 'unpin', status_code=403, user=user)
 
-                data = self.patch_noun(donation, noun='unpin', user=self.add_user)
+                data = self.patch_noun(donation, 'unpin', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertFalse(donation.pinned)
 
             with self.subTest('read'), self.assertLogsChanges(1):
                 with self.suppressSnapshot(), self.subTest('error cases'):
-                    self.patch_noun(donation, noun='read', status_code=403, user=None)
-                    self.patch_noun(donation, noun='read', status_code=403, user=user)
+                    self.patch_noun(donation, 'read', status_code=403, user=None)
+                    self.patch_noun(donation, 'read', status_code=403, user=user)
 
-                data = self.patch_noun(donation, noun='read', user=self.add_user)
+                data = self.patch_noun(donation, 'read', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertEqual(donation.commentstate, 'APPROVED')
                 self.assertEqual(donation.readstate, 'READ')
 
             with self.subTest('ignore'), self.assertLogsChanges(1):
                 with self.suppressSnapshot(), self.subTest('error cases'):
-                    self.patch_noun(donation, noun='ignore', status_code=403, user=None)
-                    self.patch_noun(donation, noun='ignore', status_code=403, user=user)
+                    self.patch_noun(donation, 'ignore', status_code=403, user=None)
+                    self.patch_noun(donation, 'ignore', status_code=403, user=user)
 
-                data = self.patch_noun(donation, noun='ignore', user=self.add_user)
+                data = self.patch_noun(donation, 'ignore', user=self.add_user)
                 self.assertV2ModelPresent(donation, data)
                 self.assertEqual(donation.commentstate, 'APPROVED')
                 self.assertEqual(donation.readstate, 'IGNORED')
 
             with self.subTest('comment'), self.assertLogsChanges(1):
                 with self.suppressSnapshot(), self.subTest('error cases'):
-                    self.patch_noun(
-                        donation, noun='comment', status_code=403, user=None
-                    )
-                    self.patch_noun(
-                        donation, noun='comment', status_code=403, user=user
-                    )
+                    self.patch_noun(donation, 'comment', status_code=403, user=None)
+                    self.patch_noun(donation, 'comment', status_code=403, user=user)
                     self.patch_noun(
                         donation,
-                        noun='comment',
+                        'comment',
                         status_code=400,
                         user=self.add_user,
                         expected_error_codes={'comment': 'required'},
@@ -335,7 +319,7 @@ class TestDonations(APITestCase):
 
                 data = self.patch_noun(
                     donation,
-                    noun='comment',
+                    'comment',
                     data={'comment': 'New comment.'},
                     user=self.add_user,
                 )
@@ -347,14 +331,14 @@ class TestDonations(APITestCase):
                     # can't add a new one without permission
                     self.patch_noun(
                         donation,
-                        noun='groups',
+                        'groups',
                         kwargs={'group': 'foo'},
                         status_code=400,
                     )
 
                 self.add_permission(self.add_user, codename='add_donationgroup')
 
-                data = self.patch_noun(donation, noun='groups', kwargs={'group': 'foo'})
+                data = self.patch_noun(donation, 'groups', kwargs={'group': 'foo'})
                 self.assertEqual(data, ['foo'])
                 self.assertEqual(donation.groups.count(), 1)
                 self.assertTrue(
@@ -363,10 +347,10 @@ class TestDonations(APITestCase):
 
                 with self.suppressSnapshot(), self.assertLogsChanges(0):
                     # no-op
-                    self.patch_noun(donation, noun='groups', kwargs={'group': 'foo'})
+                    self.patch_noun(donation, 'groups', kwargs={'group': 'foo'})
 
                 data = self.delete_noun(
-                    donation, noun='groups', kwargs={'group': 'foo'}, status_code=200
+                    donation, 'groups', kwargs={'group': 'foo'}, status_code=200
                 )
                 self.assertEqual(data, [])
                 self.assertEqual(donation.groups.count(), 0)
@@ -379,7 +363,7 @@ class TestDonations(APITestCase):
                     # no-op
                     self.delete_noun(
                         donation,
-                        noun='groups',
+                        'groups',
                         kwargs={'group': 'foo'},
                         status_code=200,
                     )

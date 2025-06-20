@@ -420,7 +420,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         paginator.paginate_queryset(queryset, FakeRequest())
         return paginator.get_paginated_response(data)
 
-    def _get_viewname(self, model_name, action, **kwargs):
+    def _get_viewname(self, model_name, action, view_name=None, **kwargs):
+        if view_name:
+            return f'tracker:api_v2:{model_name}-{view_name}'
         if 'event_pk' in kwargs:
             if 'feed' in kwargs:
                 viewname = f'tracker:api_v2:event-{model_name}-feed-{action}'
@@ -508,6 +510,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
     def get_detail(
         self,
         obj,
+        /,
         *,
         model_name=None,
         status_code=200,
@@ -515,6 +518,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         kwargs=None,
         user=_empty,
         expected_error_codes=None,
+        view_name=None,
     ):
         kwargs = kwargs or {}
         if user is not _empty:
@@ -526,7 +530,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             pk = obj if isinstance(obj, int) else obj.pk
             lookup_kwargs['pk'] = pk
         url = reverse(
-            self._get_viewname(model_name, 'detail', **kwargs),
+            self._get_viewname(model_name, 'detail', view_name, **kwargs),
             kwargs=lookup_kwargs,
         )
 
@@ -550,6 +554,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         kwargs=None,
         user=_empty,
         expected_error_codes=None,
+        view_name=None,
     ):
         kwargs = kwargs or {}
         if user is not _empty:
@@ -557,7 +562,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(
-            self._get_viewname(model_name, 'list', **kwargs),
+            self._get_viewname(model_name, 'list', view_name, **kwargs),
             kwargs=kwargs,
         )
         with self.process_snapshot('GET', url, data) as snapshot:
@@ -575,6 +580,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         self,
         noun,
         obj=None,
+        /,
         *,
         model_name=None,
         status_code=200,
@@ -583,6 +589,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         lookup_key=None,
         user=_empty,
         expected_error_codes=None,
+        view_name=None,
     ):
         kwargs = kwargs or {}
         if lookup_key is None:
@@ -593,7 +600,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
-        url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
+        url = reverse(
+            self._get_viewname(model_name, noun, view_name, **kwargs), kwargs=kwargs
+        )
         with self.process_snapshot('GET', url, data) as snapshot:
             response = self.client.get(
                 url,
@@ -614,6 +623,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         kwargs=None,
         expected_error_codes=None,
         user=_empty,
+        view_name=None,
     ):
         return self.post_noun(
             'list',
@@ -623,11 +633,13 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             kwargs=kwargs,
             expected_error_codes=expected_error_codes,
             user=user,
+            view_name=view_name,
         )
 
     def post_noun(
         self,
         noun,
+        /,
         *,
         model_name=None,
         status_code=200,
@@ -635,6 +647,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         kwargs=None,
         expected_error_codes=None,
         user=_empty,
+        view_name=None,
     ):
         kwargs = kwargs or {}
         data = data or {}
@@ -642,7 +655,9 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
             self.client.force_authenticate(user=user)
         model_name = model_name or self.model_name
         assert model_name is not None
-        url = reverse(self._get_viewname(model_name, noun, **kwargs), kwargs=kwargs)
+        url = reverse(
+            self._get_viewname(model_name, noun, view_name, **kwargs), kwargs=kwargs
+        )
         with self.process_snapshot('POST', url, data) as snapshot:
             response = self.client.post(
                 url,
@@ -658,6 +673,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
     def patch_detail(
         self,
         obj,
+        /,
         *,
         model_name=None,
         status_code=200,
@@ -665,28 +681,33 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         data=None,
         kwargs=None,
         user=_empty,
+        view_name=None,
     ):
         return self.patch_noun(
             obj,
+            'detail',
             model_name=model_name,
             status_code=status_code,
             expected_error_codes=expected_error_codes,
             data=data,
             kwargs=kwargs,
             user=user,
+            view_name=view_name,
         )
 
     def patch_noun(
         self,
         obj,
+        noun,
+        /,
         *,
         model_name=None,
-        noun='detail',
         status_code=200,
         expected_error_codes=None,
         data=None,
         kwargs=None,
         user=_empty,
+        view_name=None,
     ):
         kwargs = kwargs or {}
         if user is not _empty:
@@ -694,7 +715,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         model_name = model_name or self.model_name
         assert model_name is not None
         url = reverse(
-            self._get_viewname(model_name, noun, **kwargs),
+            self._get_viewname(model_name, noun, view_name, **kwargs),
             kwargs={'pk': obj.pk, **kwargs},
         )
         if status_code >= 400 and not expected_error_codes:
@@ -716,9 +737,10 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
     def delete_noun(
         self,
         obj,
+        noun='detail',
+        /,
         *,
         model_name=None,
-        noun='detail',
         status_code=_empty,
         expected_error_codes=None,
         data=None,
@@ -781,7 +803,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         return False
 
     def _compare_model(
-        self, expected_model, found_model, partial, prefix='', *, missing_ok=None
+        self, expected_model, found_model, partial, /, prefix='', *, missing_ok=None
     ):
         missing_ok = set(missing_ok or [])
         self.assertIsInstance(found_model, dict, 'found_model was not a dict')
