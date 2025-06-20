@@ -110,12 +110,34 @@ class BidAdmin(EventArchivedMixin, CustomModelAdmin):
         ).select_related('parent', 'speedrun', 'event')
 
     def get_inlines(self, request, obj):
-        if obj is None:
-            return []
-        elif obj.chain:
-            return [BidChainedInline, BidDependentsInline]
-        else:
-            return [BidOptionInline, BidDependentsInline]
+        inlines = []
+        if obj is not None:
+            if obj.goal:
+                inlines.append(BidDependentsInline)
+            if obj.chain:
+                inlines.append(BidChainedInline)
+            elif not obj.istarget:
+                inlines.append(BidOptionInline)
+        return inlines
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if obj and obj.parent:
+            if 'state' in form.base_fields:
+                form.base_fields['state'].choices = [
+                    (obj.parent.state, 'Inherit Parent State'),
+                    ('PENDING', 'Pending'),
+                    ('DENIED', 'Denied'),
+                ]
+        elif 'state' in form.base_fields:
+            # this doesn't allow adding pending/denied children without going through the inline, but I struggle
+            # to think of a use case for that either way
+            form.base_fields['state'].choices = [
+                c
+                for c in form.base_fields['state'].choices
+                if c[0] in models.Bid.TOP_LEVEL_STATES
+            ]
+        return form
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = super().get_readonly_fields(request, obj)

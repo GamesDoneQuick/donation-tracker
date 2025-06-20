@@ -16,7 +16,7 @@ class CustomStackedInline(admin.StackedInline):
             url = viewutil.admin_url(instance)
             return mark_safe('<a href="{u}">Edit</a>'.format(u=url))
         else:
-            return mark_safe('Not Saved Yet')
+            return '-'
 
 
 class DonationBidInline(CustomStackedInline):
@@ -29,10 +29,7 @@ class DonationBidInline(CustomStackedInline):
 class BidInline(CustomStackedInline):
     model = models.Bid
     extra = 0
-    readonly_fields = (
-        'estimate',
-        'total',
-    )
+    readonly_fields = ('total',)
     ordering = ('-total', 'name')
 
     def get_fieldsets(self, request, obj=None):
@@ -55,6 +52,12 @@ class BidInline(CustomStackedInline):
             )
         ]
 
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+        if obj and not obj.allowuseroptions:
+            readonly_fields = readonly_fields + ('state',)
+        return readonly_fields
+
 
 class BidOptionInline(BidInline):
     verbose_name_plural = 'Options'
@@ -65,18 +68,28 @@ class BidOptionInline(BidInline):
         formset = super().get_formset(request, obj, **kwargs)
         if obj and obj.allowuseroptions:
             formset.form.base_fields['state'].choices = [
-                c
-                for c in formset.form.base_fields['state'].choices
-                if c[0] in [obj.state, 'PENDING', 'DENIED']
+                (obj.state, 'Inherit Parent State'),
+                ('PENDING', 'Pending'),
+                ('DENIED', 'Denied'),
             ]
         return formset
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = super().get_fieldsets(request, obj)
+        if obj and obj.allowuseroptions:
+            # hide some fields that don't make sense for user submitted options
+            fieldsets[0][1]['fields'].remove('description')
+            fieldsets[0][1]['fields'].remove('shortdescription')
+            fieldsets[0][1]['fields'].remove('istarget')
+            fieldsets[0][1]['fields'].remove('estimate')
         fieldsets[0][1]['fields'].remove('goal')
-        if not (obj and obj.allowuseroptions):
-            fieldsets[0][1]['fields'].remove('state')
         return fieldsets
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+        if not (obj and obj.allowuseroptions):
+            readonly_fields += ('state',)
+        return readonly_fields
 
 
 class BidDependentsInline(BidInline):
