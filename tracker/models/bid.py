@@ -100,6 +100,8 @@ class Bid(mptt.models.MPTTModel):
     HIDDEN_STATES = ('PENDING', 'DENIED', 'HIDDEN')
     PUBLIC_STATES = ('OPENED', 'CLOSED')
     ALL_STATES = HIDDEN_STATES + PUBLIC_STATES
+    TOP_LEVEL_STATES = ('HIDDEN', 'OPENED', 'CLOSED')
+    EXTRA_CHILD_STATES = ('PENDING', 'DENIED')  # only for allowuseroptions
 
     objects = BidManager.from_queryset(BidQuerySet)()
     event = models.ForeignKey(
@@ -536,6 +538,7 @@ class Bid(mptt.models.MPTTModel):
             self.parent.save()
 
     def check_parent(self):
+        self.parent.refresh_from_db()
         changed = False
         if self.speedrun != self.parent.speedrun:
             self.speedrun = self.parent.speedrun

@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.contrib.admin import models as admin_models
 from django.contrib.admin import register
-from django.utils.safestring import mark_safe
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.html import format_html
 
 from tracker import models
 
@@ -50,19 +51,10 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
     list_filter = [
         ('action_time', admin.DateFieldListFilter),
         'user',
+        'content_type',
         AdminActionLogEntryFlagFilter,
     ]
-    readonly_fields = (
-        'action_time',
-        'content_type',
-        'object_id',
-        'object_repr',
-        'action_type',
-        'action_flag',
-        'target_object',
-        'change_message',
-        'user',
-    )
+    list_display = ('edited_object', 'action_type', 'change_message_')
     fieldsets = [
         (
             None,
@@ -73,10 +65,27 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
                     'user',
                     'change_message',
                     'target_object',
+                    'content_type',
+                    'content_type_id',
+                    'object_id',
                 ]
             },
         )
     ]
+
+    def edited_object(self, obj):
+        # FIXME: this is horribly inefficient, but browsing this casually probably shouldn't be happening either
+        try:
+            return obj.get_edited_object() or obj.object_repr
+        except (AttributeError, ObjectDoesNotExist):
+            # AttributeError can happen if the entry points at a model that is no longer installed
+            return obj.object_repr
+
+    def change_message_(self, obj):
+        if obj.is_change():
+            return obj.get_change_message()
+        else:
+            return '-'
 
     def action_type(self, instance):
         if instance.is_addition():
@@ -90,10 +99,12 @@ class AdminActionLogEntryAdmin(CustomModelAdmin):
 
     def target_object(self, instance):
         if instance.is_deletion():
-            return 'Deleted'
+            return '-'
         else:
-            return mark_safe(
-                f'<a href="{instance.get_admin_url()}">{instance.object_repr}</a>'
+            return format_html(
+                '<a href="{admin_url}">{repr}</a>',
+                admin_url=instance.get_admin_url(),
+                repr=instance.object_repr,
             )
 
     def has_add_permission(self, request):

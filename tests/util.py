@@ -133,6 +133,20 @@ def create_ipn(
     return ipn
 
 
+def find_admin_inline(response, InlineType):
+    inlines = getattr(response, 'context', {}).get('inline_admin_formsets', [])
+    return next((fs for fs in inlines if isinstance(fs.opts, InlineType)), None)
+
+
+# not used in tests, but useful for debugging
+def merge_response_context(response):
+    context = {}
+    for c in getattr(response, 'context', []):
+        for d in c.dicts:
+            context.update(**d)
+    return context
+
+
 noon = datetime.time(12, 0)
 today = datetime.date.today()
 today_noon = datetime.datetime.combine(today, noon).astimezone(

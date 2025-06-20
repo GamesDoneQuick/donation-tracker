@@ -7,9 +7,16 @@ from django.test import TestCase
 from django.urls import reverse
 
 from tracker import models
+from tracker.admin.inlines import BidChainedInline, BidDependentsInline, BidOptionInline
 
 from . import randgen
-from .util import MigrationsTestCase, long_ago_noon, today_noon, tomorrow_noon
+from .util import (
+    MigrationsTestCase,
+    find_admin_inline,
+    long_ago_noon,
+    today_noon,
+    tomorrow_noon,
+)
 
 
 class TestBidBase(TestCase):
@@ -559,19 +566,88 @@ class TestBidAdmin(TestBidBase):
             response = self.client.get(reverse('admin:tracker_bid_changelist'))
             self.assertEqual(response.status_code, 200)
             response = self.client.get(reverse('admin:tracker_bid_add'))
+            self.assertIsNone(find_admin_inline(response, BidOptionInline))
+            self.assertIsNone(find_admin_inline(response, BidDependentsInline))
+            self.assertIsNone(find_admin_inline(response, BidChainedInline))
             self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                set(models.Bid.TOP_LEVEL_STATES),
+                {c[0] for c in response.context['adminform'].fields['state'].choices},
+            )
+            response = self.client.get(
+                reverse('admin:tracker_bid_change', args=(self.opened_parent_bid.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                set(models.Bid.TOP_LEVEL_STATES),
+                {c[0] for c in response.context['adminform'].fields['state'].choices},
+            )
+            options_inline = find_admin_inline(response, BidOptionInline)
+            self.assertIn('state', options_inline.forms[0].fields)
+            self.assertEqual(
+                {self.opened_parent_bid.state, 'PENDING', 'DENIED'},
+                {c[0] for c in options_inline.forms[0].fields['state'].choices},
+            )
+            self.assertEqual(
+                {'Inherit Parent State', 'Pending', 'Denied'},
+                {c[1] for c in options_inline.forms[0].fields['state'].choices},
+            )
+            self.assertEqual(
+                {'description', 'shortdescription', 'istarget', 'estimate'}
+                & set(options_inline.forms[0].fields),
+                set(),
+            )
+            self.assertIsNone(find_admin_inline(response, BidDependentsInline))
+            self.assertIsNone(find_admin_inline(response, BidChainedInline))
+            self.assertTrue(response.context['has_change_permission'])
+            self.assertTrue(response.context['has_delete_permission'])
             response = self.client.get(
                 reverse('admin:tracker_bid_change', args=(self.opened_bid.id,))
             )
             self.assertEqual(response.status_code, 200)
-            self.assertTrue(response.context['has_change_permission'])
-            self.assertTrue(response.context['has_delete_permission'])
+            self.assertEqual(
+                {self.opened_parent_bid.state, *models.Bid.EXTRA_CHILD_STATES},
+                {c[0] for c in response.context['adminform'].fields['state'].choices},
+            )
             response = self.client.get(
                 reverse('admin:tracker_bid_change', args=(self.archived_challenge.id,))
             )
             self.assertEqual(response.status_code, 200)
             self.assertFalse(response.context['has_change_permission'])
             self.assertFalse(response.context['has_delete_permission'])
+            self.assertIsNone(find_admin_inline(response, BidOptionInline))
+            self.assertIsNotNone(find_admin_inline(response, BidDependentsInline))
+            self.assertIsNone(find_admin_inline(response, BidChainedInline))
+            response = self.client.get(
+                reverse('admin:tracker_bid_change', args=(self.closed_parent_bid.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+            options_inline = find_admin_inline(response, BidOptionInline)
+            self.assertNotIn('state', options_inline.forms[0].fields)
+            self.assertIsNone(find_admin_inline(response, BidDependentsInline))
+            self.assertIsNone(find_admin_inline(response, BidChainedInline))
+            response = self.client.get(
+                reverse('admin:tracker_bid_change', args=(self.closed_bid.id,))
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                {'description', 'shortdescription', 'istarget', 'estimate'}
+                & set(options_inline.forms[0].fields),
+                {'description', 'shortdescription', 'istarget', 'estimate'},
+            )
+            self.assertNotIn('state', response.context['adminform'].fields)
+            for chain in [self.chain_top, self.chain_middle, self.chain_bottom]:
+                response = self.client.get(
+                    reverse('admin:tracker_bid_change', args=(chain.id,))
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertIsNone(find_admin_inline(response, BidOptionInline))
+                self.assertIsNotNone(find_admin_inline(response, BidDependentsInline))
+                chained_inline = find_admin_inline(response, BidChainedInline)
+                self.assertEqual(
+                    len(chained_inline.forms), 0 if chain == self.chain_bottom else 1
+                )
+
         with self.subTest('staff user'):
             self.client.force_login(self.unlocked_user)
             response = self.client.get(reverse('admin:tracker_bid_changelist'))
@@ -592,6 +668,7 @@ class TestBidAdmin(TestBidBase):
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.context['has_change_permission'])
             self.assertFalse(response.context['has_delete_permission'])
+
         with self.subTest('view user'):
             self.client.force_login(self.view_user)
             response = self.client.get(reverse('admin:tracker_bid_changelist'))
