@@ -59,6 +59,12 @@ class TestBidBase(TestCase):
         self.donation4 = models.Donation.objects.create(
             donor=self.donor, event=self.event, amount=250, transactionstate='COMPLETED'
         )
+        self.pending_donation = models.Donation.objects.create(
+            event=self.event,
+            amount=250,
+            transactionstate='PENDING',
+            domain='PAYPAL',
+        )
         self.opened_parent_bid = models.Bid.objects.create(
             name='Opened Parent Test',
             speedrun=self.run,
@@ -637,6 +643,7 @@ class TestBidAdmin(TestBidBase):
         with self.subTest('super user'):
             self.client.force_login(self.super_user)
             response = self.client.get(reverse('admin:tracker_donationbid_changelist'))
+            self.assertContains(response, 'Transactionstate')
             self.assertEqual(response.status_code, 200)
             response = self.client.get(reverse('admin:tracker_donationbid_add'))
             self.assertEqual(response.status_code, 403)
@@ -650,6 +657,41 @@ class TestBidAdmin(TestBidBase):
                 reverse(
                     'admin:tracker_donationbid_change',
                     args=(self.archived_donation_bid.id,),
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context['has_change_permission'])
+        with self.subTest('staff user'):
+            self.client.force_login(self.unlocked_user)
+            response = self.client.get(reverse('admin:tracker_donationbid_changelist'))
+            self.assertEqual(response.status_code, 200)
+            self.assertNotContains(response, 'Transactionstate')
+            response = self.client.get(reverse('admin:tracker_donationbid_add'))
+            self.assertEqual(response.status_code, 403)
+            response = self.client.get(
+                reverse(
+                    'admin:tracker_donationbid_change', args=(self.donation_bid.id,)
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            response = self.client.get(
+                reverse(
+                    'admin:tracker_donationbid_change',
+                    args=(self.archived_donation_bid.id,),
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context['has_change_permission'])
+        with self.subTest('view user'):
+            self.client.force_login(self.view_user)
+            response = self.client.get(reverse('admin:tracker_donationbid_changelist'))
+            self.assertEqual(response.status_code, 200)
+            self.assertNotContains(response, 'Transactionstate')
+            response = self.client.get(reverse('admin:tracker_donationbid_add'))
+            self.assertEqual(response.status_code, 403)
+            response = self.client.get(
+                reverse(
+                    'admin:tracker_donationbid_change', args=(self.donation_bid.id,)
                 )
             )
             self.assertEqual(response.status_code, 200)
