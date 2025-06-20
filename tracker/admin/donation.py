@@ -182,7 +182,13 @@ class DonationAdmin(EventArchivedMixin, CustomModelAdmin):
                         if c[0] != 'ABSENT'
                     ]
             if 'readstate' in form.base_fields:
-                if obj.event.use_one_step_screening:
+                if obj.event.screening_mode == 'host_only':
+                    form.base_fields['readstate'].choices = [
+                        c
+                        for c in form.base_fields['readstate'].choices
+                        if c[0] not in ('PENDING', 'FLAGGED')
+                    ]
+                elif obj.event.screening_mode == 'one_pass':
                     form.base_fields['readstate'].choices = [
                         c
                         for c in form.base_fields['readstate'].choices

@@ -274,11 +274,11 @@ class DonationViewSet(
         """
         Mark the donation as approved, but flagged for head donations to review
         before sending to the reader. This should only be called when the event
-        is using two-step screening.
+        is using two pass screening.
         """
-        if self.get_object().event.use_one_step_screening:
+        if self.get_object().event.screening_mode != 'two_pass':
             raise ValidationError(
-                'Event is using one-step screening, this endpoint should not be used'
+                'Event is not using two pass screening, this endpoint should not be used'
             )
         with self.change_donation(
             action=DonationProcessingActionTypes.FLAGGED
@@ -342,6 +342,7 @@ class DonationViewSet(
             action=DonationProcessingActionTypes.READ
         ) as donation:
             donation.readstate = 'READ'
+            donation.commentstate = 'APPROVED'
             data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
@@ -355,6 +356,7 @@ class DonationViewSet(
             action=DonationProcessingActionTypes.IGNORED
         ) as donation:
             donation.readstate = 'IGNORED'
+            donation.commentstate = 'APPROVED'
             data = self.get_serializer(donation, mod_comments=True, groups=True).data
 
         return Response(data)
