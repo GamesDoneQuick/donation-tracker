@@ -437,14 +437,14 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.assertLogsChanges(2), self.subTest('bid approval'):
             self.pending_bid.state = 'PENDING'
             self.pending_bid.save()
-            data = self.patch_noun(self.pending_bid, noun='approve')
+            data = self.patch_noun(self.pending_bid, 'approve')
             self.assertV2ModelPresent(
                 self.pending_bid,
                 data,
             )
             self.pending_bid.state = 'PENDING'
             self.pending_bid.save()
-            data = self.patch_noun(self.pending_bid, noun='deny')
+            data = self.patch_noun(self.pending_bid, 'deny')
             self.assertV2ModelPresent(
                 self.pending_bid,
                 data,
@@ -456,10 +456,10 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.subTest('approval only user'), self.assertLogsChanges(2):
             self.pending_bid.state = 'PENDING'
             self.pending_bid.save()
-            self.patch_noun(self.pending_bid, noun='approve', user=self.approval_user)
+            self.patch_noun(self.pending_bid, 'approve', user=self.approval_user)
             self.pending_bid.state = 'PENDING'
             self.pending_bid.save()
-            self.patch_noun(self.pending_bid, noun='deny', user=self.approval_user)
+            self.patch_noun(self.pending_bid, 'deny', user=self.approval_user)
 
         with (
             self.subTest('can edit top level bids even without creation permission'),
@@ -487,8 +487,8 @@ class TestBidViewSet(TestBidBase, APITestCase):
         with self.subTest(
             'approve deny on an archived event non-option should still 404'
         ):
-            self.patch_noun(self.archived_challenge, noun='approve', status_code=404)
-            self.patch_noun(self.archived_challenge, noun='deny', status_code=404)
+            self.patch_noun(self.archived_challenge, 'approve', status_code=404)
+            self.patch_noun(self.archived_challenge, 'deny', status_code=404)
 
         with self.subTest('should not be able to edit an archived bid'):
             self.patch_detail(
@@ -496,8 +496,8 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 data={'name': 'Archived Updated Again'},
                 status_code=403,
             )
-            self.patch_noun(self.archived_pending_bid, noun='approve', status_code=403)
-            self.patch_noun(self.archived_pending_bid, noun='deny', status_code=403)
+            self.patch_noun(self.archived_pending_bid, 'approve', status_code=403)
+            self.patch_noun(self.archived_pending_bid, 'deny', status_code=403)
 
         with self.subTest('should not be able to move to an archived event'):
             self.patch_detail(
@@ -512,10 +512,10 @@ class TestBidViewSet(TestBidBase, APITestCase):
             )
 
         with self.subTest('approve and deny without user options'):
-            self.patch_noun(self.closed_parent_bid, noun='approve', status_code=404)
-            self.patch_noun(self.closed_parent_bid, noun='deny', status_code=404)
-            self.patch_noun(self.closed_bid, noun='approve', status_code=404)
-            self.patch_noun(self.closed_bid, noun='deny', status_code=404)
+            self.patch_noun(self.closed_parent_bid, 'approve', status_code=404)
+            self.patch_noun(self.closed_parent_bid, 'deny', status_code=404)
+            self.patch_noun(self.closed_bid, 'approve', status_code=404)
+            self.patch_noun(self.closed_bid, 'deny', status_code=404)
 
         with self.subTest('anonymous'):
             self.patch_detail(
@@ -524,8 +524,8 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 status_code=403,
                 user=None,
             )
-            self.patch_noun(self.opened_bid, noun='approve', status_code=403, user=None)
-            self.patch_noun(self.opened_bid, noun='deny', status_code=403, user=None)
+            self.patch_noun(self.opened_bid, 'approve', status_code=403, user=None)
+            self.patch_noun(self.opened_bid, 'deny', status_code=403, user=None)
 
 
 class TestBidSerializer(TestBidBase, APITestCase):

@@ -518,7 +518,7 @@ class TestRunMove(TestSpeedRunBase, APITestCase):
         with self.assertLogsChanges(expected_logged_changes):
             data = self.patch_noun(
                 moving,
-                noun='move',
+                'move',
                 data=data,
                 expected_error_codes=expected_error_codes,
                 status_code=expected_status_code,
