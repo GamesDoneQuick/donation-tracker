@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
 
 import tracker.auth
 import tracker.forms as forms
@@ -20,18 +21,18 @@ from tracker import settings
 
 
 @never_cache
+@csrf_protect
 def register(request):
-    if request.method == 'POST':
-        form = forms.RegistrationForm(data=request.POST)
-        if form.is_valid():
-            form.save(
-                email_template=tracker.auth.default_registration_template(),
-                from_email=settings.TRACKER_REGISTRATION_FROM_EMAIL,
-                request=request,
-            )
-            return views_common.tracker_response(request, 'tracker/register_done.html')
-    else:
-        form = forms.RegistrationForm()
+    form = forms.RegistrationForm(
+        data=request.POST if request.method == 'POST' else None
+    )
+    if form.is_valid():
+        form.save(
+            email_template=tracker.auth.default_registration_template(),
+            from_email=settings.TRACKER_REGISTRATION_FROM_EMAIL,
+            request=request,
+        )
+        return views_common.tracker_response(request, 'tracker/register_done.html')
 
     return views_common.tracker_response(
         request, 'tracker/register.html', {'form': form}

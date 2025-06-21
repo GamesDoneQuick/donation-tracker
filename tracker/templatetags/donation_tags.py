@@ -190,19 +190,22 @@ def admin_url(obj):
     return viewutil.admin_url(obj)
 
 
-@register.simple_tag
+@register.simple_tag(takes_context=True)
 def standardform(
-    form, formid='formid', submittext='Submit', action=None, showrequired=True
+    context, form, formid='formid', submittext='Submit', action=None, showrequired=True
 ):
-    return template.loader.render_to_string(
-        'standardform.html',
+    context.push(
         {
             'form': form,
             'formid': formid,
             'submittext': submittext,
             'action': action,
             'showrequired': showrequired,
-        },
+        }
+    )
+    return template.loader.render_to_string(
+        'standardform.html',
+        context.flatten(),
     )
 
 
