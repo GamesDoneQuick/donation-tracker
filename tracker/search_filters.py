@@ -10,7 +10,7 @@ from tracker.models import (
     Event,
     Milestone,
     Prize,
-    PrizeClaim,
+    PrizeWinner,
     SpeedRun,
     Tag,
     Talent,
@@ -29,7 +29,7 @@ _ModelMap = {
     'headset': Talent,
     'milestone': Milestone,
     'prize': Prize,
-    'prizewinner': PrizeClaim,
+    'prizewinner': PrizeWinner,
     'prizeentry': DonorPrizeEntry,
     'run': SpeedRun,
     'runner': Talent,
@@ -394,4 +394,7 @@ _1ToManyDonationAggregateFilter = Q(donation__transactionstate='COMPLETED')
 DonationBidAggregateFilter = _1ToManyDonationAggregateFilter
 DonorAggregateFilter = _1ToManyDonationAggregateFilter
 EventAggregateFilter = _1ToManyDonationAggregateFilter
+PrizeWinnersFilter = Q(prizewinner__acceptcount__gt=0) | Q(
+    prizewinner__pendingcount__gt=0
+)
 _1ToManyBidsAggregateFilter = Q(bids__donation__transactionstate='COMPLETED')

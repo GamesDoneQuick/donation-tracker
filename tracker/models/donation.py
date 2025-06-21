@@ -291,7 +291,7 @@ class Donation(models.Model):
     paypal_signature = property(get_paypal_signature)
 
     def get_absolute_url(self):
-        return util.build_public_url(reverse('tracker:donation', args=(self.id,)))
+        return reverse('tracker:donation', args=(self.id,))
 
     def bid_total(self):
         return reduce(

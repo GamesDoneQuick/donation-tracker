@@ -121,7 +121,7 @@ class BidChainedInline(BidInline):
 
 class PrizeWinnerInline(CustomStackedInline):
     autocomplete_fields = ('winner', 'prize')
-    model = models.PrizeClaim
+    model = models.PrizeWinner
     readonly_fields = ('winner_email',)
     extra = 0
 

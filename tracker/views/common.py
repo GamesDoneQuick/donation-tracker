@@ -1,5 +1,7 @@
+import datetime
 import json
 import sys
+import time
 
 import django
 from django.db import connection
@@ -42,13 +44,20 @@ def fixorder(queryset, orderdict, sort, order):
 
 
 def tracker_context(request, qdict=None):
+    starttime = datetime.datetime.now()
     language = translation.get_language_from_request(request)
     translation.activate(language)
     request.LANGUAGE_CODE = translation.get_language()
+    profile = None
     qdict = qdict or {}
     qdict.update(
         {
+            'djangoversion': dv(),
+            'pythonversion': pv(),
             'user': request.user,
+            'profile': profile,
+            'next': request.POST.get('next', request.GET.get('next', request.path)),
+            'starttime': starttime,
             'events': tracker.models.Event.objects.all(),
             'settings': {
                 'TRACKER_SWEEPSTAKES_URL': settings.TRACKER_SWEEPSTAKES_URL,
@@ -58,6 +67,7 @@ def tracker_context(request, qdict=None):
         }
     )
     qdict.setdefault('event', viewutil.get_event(None))
+    qdict.setdefault('user', request.user)
     return qdict
 
 
@@ -65,20 +75,30 @@ def tracker_response(
     request, template='tracker/index.html', qdict=None, status=200, delegate=None
 ):
     qdict = tracker_context(request, qdict)
-    if delegate:
-        resp = delegate(request, template, context=qdict, status=status)
-    else:
-        resp = render(request, template, context=qdict, status=status)
-    if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
-        resp = HttpResponse(
-            json.dumps(connection.queries, ensure_ascii=False, indent=1),
-            content_type='application/json;charset=utf-8',
-        )
-    cache_control = {}
-    if request.user.is_anonymous:
-        cache_control['public'] = True
-    else:
-        cache_control['private'] = True
-        cache_control['max-age'] = 0
-    patch_cache_control(resp, **cache_control)
-    return resp
+    try:
+        starttime = time.time()
+        if delegate:
+            resp = delegate(request, template, context=qdict, status=status)
+        else:
+            resp = render(request, template, context=qdict, status=status)
+        render_time = time.time() - starttime
+        if 'queries' in request.GET and request.user.has_perm('tracker.view_queries'):
+            resp = HttpResponse(
+                json.dumps(connection.queries, ensure_ascii=False, indent=1),
+                content_type='application/json;charset=utf-8',
+            )
+        cache_control = {}
+        if request.user.is_anonymous:
+            cache_control['public'] = True
+        else:
+            resp['X-Render-Time'] = render_time
+            cache_control['private'] = True
+            cache_control['max-age'] = 0
+        patch_cache_control(resp, **cache_control)
+        return resp
+    except Exception as e:
+        if request.user.is_staff and not settings.DEBUG:
+            return HttpResponse(
+                str(type(e)) + '\n\n' + str(e), content_type='text/plain', status=500
+            )
+        raise

@@ -590,7 +590,7 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
         self.assertIn(self.donation, ipn.donation.all())
 
 
-class TestDonationViews(TestCase, AssertionHelpers):
+class TestDonationViews(TestCase):
     def setUp(self):
         self.super_user = User.objects.create_superuser(
             'admin', 'admin@example.com', 'password'
@@ -663,18 +663,14 @@ class TestDonationViews(TestCase, AssertionHelpers):
             html=True,
         )
         self.assertContains(resp, self.regular_donation.visible_donor_name)
-        self.assertContainsUrl(resp, self.regular_donation.get_absolute_url())
         # self.assertContains(
         #     resp,
         #     self.regular_donor.cache_for(self.event.id).get_absolute_url(),
         # )
         self.assertContains(resp, self.anonymous_donation.visible_donor_name)
-        self.assertContainsUrl(resp, self.anonymous_donation.get_absolute_url())
         # self.assertNotContains(
         #     resp, self.anonymous_donor.cache_for(self.event.id).get_absolute_url()
         # )
-        self.assertNotContainsUrl(resp, self.other_donation.get_absolute_url())
-        self.assertNotContainsUrl(resp, self.pending_donation.get_absolute_url())
         self.assertNotContains(resp, 'Invalid Variable')
 
         resp = self.client.get(

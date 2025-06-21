@@ -1,17 +1,118 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
 
 {% block title %}Diagnostics{{ block.super }}{% endblock %}
 
-{% block extrahead %}
-  {{ block.super }}
-  <script type="application/javascript" src="{% static 'tracker_diagnostics.js' %}"></script>
+{% block extrahead %}{{ block.super }}
+  <script type="application/javascript">
+    <!--
+    let celeryTestWebsocket;
+    let pingWebsocket;
+
+    function togglePingWebsocket() {
+      let interval;
+      let counter = 0;
+
+      function ping() {
+        pingWebsocket.send('PING');
+      }
+
+      if (!pingWebsocket || pingWebsocket.readyState === WebSocket.CLOSING || pingWebsocket.readyState === WebSocket.CLOSED) {
+        pingWebsocket = new WebSocket('{{ ping_socket_url }}');
+
+        document.getElementById('ping_status').textContent = 'Opening';
+
+        pingWebsocket.addEventListener('open', function (event) {
+          console.log('open', event);
+          document.getElementById('ping_status').textContent = 'Opened';
+          interval = setInterval(ping, 1000);
+        });
+
+        pingWebsocket.addEventListener('error', function (event) {
+          console.log('error', event);
+          document.getElementById('ping_status').textContent = 'Error';
+        });
+
+        pingWebsocket.addEventListener('close', function (event) {
+          console.log('close', event);
+          document.getElementById('ping_status').textContent = `Closed (${event.wasClean ? 'Clean' : 'Dirty'})`;
+          clearInterval(interval);
+          counter = 0;
+        });
+
+        pingWebsocket.addEventListener('message', function (event) {
+          console.log('message', event);
+          counter += 1;
+          document.getElementById('ping_counter').textContent = counter;
+          let date = Date.parse(event.data);
+          if (date) {
+            document.getElementById('ping_timestamp').textContent = new Date(date).toString();
+          } else {
+            document.getElementById('ping_timestamp').textContent = `Invalid Date: ${event.data}`;
+          }
+        });
+      } else if (pingWebsocket && (pingWebsocket.readyState === WebSocket.CONNECTING || pingWebsocket.readyState === WebSocket.OPEN)) {
+        pingWebsocket.close();
+      }
+    }
+
+    function sendTestCeleryTask() {
+      let timeout;
+
+      if (!celeryTestWebsocket || celeryTestWebsocket.readyState === WebSocket.CLOSING || celeryTestWebsocket.readyState === WebSocket.CLOSED) {
+        celeryTestWebsocket = new WebSocket('{{ celery_socket_url }}');
+
+        document.getElementById('celery_status').textContent = 'Opening';
+        document.getElementById('celery_result').textContent = 'Waiting...';
+
+        celeryTestWebsocket.addEventListener('open', function (event) {
+          console.log('open', event);
+          document.getElementById('celery_status').textContent = 'Opened';
+          celeryTestWebsocket.send('PING');
+          timeout = setTimeout(() => {
+            document.getElementById('celery_result').textContent = 'Timed Out?';
+          }, 10000);
+        });
+
+        celeryTestWebsocket.addEventListener('error', function (event) {
+          console.log('error', event);
+          document.getElementById('celery_status').textContent = 'Error';
+        });
+
+        celeryTestWebsocket.addEventListener('close', function (event) {
+          console.log('close', event);
+          document.getElementById('celery_status').textContent = `Closed (${event.wasClean ? 'Clean' : 'Dirty'})`;
+        });
+
+        celeryTestWebsocket.addEventListener('message', function (event) {
+          clearTimeout(timeout);
+          console.log('message', event);
+          let timestamp;
+          try {
+            timestamp = JSON.parse(event.data).timestamp;
+          } catch (e) {
+            document.getElementById('celery_result').textContent = `Invalid JSON: ${event.data}`;
+            return;
+          }
+          let date = Date.parse(timestamp);
+          if (date) {
+            document.getElementById('celery_result').textContent = new Date(date).toString();
+          } else {
+            document.getElementById('celery_result').textContent = `Invalid Timestamp: ${timestamp}`;
+          }
+          celeryTestWebsocket.close();
+        });
+      }
+
+    }
+
+    -->
+  </script>
 {% endblock %}
 
 {% block content %}
   <div style="display: grid; grid-template-columns: repeat(5, 20%)">
     <div style="grid-column: 1">Test Ping Websocket</div>
-    <div><button onclick="togglePingWebsocket('{{ ping_socket_url }}'); return false;">Toggle</button></div>
+    <div><button onclick="togglePingWebsocket(); return false;">Toggle</button></div>
     <div id="ping_status"></div>
     <div id="ping_counter"></div>
     <div id="ping_timestamp"></div>
@@ -20,7 +121,7 @@
       <div>Celery Not Configured</div>
     {% else %}
       <div>
-        <button onclick="sendTestCeleryTask('{{ celery_socket_url }}'); return false;">Queue Test Task</button>
+        <button onclick="sendTestCeleryTask(); return false;">Queue Test Task</button>
       </div>
       <div id="celery_status"></div>
       <div id="celery_result"></div>

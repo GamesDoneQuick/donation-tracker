@@ -1,6 +1,6 @@
 import os
 
-SITE_ID = 1
+DOMAIN = 'testserver'
 SECRET_KEY = 'ForTestingPurposesOnly'
 INSTALLED_APPS = [
     'daphne',
@@ -10,7 +10,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.admin',
     'django.contrib.staticfiles',
-    'django.contrib.sites',
     'channels',
     'post_office',
     'paypal.standard.ipn',

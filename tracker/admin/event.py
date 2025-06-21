@@ -11,7 +11,6 @@ from django.contrib.admin import register
 from django.contrib.admin.templatetags.admin_urls import add_preserved_filters
 from django.contrib.admin.utils import display_for_value
 from django.contrib.admin.views.autocomplete import AutocompleteJsonView
-from django.contrib.auth import get_user_model
 from django.contrib.auth import models as auth
 from django.contrib.auth.decorators import permission_required, user_passes_test
 from django.core.files.storage import DefaultStorage
@@ -34,7 +33,7 @@ from .filters import EventFilter, RunListFilter, RunParticipantFilter
 from .forms import StartRunForm, TestEmailForm
 from .util import CustomModelAdmin, EventArchivedMixin, RelatedUserMixin
 
-# need to override the default behavior for this because the `view_user` permission is too broad to grant to everybody
+# need to override the default behavior for this because the `view_user` permission is too broad
 
 
 class UserAutocompleteView(AutocompleteJsonView):
@@ -140,17 +139,6 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
             readonly_fields += ('prizecoordinator',)
         return readonly_fields
 
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        if obj is None and (
-            username := getattr(settings, 'TRACKER_DEFAULT_PRIZE_COORDINATOR', None)
-        ):
-            User = get_user_model()
-            user = User.objects.filter(**{User.USERNAME_FIELD: username}).first()
-            if user:
-                form.base_fields['prizecoordinator'].initial = user.id
-        return form
-
     def get_search_results(self, request, queryset, search_term):
         parent_view = self.get_parent_view(request)
         if parent_view:
@@ -222,7 +210,6 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
     @staticmethod
     @permission_required('auth.change_user', raise_exception=True)
     def send_volunteer_emails_view(request, pk):
-        # TODO: only show this if using the standard auth model?
         event = models.Event.objects.filter(pk=pk, archived=False).first()
         if event is None:
             raise Http404
@@ -722,7 +709,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     p.event.short,
                     p.name,
                     len(eligible),
-                    len([d for d, a in eligible.items() if a == p.minimumbid]),
+                    len([d for d in eligible if d['amount'] == p.minimumbid]),
                     p.start_draw_time(),
                     p.end_draw_time(),
                 ]

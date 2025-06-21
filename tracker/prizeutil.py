@@ -1,11 +1,10 @@
 import datetime
 import logging
 import random
-from typing import Hashable, Optional
 
 from django.db import transaction
 
-from tracker.models import Prize, PrizeClaim, PrizeKey
+from tracker.models import PrizeKey, PrizeWinner
 
 from . import util
 
@@ -41,19 +40,19 @@ def draw_prize(prize, seed=None, rand=None):
     )
     if not eligible:
         return False, {'error': 'Prize: ' + prize.name + ' has no eligible donors.'}
-    prize.claims.decline_expired()
+    prize.get_expired_winners().update(declinecount=1, pendingcount=0)
     num_to_draw = prize.maxwinners - prize.current_win_count()
 
     if len(eligible) <= num_to_draw:
         winners = eligible
     else:
-        winners = rand.sample(list(eligible), num_to_draw)
+        winners = rand.sample(eligible, num_to_draw)
     try:
-        PrizeClaim.objects.bulk_create(
+        PrizeWinner.objects.bulk_create(
             [
-                PrizeClaim(
+                PrizeWinner(
                     prize=prize,
-                    winner=winner,
+                    winner_id=winner['donor'],
                     acceptdeadline=accept_deadline,
                 )
                 for winner in winners
@@ -65,23 +64,23 @@ def draw_prize(prize, seed=None, rand=None):
             False,
             {'error': 'Error drawing prize: ' + prize.name + ', ' + str(e), 'exc': e},
         )
-    return True, {'winners': [w.id for w in winners]}
+    return True, {'winners': [w['donor'] for w in winners]}
 
 
 @transaction.atomic()
-def draw_keys(prize: Prize, seed: Optional[Hashable] = None, rand=None):
+def draw_keys(prize, seed=None, rand=None):
     try:
         rand = rand or random.Random(seed)
     except TypeError as e:
         return False, {'error': 'Seed parameter was unhashable', 'exc': e}
     if not prize.key_code:
         return False, {'error': 'Attempted to draw keys for a non-key prize.'}
-    eligible = list(prize.eligible_donors())
+    eligible = prize.eligible_donors()
     if not eligible:
         return False, {'error': 'Prize: ' + prize.name + ' has no eligible donors.'}
     unclaimed_keys = (
         PrizeKey.objects.select_for_update()
-        .filter(prize=prize, prize_claim_id=None)
+        .filter(prize=prize, prize_winner_id=None)
         .order_by()
     )
     if len(eligible) <= unclaimed_keys.count():
@@ -89,10 +88,19 @@ def draw_keys(prize: Prize, seed: Optional[Hashable] = None, rand=None):
     else:
         winners = rand.sample(eligible, unclaimed_keys.count())
     for key, winner in zip(unclaimed_keys, winners):
-        key.create_winner(winner)
-    return True, {'winners': [w.id for w in winners]}
+        key.prize_winner = PrizeWinner.objects.create(
+            prize=prize,
+            winner_id=winner['donor'],
+            pendingcount=0,
+            acceptcount=1,
+            emailsent=True,
+            acceptemailsentcount=1,
+            shippingstate='SHIPPED',
+        )
+        key.save()
+    return True, {'winners': [w['donor'] for w in winners]}
 
 
-def get_past_due_prize_claims(event):
+def get_past_due_prize_winners(event):
     now = util.utcnow()
-    return PrizeClaim.objects.filter(acceptdeadline__lte=now, pendingcount__gte=1)
+    return PrizeWinner.objects.filter(acceptdeadline__lte=now, pendingcount__gte=1)

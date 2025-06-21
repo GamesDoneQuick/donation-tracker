@@ -17,8 +17,6 @@ export default function AdRow({ ad }: { ad: Ad }) {
           <span>{ad.suborder}</span>
         </span>
       </td>
-      {/* padding for prize column */}
-      <td />
       <td>{ad.ad_name}</td>
       <td>{ad.ad_type}</td>
       <td>{ad.sponsor_name}</td>

@@ -24,6 +24,7 @@
   <body>
     {% csrf_token %}
     <div id="container"></div>
+    {% block rendertime %}{% endblock %}
     <%= htmlWebpackPlugin.tags.bodyTags %>
   </body>
 </html>

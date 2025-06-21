@@ -2,7 +2,6 @@ import urllib.parse
 
 import post_office.models
 from django.contrib.auth import get_user_model
-from django.contrib.sites.models import Site
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -23,7 +22,6 @@ class TestRegistrationFlow(TestCase):
         self.template = post_office.models.EmailTemplate.objects.create(
             content='user:{{user}}\nurl:{{confirmation_url}}\npassword_reset_url:{{password_reset_url}}'
         )
-        Site.objects.create(domain='testserver', name='Test Server')
 
     def test_registration_flow(self):
         request = self.factory.post(reverse('tracker:register'))

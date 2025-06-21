@@ -2,7 +2,6 @@ import datetime
 import decimal
 import itertools
 import logging
-from collections import defaultdict
 
 import post_office.models
 from django.contrib.auth.models import User
@@ -13,7 +12,7 @@ from django.db.models import Prefetch
 from django.urls import reverse
 from timezone_field import TimeZoneField
 
-from tracker import compat, settings, util
+from tracker import compat, util
 from tracker.validators import nonzero, positive, validate_locale
 
 from .fields import TimestampField
@@ -290,7 +289,7 @@ class Event(models.Model):
         null=True,
         blank=True,
         verbose_name='Prize Shipped Email Template',
-        help_text='Email template to use when the a prize has been shipped to its recipient).',
+        help_text='Email template to use when the aprize has been shipped to its recipient).',
         related_name='event_prizeshippedtemplates',
         on_delete=models.SET_NULL,
     )
@@ -316,7 +315,7 @@ class Event(models.Model):
         )
 
     def get_absolute_url(self):
-        return util.build_public_url(reverse('tracker:index', args=(self.id,)))
+        return reverse('tracker:index', args=(self.id,))
 
     def natural_key(self):
         return (self.short,)
@@ -363,13 +362,6 @@ class Event(models.Model):
             raise ValidationError(
                 {'prise_drawing_date': 'Draw date must be after the last run'}
             )
-
-    @property
-    def default_prize_coordinator_email(self):
-        if self.prizecoordinator_id:
-            return self.prizecoordinator.email
-        else:
-            return settings.DEFAULT_FROM_EMAIL
 
     @property
     def date(self):
@@ -549,7 +541,7 @@ class SpeedRun(models.Model):
         permissions = (('can_view_tech_notes', 'Can view tech notes'),)
 
     def get_absolute_url(self):
-        return util.build_public_url(reverse('tracker:run', args=(self.id,)))
+        return reverse('tracker:run', args=(self.id,))
 
     def natural_key(self):
         return self.name, self.category, self.event.natural_key()
@@ -594,99 +586,82 @@ class SpeedRun(models.Model):
         return ', '.join(t.name for t in self.commentators.all())
 
     def clean(self):
-        errors = defaultdict(list)
         if not self.name:
-            errors['name'].append('Name cannot be blank')
+            raise ValidationError('Name cannot be blank')
         if not self.display_name:
             self.display_name = self.name
         if self.order:
             if self.total_time_ms == 0:
-                errors['order'].append(
-                    'Ordered runs need either a run time or a setup time'
+                raise ValidationError(
+                    {'order': 'Ordered runs need either a run time or a setup time'}
                 )
+            prev = (
+                SpeedRun.objects.filter(order__lt=self.order, event=self.event)
+                .exclude(pk=self.pk)
+                .last()
+            )
+            next_anchor = (
+                SpeedRun.objects.filter(order__gte=self.order, event=self.event)
+                .exclude(anchor_time=None)
+                .exclude(pk=self.pk)
+                .first()
+            )
+            if prev:
+                self.starttime = prev.endtime
             else:
-                prev = (
-                    SpeedRun.objects.filter(order__lt=self.order, event=self.event)
-                    .exclude(pk=self.pk)
-                    .last()
-                )
-                next_anchor = (
-                    SpeedRun.objects.filter(order__gte=self.order, event=self.event)
-                    .exclude(anchor_time=None)
-                    .exclude(pk=self.pk)
-                    .first()
-                )
-                if prev:
-                    self.starttime = prev.endtime
-                else:
-                    self.starttime = self.event.datetime
-                if next_anchor:
-                    if self.anchor_time and next_anchor.anchor_time < self.anchor_time:
-                        errors['order'].append(
-                            'Next anchor in the order would occur before this one'
-                        )
-                    else:
-                        for c, n in compat.pairwise(
-                            itertools.chain(
-                                [self],
-                                SpeedRun.objects.filter(
-                                    event=self.event,
-                                    order__gt=self.order,
-                                    order__lte=next_anchor.order,
-                                ).exclude(pk=self.pk),
-                            )
-                        ):
-                            if n.anchor_time:
-                                if (
-                                    c.starttime
-                                    + datetime.timedelta(milliseconds=c.run_time_ms)
-                                    > n.anchor_time
-                                ):
-                                    errors['setup_time'].append(
-                                        'Not enough available drift for next anchor time'
-                                    )
-                                    break
-                            else:
-                                n.starttime = c.starttime + datetime.timedelta(
-                                    milliseconds=c.total_time_ms
-                                )
-                if self.anchor_time:
-                    if not prev:
-                        errors['anchor_time'].append(
-                            'Cannot set anchor time for first run in an event'
-                        )
-                    else:
-                        if (
-                            prev.starttime
-                            + datetime.timedelta(milliseconds=prev.run_time_ms)
-                            > self.anchor_time
-                        ):
-                            errors['anchor_time'].append(
-                                'Previous run does not have enough drift available for anchor time'
-                            )
-                        else:
-                            self.starttime = self.anchor_time
-                if self.id and (
-                    self.prize_start.exclude(endrun=self)
-                    .filter(endrun__order__lt=self.order)
-                    .exists()
-                    or self.prize_end.exclude(startrun=self)
-                    .filter(startrun__order__gt=self.order)
-                    .exists()
-                ):
-                    errors['order'].append(
-                        'Desired order would invert at least one prize span'
+                self.starttime = self.event.datetime
+            if next_anchor:
+                if self.anchor_time and next_anchor.anchor_time < self.anchor_time:
+                    raise ValidationError(
+                        {
+                            'order': 'Next anchor in the order would occur before this one'
+                        }
                     )
+                for c, n in compat.pairwise(
+                    itertools.chain(
+                        [self],
+                        SpeedRun.objects.filter(
+                            event=self.event,
+                            order__gt=self.order,
+                            order__lte=next_anchor.order,
+                        ).exclude(pk=self.pk),
+                    )
+                ):
+                    if n.anchor_time:
+                        if (
+                            c.starttime + datetime.timedelta(milliseconds=c.run_time_ms)
+                            > n.anchor_time
+                        ):
+                            raise ValidationError(
+                                {
+                                    'setup_time': 'Not enough available drift for next anchor time'
+                                }
+                            )
+                    else:
+                        n.starttime = c.starttime + datetime.timedelta(
+                            milliseconds=c.total_time_ms
+                        )
+            if self.anchor_time:
+                if not prev:
+                    raise ValidationError(
+                        {
+                            'anchor_time': 'Cannot set anchor time for first run in an event'
+                        }
+                    )
+                if (
+                    prev.starttime + datetime.timedelta(milliseconds=prev.run_time_ms)
+                    > self.anchor_time
+                ):
+                    raise ValidationError(
+                        {
+                            'anchor_time': 'Previous run does not have enough drift available for anchor time'
+                        }
+                    )
+                self.starttime = self.anchor_time
         else:
-            if self.id and (self.prize_start.exists() or self.prize_end.exists()):
-                errors['order'].append('Cannot remove order with attached prizes')
-            else:
-                self.starttime = None
-                self.endtime = None
-                self.order = None
-
-        if errors:
-            raise ValidationError(errors)
+            self.starttime = None
+            self.endtime = None
+            self.order = None
 
     def save(self, *args, **kwargs):
         # FIXME: better way to force normalization?

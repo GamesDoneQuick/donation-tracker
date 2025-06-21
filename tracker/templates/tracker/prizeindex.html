@@ -38,8 +38,14 @@
                 {% trans "Games" %}
             </th>
             <th>
+                {% trans "Category" %}
+            </th>
+            <th>
                 {% trans "Image" %}
             </th>
+{#            <th>#}
+{#                {% trans "Winner" %}#}
+{#            </th>#}
         </tr>
         </thead>
 
@@ -80,6 +86,9 @@
                     {% endif %}
                 </td>
                 <td>
+                    {{ prize.category }}
+                </td>
+                <td>
                     {% if prize.image %}
                         <a href="{{ prize.image }}">{% trans "Link" %}</a>
                     {% elif prize.imagefile %}
@@ -87,6 +96,19 @@
                     {% else %}
                         {% trans "None" %}
                     {% endif %}
+                </td>
+                <td>
+                  {% if prize.key_code %}
+                    {{ prize.get_winners|length }} winner(s)
+                  {% else %}
+                    {% for winner in prize.prizewinner_set.all %}
+                      {% if not forloop.first %} - {% endif %}
+                      {{ winner.donor_cache.visible_name }}
+{#                      {% include "tracker/partials/donor_link.html" with donor=winner.donor_cache %}#}
+                    {% empty %}
+                      {% trans "None" %}
+                    {% endfor %}
+                  {% endif %}
                 </td>
             </tr>
         {% endfor %}

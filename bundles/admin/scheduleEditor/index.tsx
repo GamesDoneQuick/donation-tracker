@@ -1,7 +1,6 @@
 import React from 'react';
 import { DateTime, IANAZone } from 'luxon';
 
-import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';
 import {
   useAdsQuery,
@@ -9,7 +8,6 @@ import {
   useEventParam,
   useInterviewsQuery,
   usePermission,
-  usePrizesQuery,
   useRunsQuery,
   useSplitRuns,
 } from '@public/apiv2/hooks';
@@ -22,7 +20,6 @@ import InterviewRow from './InterviewRow';
 import { RunRow } from './RunRow';
 
 function Header({ timezone, title }: { timezone?: string; title?: string }) {
-  const { SWEEPSTAKES_URL } = useConstants();
   const sameTimezone = React.useMemo(
     () => !!timezone && IANAZone.isValidZone(timezone) && DateTime.local().zoneName === IANAZone.create(timezone).name,
     [timezone],
@@ -46,7 +43,6 @@ function Header({ timezone, title }: { timezone?: string; title?: string }) {
       <tr>
         <th>Start Time</th>
         <th>Order</th>
-        <th>{SWEEPSTAKES_URL && 'Prizes'}</th>
         <th>Game</th>
         <th>Category</th>
         <th>Runners</th>
@@ -59,13 +55,11 @@ function Header({ timezone, title }: { timezone?: string; title?: string }) {
 }
 
 export default function ScheduleEditor() {
-  const { SWEEPSTAKES_URL } = useConstants();
   const eventId = useEventParam();
   const canViewRuns = usePermission('tracker.view_speedrun');
   const canChangeRuns = usePermission('tracker.change_speedrun');
   const canViewInterviews = usePermission('tracker.view_interview');
   const canViewAds = usePermission('tracker.view_ad');
-  const canViewPrizes = usePermission('tracker.view_prize');
   const runQueryParams = React.useMemo(() => (canViewRuns ? { all: '' } : {}), [canViewRuns]);
   const interviewQueryParams = React.useMemo(() => (canViewInterviews ? { all: '' } : {}), [canViewInterviews]);
 
@@ -88,12 +82,6 @@ export default function ScheduleEditor() {
     refetch: refetchAds,
   } = useAdsQuery({ urlParams: eventId }, { skip: !canViewAds });
   const {
-    data: prizes,
-    error: prizesError,
-    isFetching: prizesFetching,
-    refetch: refetchPrizes,
-  } = usePrizesQuery({ urlParams: { eventId, ...(canViewPrizes ? { feed: 'all' } : {}) } }, { skip: !SWEEPSTAKES_URL });
-  const {
     data: event,
     error: eventError,
     isFetching: eventFetching,
@@ -111,7 +99,7 @@ export default function ScheduleEditor() {
       }, {}),
     [ads, interviews, orderedRuns],
   );
-  const colSpan = canViewRuns ? 9 : 8;
+  const colSpan = canViewRuns ? 8 : 7;
   const lastTargetError = React.useCallback(
     (c: React.ReactNode) => (
       <tr>
@@ -124,21 +112,7 @@ export default function ScheduleEditor() {
   const [showAds, setShowAds] = React.useState(true);
   const [showInterviews, setShowInterviews] = React.useState(true);
 
-  const prizeCount = React.useMemo(() => {
-    return prizes?.reduce<Record<number, { start: number; end: number }>>((memo, prize) => {
-      if (prize.startrun) {
-        memo[prize.startrun] = memo[prize.startrun] || { start: 0, end: 0 };
-        memo[prize.startrun].start++;
-      }
-      if (prize.endrun) {
-        memo[prize.endrun] = memo[prize.endrun] || { start: 0, end: 0 };
-        memo[prize.endrun].end++;
-      }
-      return memo;
-    }, {});
-  }, [prizes]);
-
-  const isFetching = runsFetching || eventFetching || interviewsFetching || adsFetching || prizesFetching;
+  const isFetching = runsFetching || eventFetching || interviewsFetching || adsFetching;
   const refetch = React.useCallback(() => {
     refetchRuns();
     refetchEvent();
@@ -146,8 +120,7 @@ export default function ScheduleEditor() {
     if (canViewAds) {
       refetchAds();
     }
-    refetchPrizes();
-  }, [canViewAds, refetchAds, refetchEvent, refetchInterviews, refetchPrizes, refetchRuns]);
+  }, [canViewAds, refetchAds, refetchEvent, refetchInterviews, refetchRuns]);
 
   return (
     <>
@@ -170,14 +143,14 @@ export default function ScheduleEditor() {
           Show Interviews
         </label>
       </div>
-      <APIErrorList errors={[runsError, eventError, interviewsError, adsError, prizesError]}>
+      <APIErrorList errors={[runsError, eventError, interviewsError, adsError]}>
         <Spinner spinning={isFetching} showPartial={(event && runs) != null}>
           <table className="table table-striped table-condensed small">
             <Header timezone={event?.timezone} title={event?.name} />
             <tbody>
               {orderedRuns.map((r, i, runs) => (
                 <React.Fragment key={r.id}>
-                  <RunRow run={r} prizeCount={prizeCount?.[r.id]} />
+                  <RunRow run={r} />
                   {interstitials[r.id].map(i =>
                     i.type === 'interview'
                       ? showInterviews && <InterviewRow key={i.id} interview={i} />

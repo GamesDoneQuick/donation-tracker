@@ -17,8 +17,8 @@ from tracker.models import (
     Interview,
     Milestone,
     Prize,
-    PrizeClaim,
     PrizeKey,
+    PrizeWinner,
     SpeedRun,
     Talent,
 )
@@ -269,90 +269,8 @@ def generate_prize(
     return prize
 
 
-def assign_prize_lifecycle(
-    rand: random.Random, prize, lifecycle, /, *, donor=None, donors=None
-):
-    prize.save()
-    prize.refresh_from_db()
-    if lifecycle == 'pending':
-        prize.state = 'PENDING'
-    elif lifecycle == 'notify_contributor':
-        # state needs to be one of these two values before assigning this lifecycle
-        assert prize.state in ['ACCEPTED', 'DENIED'], 'prize state invalid'
-    elif lifecycle == 'denied':
-        prize.state = 'DENIED'
-        prize.acceptemailsent = True
-    else:
-        prize.state = 'ACCEPTED'
-        prize.acceptemailsent = True
-
-        if lifecycle in ('accepted', 'ready'):
-            # no special handling beyond this, as it becomes a time window question now
-            pass
-        else:
-            assert lifecycle in (
-                'drawn',
-                'winner_notified',
-                'claimed',
-                'needs_shipping',
-                'shipped',
-                'completed',
-            ), f'unknown lifecycle {lifecycle}'
-            if prize.key_code:
-                assert lifecycle in (
-                    'drawn',
-                    'completed',
-                ), f'invalid lifecycle {lifecycle} for key code prize'
-            if not prize.requiresshipping:
-                assert lifecycle in (
-                    'drawn',
-                    'winner_notified',
-                    'claimed',
-                    'completed',
-                ), f'invalid lifecycle {lifecycle} for digital prize'
-            claim = generate_prize_claim(rand, prize, donor=donor, donors=donors)
-            if lifecycle in (
-                'winner_notified',
-                'claimed',
-                'needs_shipping',
-                'shipped',
-                'completed',
-            ):
-                claim.winneremailsent = True
-            if lifecycle in ('claimed', 'needs_shipping', 'shipped', 'completed'):
-                claim.acceptcount = claim.pendingcount
-                claim.pendingcount = 0
-            if lifecycle in ('needs_shipping', 'shipped', 'completed'):
-                claim.acceptemailsentcount = claim.acceptcount
-            if lifecycle in ('shipped', 'completed'):
-                claim.shippingstate = 'SHIPPED'
-            if lifecycle == 'completed':
-                claim.shippingemailsent = True
-            claim.save()
-    prize.save()
-
-
-def generate_prize_claim(rand: random.Random, prize, /, *, donor=None, donors=None):
-    """gotcha: a key code claim needs to be saved immediately because of the way the relation works"""
-    if donor is None:
-        if donors is None:
-            donors = Donor.objects.all()
-        if donors:
-            donor = rand.choice(donors)
-        else:
-            donor = generate_donor(rand)
-            donor.save()
-    if prize.maxed_winners():
-        raise ValueError('Prize already has the maximum number of winners')
-    if prize.key_code:
-        key = rand.choice(prize.prize_keys.filter(prize_claim=None))
-        return key.create_winner(donor)
-    else:
-        return PrizeClaim(prize=prize, winner=donor)
-
-
 def generate_prize_key(
-    rand: random.Random, prize, /, *, key=None, prize_claim=None, winner=None
+    rand: random.Random, prize, /, *, key=None, prize_winner=None, winner=None
 ):
     prize_key = PrizeKey()
     prize_key.key = key or '-'.join(
@@ -360,9 +278,9 @@ def generate_prize_key(
     )
     assert prize.key_code, 'prize is not a key prize'
     prize_key.prize_id = prize.id
-    if not prize_claim and winner:
-        prize_claim = PrizeClaim.objects.create(prize=prize, winner=winner)
-    prize_key.prize_claim = prize_claim
+    if not prize_winner and winner:
+        prize_winner = PrizeWinner.objects.create(prize=prize, winner=winner)
+    prize_key.prize_winner = prize_winner
     prize_key.full_clean()
     return prize_key
 

@@ -1,7 +1,4 @@
-import datetime
 from datetime import timedelta
-
-from django.contrib.auth.models import Permission, User
 
 from tests import randgen
 from tests.util import APITestCase, today_noon
@@ -20,7 +17,6 @@ class TestPrizes(APITestCase):
         self.accepted_prize = randgen.generate_prize(
             self.rand, start_run=self.runs[0], end_run=self.runs[1]
         )
-        self.accepted_prize.acceptemailsent = True
         self.accepted_prize.description = 'test long description'
         self.accepted_prize.shortdescription = 'test short description'
         self.accepted_prize.save()
@@ -40,12 +36,9 @@ class TestPrizes(APITestCase):
             self.rand, event=self.archived_event, state='PENDING'
         )
         self.archived_prize.save()
-
-        self.view_claim_user = User.objects.create(username='view_claim_user')
-        self.view_claim_user.user_permissions.add(
-            Permission.objects.get(codename='view_prizeclaim'),
-            *self.view_user.user_permissions.all(),
-        )
+        # TODO
+        # self.view_winner_user = User.objects.create(username='view_winner_user')
+        # self.view_winner_user.user_permissions.add(Permission.objects.get(codename='view_prizewinner'))
 
     def test_fetch(self):
         with self.saveSnapshot():
@@ -120,170 +113,6 @@ class TestPrizes(APITestCase):
                     [self.flagged_prize, self.denied_prize, self.pending_prize], data
                 )
 
-                # avoids cluttering up the other tests with extra prizes
-
-                def _get_prize(state):
-                    prize = randgen.generate_prize(self.rand, event=self.event)
-                    prize.name = state
-                    prize.save()
-                    randgen.assign_prize_lifecycle(self.rand, prize, state)
-                    return prize
-
-                lifecycle_prizes = {
-                    state: _get_prize(state)
-                    for state in [
-                        'pending',
-                        'notify_contributor',
-                        'denied',
-                        'accepted',
-                        # 'ready' is not separate because the only difference is the time window
-                        'drawn',
-                        'winner_notified',
-                        'claimed',
-                        'needs_shipping',
-                        'shipped',
-                        'completed',
-                    ]
-                }
-
-                with self.subTest('lifecycle'):
-                    for state, expected in [
-                        (
-                            'pending',
-                            [self.pending_prize, lifecycle_prizes['pending']],
-                        ),
-                        (
-                            'notify_contributor',
-                            [
-                                self.denied_prize,
-                                lifecycle_prizes['notify_contributor'],
-                            ],
-                        ),
-                        (
-                            'denied',
-                            [lifecycle_prizes['denied']],
-                        ),
-                        (
-                            'accepted',
-                            [self.accepted_prize, lifecycle_prizes['accepted']],
-                        ),
-                        (
-                            'drawn',
-                            [lifecycle_prizes['drawn']],
-                        ),
-                        ('winner_notified', [lifecycle_prizes['winner_notified']]),
-                        (
-                            'claimed',
-                            [lifecycle_prizes['claimed']],
-                        ),
-                        ('needs_shipping', [lifecycle_prizes['needs_shipping']]),
-                        (
-                            'shipped',
-                            [lifecycle_prizes['shipped']],
-                        ),
-                        ('completed', [lifecycle_prizes['completed']]),
-                    ]:
-                        with self.subTest(state):
-                            data = self.get_list(
-                                user=self.view_claim_user,
-                                data={'lifecycle': state},
-                                kwargs={'event_pk': self.event.pk},
-                            )
-                            self.assertExactV2Models(
-                                models.Prize.objects.claim_annotations()
-                                .time_annotation()
-                                .filter(id__in=(e.id for e in expected)),
-                                data,
-                                serializer_kwargs={'lifecycle': True},
-                            )
-
-                    with self.subTest('multiple'):
-                        data = self.get_list(
-                            user=self.view_claim_user,
-                            data={
-                                'lifecycle': ['notify_contributor', 'claimed'],
-                            },
-                            kwargs={'event_pk': self.event.pk},
-                        )
-                        self.assertExactV2Models(
-                            models.Prize.objects.claim_annotations()
-                            .time_annotation()
-                            .filter(
-                                id__in=(
-                                    e.id
-                                    for e in [
-                                        self.denied_prize,
-                                        lifecycle_prizes['notify_contributor'],
-                                        lifecycle_prizes['claimed'],
-                                    ]
-                                )
-                            ),
-                            data,
-                            serializer_kwargs={'lifecycle': True},
-                        )
-
-                    with self.subTest('ready'):
-                        data = self.get_list(
-                            user=self.view_claim_user,
-                            data={
-                                'lifecycle': 'ready',
-                                'time': (
-                                    self.event.prize_drawing_date
-                                    + datetime.timedelta(days=1)
-                                ).isoformat(),
-                            },
-                            kwargs={'event_pk': self.event.pk},
-                        )
-                        self.assertExactV2Models(
-                            models.Prize.objects.claim_annotations()
-                            .time_annotation()
-                            .filter(
-                                id__in=(
-                                    e.id
-                                    for e in [
-                                        self.accepted_prize,
-                                        lifecycle_prizes['accepted'],
-                                    ]
-                                )
-                            ),
-                            data,
-                            serializer_kwargs={'lifecycle': True},
-                        )
-
-                    self.event.archived = True
-                    self.event.save()
-                    with self.subTest('archived'):
-                        data = self.get_list(
-                            user=self.view_claim_user,
-                            data={
-                                'lifecycle': 'archived',
-                            },
-                            kwargs={'event_pk': self.event.pk},
-                        )
-                        self.assertExactV2Models(
-                            models.Prize.objects.claim_annotations()
-                            .time_annotation()
-                            .filter(
-                                id__in=(
-                                    e.id
-                                    for e in [
-                                        self.accepted_prize,
-                                        lifecycle_prizes['accepted'],
-                                        lifecycle_prizes['drawn'],
-                                        lifecycle_prizes['winner_notified'],
-                                        lifecycle_prizes['claimed'],
-                                        lifecycle_prizes['needs_shipping'],
-                                        lifecycle_prizes['shipped'],
-                                    ]
-                                )
-                            ),
-                            data,
-                            serializer_kwargs={'lifecycle': True},
-                        )
-
-                    self.event.archived = False
-                    self.event.save()
-
                 # TODO
                 # data = self.get_list(user=self.view_winner_user, data={'include_winners': ''})
                 # self.assertExactV2Models([self.accepted_prize], data, serializer_kwargs={'include_winners': True})
@@ -314,18 +143,6 @@ class TestPrizes(APITestCase):
                 for state in models.Prize.HIDDEN_STATES:
                     with self.subTest(state):
                         self.get_list(user=None, data={'state': state}, status_code=403)
-
-            with self.subTest('invalid lifecycle'):
-                self.get_list(
-                    user=self.view_claim_user,
-                    data={'lifecycle': 'nonsense'},
-                    status_code=400,
-                )
-
-            with self.subTest('lifecycle without permission'):
-                self.get_list(
-                    user=None, data={'lifecycle': 'anything'}, status_code=403
-                )
 
             with self.subTest('combining feed and state'):
                 self.get_list(

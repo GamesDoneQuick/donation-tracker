@@ -49,9 +49,6 @@ class FiltersFeedsTestCase(TestCase):
         self.opened_bids += denied_bids[0]
         self.denied_bids = denied_bids[1]
         self.accepted_prizes = randgen.generate_prizes(self.rand, self.event, 5)
-        for prize in self.accepted_prizes:
-            prize.acceptemailsent = True
-            prize.save()
         self.pending_prizes = randgen.generate_prizes(
             self.rand, self.event, 5, state='PENDING'
         )
@@ -114,22 +111,6 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
         expected = self.query
         self.assertSetEqual(set(actual), set(expected))
 
-    def test_to_draw_without_draw_date(self):
-        for p in self.accepted_prizes:
-            p.starttime = p.endtime = None
-            p.startrun = p.endrun = None
-            p.save()
-        self.event.prize_drawing_date = None
-        self.event.save()
-        actual = apply_feed_filter(
-            self.query,
-            'prize',
-            'todraw',
-            user=self.prize_user,
-        )
-        expected = self.accepted_prizes
-        self.assertSetEqual(set(actual), set(expected))
-
     def test_todraw_feed_during_event_with_date(self):
         actual = apply_feed_filter(
             self.query,
@@ -154,13 +135,13 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
 
     def test_todraw_feed_with_expired_winner(self):
         # hasn't expired yet
-        models.PrizeClaim.objects.create(
+        models.PrizeWinner.objects.create(
             winner=self.donations[0].donor,
             prize=self.accepted_prizes[0],
             acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=14),
         )
         # accepted
-        models.PrizeClaim.objects.create(
+        models.PrizeWinner.objects.create(
             winner=self.donations[0].donor,
             prize=self.accepted_prizes[1],
             acceptcount=1,
@@ -168,12 +149,12 @@ class TestPrizeFeeds(FiltersFeedsTestCase):
             acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=12),
         )
         # no expiration
-        models.PrizeClaim.objects.create(
+        models.PrizeWinner.objects.create(
             winner=self.donations[0].donor,
             prize=self.accepted_prizes[2],
         )
         # expired
-        models.PrizeClaim.objects.create(
+        models.PrizeWinner.objects.create(
             winner=self.donations[0].donor,
             prize=self.accepted_prizes[3],
             acceptdeadline=self.event.prize_drawing_date + datetime.timedelta(days=12),

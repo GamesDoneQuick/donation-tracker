@@ -36,7 +36,7 @@ def draw_prize(self, prize_or_pk):
     if isinstance(prize_or_pk, models.Prize):
         prize = prize_or_pk
     else:
-        prize = models.Prize.objects.prefetch_related('claims').get(pk=prize_or_pk)
+        prize = models.Prize.objects.get(pk=prize_or_pk)
 
     drawn, msg = prizeutil.draw_prize(prize)
     if drawn:

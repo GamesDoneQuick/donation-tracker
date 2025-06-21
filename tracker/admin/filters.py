@@ -34,20 +34,6 @@ class PrizeListFilter(SimpleListFilter):
             return queryset
 
 
-class PrizeLifecycleFilter(SimpleListFilter):
-    title = 'Lifecycle'
-    parameter_name = 'lifecycle'
-
-    def lookups(self, request, model_admin):
-        return models.Prize.objects.lifecycle_lookups()
-
-    def queryset(self, request, queryset):
-        try:
-            return queryset.lifecycle(self.value())
-        except ValueError as e:
-            raise IncorrectLookupParameters from e
-
-
 class AdminActionLogEntryFlagFilter(SimpleListFilter):
     title = 'Action Type'
     parameter_name = 'action_flag'

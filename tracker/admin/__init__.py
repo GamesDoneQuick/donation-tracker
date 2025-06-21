@@ -10,6 +10,7 @@ admin.site.register(models.WordFilter)
 admin.site.register(models.AmountFilter)
 admin.site.register(models.Submission)
 admin.site.register(models.UserProfile)
+admin.site.register(models.PrizeCategory)
 admin.site.register(models.VideoLinkType)
 admin.site.index_template = 'admin/tracker/menu.html'
 admin.site.site_header = 'Donation Tracker'

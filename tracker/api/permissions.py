@@ -159,17 +159,6 @@ class PrizeFeedPermission(BasePermission):
         )
 
 
-class PrizeLifecyclePermission(BasePermission):
-    message = messages.UNAUTHORIZED_FIELD
-    code = messages.UNAUTHORIZED_FIELD_CODE
-
-    def has_permission(self, request, view):
-        return 'lifecycle' not in request.query_params or (
-            request.user.has_perm('tracker.view_prize')
-            and request.user.has_perm('tracker.view_prizeclaim')
-        )
-
-
 class PrizeStatePermission(BasePermission):
     PUBLIC_STATES = models.Prize.PUBLIC_STATES
     message = messages.GENERIC_NOT_FOUND

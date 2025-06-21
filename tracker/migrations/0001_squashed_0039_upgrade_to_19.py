@@ -427,7 +427,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('pendingcount', models.IntegerField(default=1, help_text='The number of pending wins this donor has on this prize.', validators=[tracker.validators.positive], verbose_name='Pending Count')),
-                ('acceptcount', models.IntegerField(default=0, help_text='The number of copies this winner has won and accepted.', validators=[tracker.validators.positive], verbose_name='Accept Count')),
+                ('acceptcount', models.IntegerField(default=0, help_text='The number of copied this winner has won and accepted.', validators=[tracker.validators.positive], verbose_name='Accept Count')),
                 ('declinecount', models.IntegerField(default=0, help_text='The number of declines this donor has put towards this prize. Set it to the max prize multi win amount to prevent this donor from being entered from future drawings.', validators=[tracker.validators.positive], verbose_name='Decline Count')),
                 ('sumcount', models.IntegerField(default=1, editable=False, help_text='The total number of prize instances associated with this winner', validators=[tracker.validators.positive], verbose_name='Sum Counts')),
                 ('emailsent', models.BooleanField(default=False, verbose_name='Notification Email Sent')),
@@ -767,7 +767,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='event',
             name='prizeshippedemailtemplate',
-            field=models.ForeignKey(blank=True, default=None, help_text='Email template to use when the a prize has been shipped to its recipient).', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='event_prizeshippedtemplates', to='post_office.EmailTemplate', verbose_name='Prize Shipped Email Template'),
+            field=models.ForeignKey(blank=True, default=None, help_text='Email template to use when the aprize has been shipped to its recipient).', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='event_prizeshippedtemplates', to='post_office.EmailTemplate', verbose_name='Prize Shipped Email Template'),
         ),
         migrations.AddField(
             model_name='event',

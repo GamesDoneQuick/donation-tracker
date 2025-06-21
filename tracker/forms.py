@@ -1,19 +1,15 @@
-from __future__ import annotations
-
 import datetime
 import re
-from collections import defaultdict
-from typing import Iterable, Optional
 
 import django.core.exceptions
 import django.db.utils
+import post_office
 import post_office.models
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core import validators
-from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.forms import modelformset_factory
 from django.urls import reverse
 from django.utils import timezone
@@ -22,6 +18,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 import tracker.auth as auth
+import tracker.prizemail as prizemail
 import tracker.util
 import tracker.viewutil as viewutil
 import tracker.widgets
@@ -164,11 +161,6 @@ class SendVolunteerEmailsForm(forms.Form):
 
 
 class PrizeSubmissionForm(forms.Form):
-    event = forms.ModelChoiceField(
-        queryset=models.Event.objects.filter(archived=False),
-        required=True,
-        widget=forms.HiddenInput(),
-    )
     name = forms.CharField(
         max_length=64,
         required=True,
@@ -194,7 +186,7 @@ class PrizeSubmissionForm(forms.Form):
         required=False,
         label='Extra/Non-Public Information',
         widget=forms.Textarea,
-        help_text='Enter any additional information you feel the staff should know about your prize. This information will not be made public.',
+        help_text='Enter any additional information you feel the staff should know about your prize. This information will not be made public. ',
     )
     estimatedvalue = forms.DecimalField(
         decimal_places=2,
@@ -222,10 +214,10 @@ class PrizeSubmissionForm(forms.Form):
         max_length=128,
         label='Prize Creator Email',
         required=False,
-        help_text='Enter an e-mail if the creator of this prize accepts commissions and would like to be promoted through our event. Do not enter an e-mail unless they are known to accept commissions, or you have received their explicit consent.',
+        help_text='Enter an e-mail if the creator of this prize accepts comissions and would like to be promoted through our marathon. Do not enter an e-mail unless they are known to accept comissions, or you have received their explicit consent.',
     )
     creatorwebsite = forms.URLField(
-        max_length=128,
+        max_length=1024,
         label='Prize Creator Website',
         required=False,
         help_text="Enter the URL of the prize creator's website or online storefront if applicable.",
@@ -237,12 +229,20 @@ class PrizeSubmissionForm(forms.Form):
   <ul>
     <li>I am expected to ship the prize myself, and will keep a receipt to be reimbursed for the cost of shipping.</li>
     <li>I currently have the prize in my possession, or can guarantee that I can obtain it within one week of the start of the marathon.</li>
-    <li>I agree to communicate with the staff in a timely manner as necessary regarding this prize.</li>
+    <li>I agree to communicate with the staff in a timely manner as neccessary regarding this prize.</li>
     <li>I agree that all contact information is correct has been provided with the consent of the respective parties.</li>
     <li>I agree that if the prize is no longer available, I will contact the staff immediately to withdraw it, and no later than one month of the start date of the marathon.</li>
   </ul>"""
         ),
     )
+
+    def impl_clean_run(self, data):
+        if not data:
+            return None
+        try:
+            return models.SpeedRun.objects.get(id=data)
+        except Exception:
+            raise forms.ValidationError('Invalid Run id.')
 
     def clean_name(self):
         basename = self.cleaned_data['name']
@@ -280,6 +280,7 @@ class PrizeSubmissionForm(forms.Form):
             extrainfo=self.cleaned_data['extrainfo'],
             estimatedvalue=self.cleaned_data['estimatedvalue'],
             minimumbid=5,
+            maximumbid=5,
             image=self.cleaned_data['imageurl'],
             handler=handler,
             provider=provider,
@@ -287,14 +288,71 @@ class PrizeSubmissionForm(forms.Form):
             creatoremail=self.cleaned_data['creatoremail'],
             creatorwebsite=self.cleaned_data['creatorwebsite'],
         )
-        prize.clean()
         prize.save()
         return prize
 
 
+class AutomailPrizeContributorsForm(forms.Form):
+    def __init__(self, prizes, *args, **kwargs):
+        super(AutomailPrizeContributorsForm, self).__init__(*args, **kwargs)
+        self.choices = []
+        prizes = [prize for prize in prizes if prize.handler]
+        event = prizes[0].event if len(prizes) > 0 else None
+        for prize in prizes:
+            self.choices.append(
+                (
+                    prize.id,
+                    mark_safe(
+                        format_html(
+                            '<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>)',
+                            viewutil.admin_url(prize),
+                            prize,
+                            prize.get_state_display(),
+                            prize.handler.email,
+                        )
+                    ),
+                )
+            )
+        self.fields['fromaddress'] = forms.EmailField(
+            max_length=256,
+            initial=prizemail.get_event_default_sender_email(event),
+            required=True,
+            label='From Address',
+            help_text='Specify the e-mail you would like to identify as the sender',
+        )
+        self.fields['replyaddress'] = forms.EmailField(
+            max_length=256,
+            required=False,
+            label='Reply Address',
+            help_text='If left blank this will be the same as the from address',
+        )
+        self.fields['emailtemplate'] = forms.ModelChoiceField(
+            queryset=post_office.models.EmailTemplate.objects.all(),
+            empty_label='Pick a template...',
+            required=True,
+            label='Email Template',
+            help_text='Select an email template to use.',
+        )
+        self.fields['prizes'] = forms.TypedMultipleChoiceField(
+            choices=self.choices,
+            initial=[prize.id for prize in prizes],
+            label='Prizes',
+            empty_value='',
+            widget=forms.widgets.CheckboxSelectMultiple,
+        )
+
+    def clean(self):
+        if not self.cleaned_data['replyaddress']:
+            self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
+        self.cleaned_data['prizes'] = [
+            models.Prize.objects.get(id=x) for x in self.cleaned_data['prizes']
+        ]
+        return self.cleaned_data
+
+
 class DrawPrizeWinnersForm(forms.Form):
     def __init__(self, prizes, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(DrawPrizeWinnersForm, self).__init__(*args, **kwargs)
         self.choices = []
         for prize in prizes:
             self.choices.append(
@@ -312,7 +370,7 @@ class DrawPrizeWinnersForm(forms.Form):
             initial=[prize.id for prize in prizes],
             coerce=lambda x: int(x),
             label='Prizes',
-            empty_value=[],
+            empty_value='',
             widget=forms.widgets.CheckboxSelectMultiple,
         )
         self.fields['seed'] = forms.IntegerField(
@@ -322,205 +380,206 @@ class DrawPrizeWinnersForm(forms.Form):
         )
 
     def clean(self):
-        if 'prizes' in self.cleaned_data:
-            self.cleaned_data['prizes'] = models.Prize.objects.filter(
-                id__in=self.cleaned_data['prizes']
-            )
-        return self.cleaned_data
-
-
-class AutomailPrizeBaseForm(forms.Form):
-    class Media:
-        js = ['prize_mail_template.js']
-
-    from_address = forms.EmailField(
-        max_length=256,
-        required=True,
-        label='From Address',
-        help_text='Specify the e-mail you would like to identify as the sender.',
-    )
-    reply_address = forms.EmailField(
-        max_length=256,
-        required=False,
-        label='Reply Address',
-        help_text='If left blank this will be the same as the from address.',
-    )
-    email_template = forms.ModelChoiceField(
-        queryset=post_office.models.EmailTemplate.objects.exclude(
-            name__startswith='default_'
-        ),
-        empty_label='Pick a template...',
-        required=True,
-        label='Email Template',
-        help_text='Select an email template to use.',
-    )
-
-    def __init__(
-        self,
-        event: models.Event,
-        template: Optional[post_office.models.EmailTemplate],
-        /,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.fields['from_address'].initial = event.default_prize_coordinator_email
-        if template:
-            self.fields['email_template'].initial = template.id
-            self.template_id = template.id
-        else:
-            self.template_id = 0
-
-    def clean(self):
-        if (
-            not self.cleaned_data.get('reply_address', '')
-            and 'from_address' in self.cleaned_data
-        ):
-            self.cleaned_data['reply_address'] = self.cleaned_data['from_address']
-        return self.cleaned_data
-
-
-class AutomailPrizeContributorsForm(AutomailPrizeBaseForm):
-    prizes = forms.TypedMultipleChoiceField(
-        label='Prizes',
-        empty_value=[],
-        widget=forms.widgets.CheckboxSelectMultiple,
-    )
-
-    def __init__(
-        self, prizes: Iterable[models.Prize], event: models.Event, /, *args, **kwargs
-    ):
-        super().__init__(event, event.prizecontributoremailtemplate, *args, **kwargs)
-        self.fields['prizes'].choices = [
-            (
-                prize.id,
-                mark_safe(
-                    format_html(
-                        '<a href="{0}">{1}</a> State: {2} (<a href="mailto:{3}">{3}</a>) <a href="{4}">Preview</a>',
-                        viewutil.admin_url(prize),
-                        prize,
-                        prize.get_state_display(),
-                        prize.handler.email,
-                        reverse(
-                            'admin:tracker_preview_prize_contributor_mail',
-                            args=(prize.id, self.template_id),
-                        ),
-                    )
-                ),
-            )
-            for prize in prizes
-            if prize.handler_id
+        self.cleaned_data['prizes'] = [
+            models.Prize.objects.get(id=x) for x in self.cleaned_data['prizes']
         ]
-        self.fields['prizes'].initial = [prize.id for prize in prizes]
-
-    def clean(self):
-        super().clean()
-        if 'prizes' in self.cleaned_data:
-            self.cleaned_data['prizes'] = models.Prize.objects.filter(
-                id__in=self.cleaned_data['prizes']
-            )
         return self.cleaned_data
 
 
-class AutomailPrizeClaimBaseForm(AutomailPrizeBaseForm):
-    claims = forms.TypedMultipleChoiceField(
-        coerce=lambda x: int(x),
-        label='Prize Claims',
-        empty_value=[],
-        widget=forms.widgets.CheckboxSelectMultiple,
-    )
+class AutomailPrizeWinnersForm(forms.Form):
+    def __init__(self, prizewinners, *args, **kwargs):
+        super(AutomailPrizeWinnersForm, self).__init__(*args, **kwargs)
+        event = prizewinners[0].prize.event if len(prizewinners) > 0 else None
+        self.fields['fromaddress'] = forms.EmailField(
+            max_length=256,
+            initial=prizemail.get_event_default_sender_email(event),
+            required=True,
+            label='From Address',
+            help_text='Specify the e-mail you would like to identify as the sender',
+        )
+        self.fields['replyaddress'] = forms.EmailField(
+            max_length=256,
+            required=False,
+            label='Reply Address',
+            help_text='If left blank this will be the same as the from address',
+        )
+        self.fields['emailtemplate'] = forms.ModelChoiceField(
+            queryset=post_office.models.EmailTemplate.objects.all(),
+            initial=event.prizewinneremailtemplate if event else None,
+            empty_label='Pick a template...',
+            required=True,
+            label='Email Template',
+            help_text='Select an email template to use. Can be overridden by the prize itself.',
+        )
+        self.fields['acceptdeadline'] = forms.DateField(
+            initial=timezone.now() + datetime.timedelta(weeks=2)
+        )
 
-    def __init__(
-        self,
-        event: models.Event,
-        template: Optional[post_office.models.EmailTemplate],
-        claims: Iterable[models.PrizeClaim],
-        viewname: str,
-        /,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(event, template, *args, **kwargs)
-        self.fields['claims'].choices = [
-            (
-                claim.id,
-                mark_safe(
-                    format_html(
-                        '<a href="{0}">{1}</a>: <a href="{2}">{3}</a> <a href="{4}">Preview</a>',
-                        viewutil.admin_url(claim.prize),
-                        claim.prize,
-                        viewutil.admin_url(claim.winner),
-                        claim.winner,
-                        reverse(
-                            viewname,
-                            args=(claim.id, self.template_id),
-                        ),
-                    )
-                ),
+        self.choices = []
+        for prizewinner in prizewinners:
+            winner = prizewinner.winner
+            prize = prizewinner.prize
+            self.choices.append(
+                (
+                    prizewinner.id,
+                    mark_safe(
+                        format_html(
+                            '<a href="{0}">{1}</a>: <a href="{2}">{3}</a> <a href="{4}">Preview</a>',
+                            viewutil.admin_url(prize),
+                            prize,
+                            viewutil.admin_url(winner),
+                            winner,
+                            reverse(
+                                'admin:preview_prize_winner_mail',
+                                args=(prizewinner.id,),
+                            ),
+                        )
+                    ),
+                )
             )
-            for claim in claims
+        self.fields['prizewinners'] = forms.TypedMultipleChoiceField(
+            choices=self.choices,
+            initial=[prizewinner.id for prizewinner in prizewinners],
+            coerce=lambda x: int(x),
+            label='Prize Winners',
+            empty_value='',
+            widget=forms.widgets.CheckboxSelectMultiple,
+        )
+
+    def clean(self):
+        if not self.cleaned_data.get('replyaddress', ''):
+            self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
+        self.cleaned_data['prizewinners'] = [
+            models.PrizeWinner.objects.get(id=pw)
+            for pw in self.cleaned_data.get('prizewinners', [])
         ]
-        self.fields['claims'].initial = [claim.id for claim in claims]
-
-    def clean(self):
-        super().clean()
-        if 'claims' in self.cleaned_data:
-            self.cleaned_data['claims'] = models.PrizeClaim.objects.filter(
-                id__in=self.cleaned_data.get('claims')
-            )
         return self.cleaned_data
 
 
-def future(date: datetime.date | datetime.datetime):
-    if isinstance(date, datetime.datetime):
-        date = date.date()
-    if date <= timezone.now().date():
-        raise ValidationError('date needs to be at least one day in the future')
-
-
-class AutomailPrizeWinnersForm(AutomailPrizeClaimBaseForm):
-    accept_deadline = forms.DateField(validators=[future])
-
-    def __init__(self, claims, event, /, *args, **kwargs):
-        super().__init__(
-            event,
-            event.prizewinneremailtemplate,
-            claims,
-            'admin:tracker_preview_prize_winner_mail',
-            *args,
-            **kwargs,
+class AutomailPrizeAcceptNotifyForm(forms.Form):
+    def __init__(self, prizewinners, *args, **kwargs):
+        super(AutomailPrizeAcceptNotifyForm, self).__init__(*args, **kwargs)
+        event = prizewinners[0].prize.event if len(prizewinners) > 0 else None
+        self.fields['fromaddress'] = forms.EmailField(
+            max_length=256,
+            initial=prizemail.get_event_default_sender_email(event),
+            required=True,
+            label='From Address',
+            help_text='Specify the e-mail you would like to identify as the sender',
         )
-        self.fields['accept_deadline'].initial = timezone.now() + datetime.timedelta(
-            weeks=2
+        self.fields['replyaddress'] = forms.EmailField(
+            max_length=256,
+            required=False,
+            label='Reply Address',
+            help_text='If left blank this will be the same as the from address',
         )
-
-
-class AutomailPrizeAcceptNotifyForm(AutomailPrizeClaimBaseForm):
-    def __init__(
-        self, claims: Iterable[models.PrizeClaim], event: models.Event, *args, **kwargs
-    ):
-        super().__init__(
-            event,
-            event.prizewinneracceptemailtemplate,
-            claims,
-            'admin:tracker_preview_prize_accept_mail',
-            *args,
-            **kwargs,
+        self.fields['emailtemplate'] = forms.ModelChoiceField(
+            queryset=post_office.models.EmailTemplate.objects.all(),
+            initial=None,
+            empty_label='Pick a template...',
+            required=True,
+            label='Email Template',
+            help_text='Select an email template to use.',
         )
 
-
-class AutomailPrizeShippedForm(AutomailPrizeClaimBaseForm):
-    def __init__(
-        self, claims: Iterable[models.PrizeClaim], event: models.Event, *args, **kwargs
-    ):
-        super().__init__(
-            event,
-            event.prizeshippedemailtemplate,
-            claims,
-            'admin:tracker_preview_prize_shipped_mail',
-            *args,
-            **kwargs,
+        self.choices = []
+        for prizewinner in prizewinners:
+            winner = prizewinner.winner
+            prize = prizewinner.prize
+            self.choices.append(
+                (
+                    prizewinner.id,
+                    mark_safe(
+                        format_html(
+                            '<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
+                            viewutil.admin_url(prize),
+                            prize,
+                            viewutil.admin_url(winner),
+                            winner,
+                        )
+                    ),
+                )
+            )
+        self.fields['prizewinners'] = forms.TypedMultipleChoiceField(
+            choices=self.choices,
+            initial=[prizewinner.id for prizewinner in prizewinners],
+            coerce=lambda x: int(x),
+            label='Prize Winners',
+            empty_value='',
+            widget=forms.widgets.CheckboxSelectMultiple,
         )
+
+    def clean(self):
+        if not self.cleaned_data['replyaddress']:
+            self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
+        self.cleaned_data['prizewinners'] = [
+            models.PrizeWinner.objects.get(id=x)
+            for x in self.cleaned_data['prizewinners']
+        ]
+        return self.cleaned_data
+
+
+class AutomailPrizeShippingNotifyForm(forms.Form):
+    def __init__(self, prizewinners, *args, **kwargs):
+        super(AutomailPrizeShippingNotifyForm, self).__init__(*args, **kwargs)
+        event = prizewinners[0].prize.event if len(prizewinners) > 0 else None
+        self.fields['fromaddress'] = forms.EmailField(
+            max_length=256,
+            initial=prizemail.get_event_default_sender_email(event),
+            required=True,
+            label='From Address',
+            help_text='Specify the e-mail you would like to identify as the sender',
+        )
+        self.fields['replyaddress'] = forms.EmailField(
+            max_length=256,
+            required=False,
+            label='Reply Address',
+            help_text='If left blank this will be the same as the from address',
+        )
+        self.fields['emailtemplate'] = forms.ModelChoiceField(
+            queryset=post_office.models.EmailTemplate.objects.all(),
+            initial=None,
+            empty_label='Pick a template...',
+            required=True,
+            label='Email Template',
+            help_text='Select an email template to use.',
+        )
+
+        self.choices = []
+        for prizewinner in prizewinners:
+            winner = prizewinner.winner
+            prize = prizewinner.prize
+            self.choices.append(
+                (
+                    prizewinner.id,
+                    mark_safe(
+                        format_html(
+                            '<a href="{0}">{1}</a>: <a href="{2}">{3}</a>',
+                            viewutil.admin_url(prize),
+                            prize,
+                            viewutil.admin_url(winner),
+                            winner,
+                        )
+                    ),
+                )
+            )
+        self.fields['prizewinners'] = forms.TypedMultipleChoiceField(
+            choices=self.choices,
+            initial=[prizewinner.id for prizewinner in prizewinners],
+            coerce=lambda x: int(x),
+            label='Prize Winners',
+            empty_value='',
+            widget=forms.widgets.CheckboxSelectMultiple,
+        )
+
+    def clean(self):
+        if not self.cleaned_data['replyaddress']:
+            self.cleaned_data['replyaddress'] = self.cleaned_data['fromaddress']
+        self.cleaned_data['prizewinners'] = [
+            models.PrizeWinner.objects.get(id=x)
+            for x in self.cleaned_data['prizewinners']
+        ]
+        return self.cleaned_data
 
 
 class RegistrationForm(forms.Form):
@@ -666,7 +725,7 @@ class RegistrationConfirmationForm(forms.Form):
 
 class PrizeAcceptanceForm(forms.ModelForm):
     class Meta:
-        model = models.PrizeClaim
+        model = models.PrizeWinner
         fields = []
 
     def __init__(self, *args, **kwargs):
@@ -715,33 +774,23 @@ class PrizeAcceptanceForm(forms.ModelForm):
         return count
 
     def clean(self):
-        errors = defaultdict(list)
         if self.accepted is False:
             self.cleaned_data['count'] = 0
             self.cleaned_data['accept'] = False
         elif self.accepted is None:
-            errors[NON_FIELD_ERRORS].append(
+            raise forms.ValidationError(
                 'The way you presented your decision was odd. Please make sure you click one of the two buttons.'
             )
         else:
-            if self.cleaned_data.get('count', None) == 0:
-                errors['count'].append(
+            if self.cleaned_data['count'] == 0:
+                raise forms.ValidationError(
                     'You chose accept with 0 prizes. Perhaps you meant to click the other button? If you do not want any of your prizes, simply click the deny button.'
                 )
-            else:
-                self.cleaned_data['accept'] = True
-        if (
-            'total' in self.cleaned_data
-            and self.instance.pendingcount < self.cleaned_data['total']
-        ):
-            errors[NON_FIELD_ERRORS].append(
+            self.cleaned_data['accept'] = True
+        if self.instance.pendingcount < self.cleaned_data['total']:
+            raise forms.ValidationError(
                 'There was a data inconsistency, please try again.'
             )
-        if errors:
-            raise forms.ValidationError(errors)
-        return self.cleaned_data
-
-    def save(self, commit=True):
         count = self.cleaned_data['count']
         total = self.cleaned_data['total']
         self.instance.acceptcount += count
@@ -749,6 +798,9 @@ class PrizeAcceptanceForm(forms.ModelForm):
         self.instance.pendingcount -= total
         if self.cleaned_data['comments']:
             self.instance.winnernotes += self.cleaned_data['comments'] + '\n'
+        return self.cleaned_data
+
+    def save(self, commit=True):
         if commit is True:
             self.instance.save()
         return self.instance
@@ -756,8 +808,8 @@ class PrizeAcceptanceForm(forms.ModelForm):
 
 class AddressForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['addressname'].initial = (
+        super(AddressForm, self).__init__(*args, **kwargs)
+        self.initial['addressname'] = (
             self.instance.addressname
             or f'{self.instance.firstname} {self.instance.lastname}'.strip()
         )
@@ -782,9 +834,14 @@ class AddressForm(forms.ModelForm):
         ]
 
 
+class NullForm(forms.Form):
+    def save(self, commit=True):
+        return None
+
+
 class PrizeShippingForm(forms.ModelForm):
     class Meta:
-        model = models.PrizeClaim
+        model = models.PrizeWinner
         fields = [
             'shippingstate',
             'shippingcost',
@@ -795,7 +852,9 @@ class PrizeShippingForm(forms.ModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(PrizeShippingForm, self).__init__(*args, **kwargs)
+        self.saved = False
+        self.instance = kwargs['instance']
         self.fields['shippingstate'].label = (
             'Shipped yet?' if self.instance.prize.requiresshipping else 'Sent yet?'
         )
@@ -804,7 +863,7 @@ class PrizeShippingForm(forms.ModelForm):
         )
         self.fields['shipping_receipt_url'].help_text = (
             'Please post a url with an image of the shipping receipt here. If you are uncomfortable uploading this image to a web page, you can send the image to {0} instead'.format(
-                self.instance.prize.event.default_prize_coordinator_email
+                prizemail.get_event_default_sender_email(self.instance.prize.event)
             )
         )
         self.fields['couriername'].help_text = (
@@ -827,4 +886,4 @@ class PrizeShippingForm(forms.ModelForm):
             self.fields['trackingnumber'].widget = forms.HiddenInput()
 
 
-PrizeShippingFormSet = modelformset_factory(models.PrizeClaim, form=PrizeShippingForm)
+PrizeShippingFormSet = modelformset_factory(models.PrizeWinner, form=PrizeShippingForm)

@@ -1,12 +1,15 @@
+import json
 from collections import defaultdict
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.http import Http404
+from django.db.models import Q
+from django.http import Http404, HttpResponse
 
 import tracker.forms as forms
 import tracker.models as models
+import tracker.search_filters as filters
 import tracker.viewutil as viewutil
 from tracker.views import common as views_common
 
@@ -49,7 +52,7 @@ def find_saved_form(data, count, prefix):
 @login_required
 def user_prize(request, prize):
     try:
-        prize = models.Prize.objects.prefetch_related('claims').get(pk=prize)
+        prize = models.Prize.objects.get(pk=prize)
     except ObjectDoesNotExist:
         raise Http404
     if (
@@ -57,34 +60,43 @@ def user_prize(request, prize):
         and request.user != prize.event.prizecoordinator
         and not request.user.is_superuser
     ):
-        raise Http404
-    accepted_claims = prize.get_accepted_claims()
-    pending_claims = prize.get_pending_claims()
-    if accepted_claims:
-        formset = forms.PrizeShippingFormSet(
-            prefix='prize_shipping',
-            queryset=models.PrizeClaim.objects.filter(
-                id__in=(c.id for c in accepted_claims)
-            ).select_related('winner'),
-            data=request.POST if request.method == 'POST' else None,
-        )
-        formset.extra = 0
-
-        if formset.is_valid():
-            formset.save()
+        return HttpResponse('You are not authorized to view this resource', 403)
+    acceptedWinners = (
+        prize.get_prize_winners().filter(Q(acceptcount__gte=1)).select_related('winner')
+    )
+    pendingWinners = (
+        prize.get_prize_winners()
+        .filter(Q(pendingcount__gte=1))
+        .select_related('winner')
+    )
+    formset = None
+    if request.method == 'POST':
+        if acceptedWinners.exists():
+            formset = forms.PrizeShippingFormSet(
+                data=request.POST, queryset=acceptedWinners
+            )
+            savedForm = find_saved_form(request.POST, len(formset.forms), 'form-saved-')
+            formset.extra = 0
+            if savedForm is not None:
+                targetForm = formset.forms[savedForm]
+                if targetForm.is_valid():
+                    targetForm.save()
+                    targetForm.saved = True
     else:
-        formset = None
+        if acceptedWinners.exists():
+            formset = forms.PrizeShippingFormSet(queryset=acceptedWinners)
+            formset.extra = 0
     return views_common.tracker_response(
         request,
         'tracker/contributor_prize.html',
-        {'prize': prize, 'formset': formset, 'pending_claims': pending_claims},
+        dict(prize=prize, formset=formset, pendingWinners=pendingWinners),
     )
 
 
 def prize_winner(request, prize_win):
     auth_code = request.GET.get('auth_code', None)
     try:
-        prize_win = models.PrizeClaim.objects.get(
+        prize_win = models.PrizeWinner.objects.get(
             pk=prize_win, auth_code__iexact=auth_code
         )
     except ObjectDoesNotExist:
@@ -134,19 +146,35 @@ def submit_prize(request, event):
     if event.archived:
         raise Http404
 
-    form = forms.PrizeSubmissionForm(
-        initial={'event': event.id},
-        data=request.POST if request.method == 'POST' else None,
-    )
+    if request.method == 'POST':
+        prizeForm = forms.PrizeSubmissionForm(data=request.POST)
+        if prizeForm.is_valid():
+            prize = prizeForm.save(event, request.user)
+            return views_common.tracker_response(
+                request, 'tracker/submit_prize_success.html', {'prize': prize}
+            )
+    else:
+        prizeForm = forms.PrizeSubmissionForm()
 
-    if form.is_valid():
-        prize = form.save(event, request.user)
-        return views_common.tracker_response(
-            request, 'tracker/submit_prize_success.html', {'prize': prize, 'form': form}
-        )
+    runs = filters.run_model_query(
+        'run', {'event': event}, request.user
+    ).prefetch_related('runners')
+
+    def run_info(run):
+        return {
+            'id': run.id,
+            'name': run.name,
+            'description': run.description,
+            'runners': run.runners_text,
+            'starttime': run.starttime.isoformat(),
+            'endtime': run.endtime.isoformat(),
+        }
+
+    dumpArray = [run_info(o) for o in runs.all()]
+    runsJson = json.dumps(dumpArray)
 
     return views_common.tracker_response(
         request,
         'tracker/submit_prize.html',
-        {'event': event, 'form': form},
+        {'event': event, 'form': prizeForm, 'runs': runsJson},
     )
