@@ -1,6 +1,7 @@
 {% load donation_tags %}
 
 <form id="{{ formid }}" method="post" {% if action %}action="{{ action }}"{% endif %}>
+  {% csrf_token %}
   {% form_innards form showrequired=showrequired %}
   <p><input type="submit" value="{{ submittext }}" /></p>
 </form>

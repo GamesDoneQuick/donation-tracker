@@ -9,6 +9,7 @@ from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.auth import get_user_model
 from django.contrib.auth import models as auth_models
+from django.contrib.sites.models import Site
 from django.forms import ModelChoiceField
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
@@ -93,6 +94,7 @@ def retry(n_or_func):
 class ProcessDonationsAndBidsBrowserTest(TrackerSeleniumTestCase):
     def setUp(self):
         User = get_user_model()
+        Site.objects.create(domain='localhost', name='Local Server')
         self.rand = random.Random(None)
         self.superuser = User.objects.create_superuser(
             'superuser',
@@ -267,32 +269,37 @@ class TestAdminViews(TestCase):
 
     def test_automail_prize_contributors(self):
         self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:automail_prize_contributors'))
+        response = self.client.get(reverse('admin:tracker_automail_prize_contributors'))
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(
-            reverse('admin:automail_prize_contributors', args=(self.event.short,))
+            reverse(
+                'admin:tracker_automail_prize_contributors', args=(self.event.short,)
+            )
         )
         self.assertEqual(response.status_code, 200)
 
     def test_automail_prize_winners(self):
         self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:automail_prize_winners'))
+        response = self.client.get(reverse('admin:tracker_automail_prize_winners'))
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(
-            reverse('admin:automail_prize_winners', args=(self.event.short,))
+            reverse('admin:tracker_automail_prize_winners', args=(self.event.short,))
         )
         self.assertEqual(response.status_code, 200)
 
     def test_automail_prize_accept_notifications(self):
         self.client.force_login(self.superuser)
-        response = self.client.get(reverse('admin:automail_prize_accept_notifications'))
+        response = self.client.get(
+            reverse('admin:tracker_automail_prize_accept_notifications')
+        )
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(
             reverse(
-                'admin:automail_prize_accept_notifications', args=(self.event.short,)
+                'admin:tracker_automail_prize_accept_notifications',
+                args=(self.event.short,),
             )
         )
         self.assertEqual(response.status_code, 200)
@@ -300,13 +307,14 @@ class TestAdminViews(TestCase):
     def test_automail_prize_shipping_notifications(self):
         self.client.force_login(self.superuser)
         response = self.client.get(
-            reverse('admin:automail_prize_shipping_notifications')
+            reverse('admin:tracker_automail_prize_shipping_notifications')
         )
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(
             reverse(
-                'admin:automail_prize_shipping_notifications', args=(self.event.short,)
+                'admin:tracker_automail_prize_shipping_notifications',
+                args=(self.event.short,),
             )
         )
         self.assertEqual(response.status_code, 200)

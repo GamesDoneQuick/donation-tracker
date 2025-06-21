@@ -6,6 +6,7 @@ import zoneinfo
 
 import post_office.models
 from django.contrib.auth.models import Group, Permission, User
+from django.contrib.sites.models import Site
 from django.test import TestCase, TransactionTestCase, override_settings
 
 from tracker import models, settings
@@ -308,6 +309,7 @@ class TestEventViews(TransactionTestCase):
             minimumbid=5,
             name='Test Prize',
             state='ACCEPTED',
+            acceptemailsent=True,
         )
 
     @override_settings(TRACKER_LOGO='example-logo.png')
@@ -400,25 +402,41 @@ class TestEventAdmin(TestCase):
         )
         self.rand = random.Random(None)
         self.client.force_login(self.super_user)
+        Site.objects.create(domain='testserver', name='Test Server')
 
     def test_event_admin(self):
         response = self.client.get(reverse('admin:tracker_event_changelist'))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_event_add'))
-        self.assertEqual(response.status_code, 200)
+        prize_coordinator = User.objects.create(username='prize_coordinator')
+        with override_settings(
+            TRACKER_DEFAULT_PRIZE_COORDINATOR=prize_coordinator.username
+        ):
+            response = self.client.get(reverse('admin:tracker_event_add'))
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.context['adminform'].fields['prizecoordinator'].initial,
+                prize_coordinator.id,
+            )
+        # test an invalid setting
+        with override_settings(TRACKER_DEFAULT_PRIZE_COORDINATOR='foobar'):
+            response = self.client.get(reverse('admin:tracker_event_add'))
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNone(
+                response.context['adminform'].fields['prizecoordinator'].initial
+            )
         response = self.client.get(
             reverse('admin:tracker_event_change', args=(self.event.id,))
         )
         self.assertEqual(response.status_code, 200)
 
     def test_security(self):
-        self.staff = User.objects.create(username='staff', is_staff=True)
-        self.client.force_login(self.staff)
+        staff = User.objects.create(username='staff', is_staff=True)
+        self.client.force_login(staff)
         response = self.client.get(
             reverse('admin:send_volunteer_emails', args=(self.event.id,))
         )
         self.assertEqual(response.status_code, 403)
-        self.staff.user_permissions.add(
+        staff.user_permissions.add(
             Permission.objects.get(name='Can change user'),
         )
         response = self.client.get(

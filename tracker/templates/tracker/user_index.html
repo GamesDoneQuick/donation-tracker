@@ -34,6 +34,8 @@
           <small style="color:red">(Not Accepted)</small>
         {% elif prize.is_pending_shipping > 0 %}
           <small>(needs shipping)</small>
+        {% elif prize.get_pending_claims %}
+          <small>(pending claims)</small>
         {% elif prize.is_fully_shipped %}
           <small>(shipping complete)</small>
         {% endif %}

@@ -122,7 +122,7 @@ def concurrent_prizes_filter(runs):
     # it's only a rough guess so maybe it's ok - BC 12/2019
     # ----
     # yes, the filter query here is correct.  We want to get all unwon prizes that _start_ before the last run in the list _ends_, and likewise all prizes that _end_ after the first run in the list _starts_.
-    return Q(prizewinner__isnull=True) & (
+    return Q(claims=None) & (
         Q(startrun__starttime__lte=end_time, endrun__endtime__gte=start_time)
         | Q(starttime__lte=end_time, endtime__gte=start_time)
         | Q(
@@ -136,7 +136,7 @@ def concurrent_prizes_filter(runs):
 
 def current_prizes_filter(query_offset=None):
     offset = util.parse_time(query_offset)
-    return Q(prizewinner__isnull=True) & (
+    return Q(claims=None) & (
         Q(startrun__starttime__lte=offset, endrun__endtime__gte=offset)
         | Q(starttime__lte=offset, endtime__gte=offset)
         | Q(
@@ -155,25 +155,6 @@ def upcoming_prizes_filter(**kwargs):
 
 def future_prizes_filter(**kwargs):
     return upcoming_prizes_filter(include_current=False, **kwargs)
-
-
-def todraw_prizes_filter(query_offset=None):
-    offset = util.parse_time(query_offset)
-    return Q(state='ACCEPTED') & (
-        (
-            Q(prizewinner=None)
-            | (
-                Q(prizewinner__pendingcount__gt=0)
-                & Q(prizewinner__acceptdeadline__lt=offset)
-            )
-        )
-        & (
-            Q(endrun__endtime__lte=offset)
-            | Q(endtime__lte=offset)
-            | (Q(endtime=None) & Q(endrun=None))
-        )
-        & (Q(event__prize_drawing_date=None) | Q(event__prize_drawing_date__lte=offset))
-    )
 
 
 def apply_feed_filter(query, model, feed_name, params=None, user=None):
@@ -286,16 +267,8 @@ def prize_feed_filter(feed_name, noslice, params, query, user):
         query = query.filter(current_prizes_filter(**call_params))
     elif feed_name == 'future':
         query = query.filter(upcoming_prizes_filter(**feed_params(noslice, params)))
-    elif feed_name == 'won':
-        # TODO: are these used? doesn't seem to take multi-prizes into account
-        query = query.filter(Q(prizewinner__isnull=False))
-    elif feed_name == 'unwon':
-        query = query.filter(Q(prizewinner__isnull=True))
     elif feed_name == 'todraw':
-        call_params = {}
-        if 'time' in params:
-            call_params['query_offset'] = util.parse_time(params['time'])
-        query = query.filter(todraw_prizes_filter(**call_params))
+        query = query.to_draw(time=params.get('time', None))
     if feed_name != 'all':
         query = query.filter(state='ACCEPTED')
     elif not user.has_perm('tracker.change_prize'):

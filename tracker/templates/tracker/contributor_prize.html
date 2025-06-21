@@ -2,7 +2,7 @@
 {% load donation_tags %}
 {% load i18n %}
 
-{% block title %}{% trans "Prize Info" %}{% endblock %}
+{% block title %}{% trans "Prize Info" %} &mdash; {{ prize.name }}{% endblock %}
 
 {% block content %}
 
@@ -33,29 +33,30 @@
   <small>Note: Please enter and save shipping details for each winner separately</small>
   {% endif %}
 
-  <form id="prizesubmmision-{{forloop.counter}}" method="post">
+  <form id="prizesubmission" method="post">
+
+  {% csrf_token %}
+  {{ formset.management_form }}
 
   <ul>
   {% for form in formset %}
-    {{ formset.management_form }}
 
-    {% with form.instance as prize_winner %}
+    {% with form.instance as claim %}
     <li>
-      {{ prize_winner.winner.visible_name }}
+      {{ claim.winner.visible_name }}
 {#      {% include 'tracker/partials/donor_link.html' with donor=prize_winner.winner only %} #}
-      <i>({{ prize_winner.acceptcount }} cop{{ prize_winner.acceptcount|pluralize:"y,ies" }}{% if prize_winner.pendingcount > 1 %},&nbsp;{{ prize_winner.pendingcount }} cop{{ prize_winner.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> {% if form.saved %}<span style="color:blue">Saved</span>{% endif %}<br />
+      <i>({{ claim.acceptcount }} cop{{ claim.acceptcount|pluralize:"y,ies" }}{% if claim.pendingcount > 1 %},&nbsp;{{ claim.pendingcount }} cop{{ claim.pendingcount|pluralize:"y,ies" }} pending{% endif %})</i> {% if form.saved %}<span style="color:blue">Saved</span>{% endif %}<br />
       <b>Mailing Address:</b> <br />
-      {% include 'tracker/partials/donor_address.html' with donor=prize_winner.winner only %}
+      {% include 'tracker/partials/donor_address.html' with donor=claim.winner only %}
       <br />
-      {% if prize_winner.winnernotes %}
+      {% if claim.winnernotes %}
       <p>
-      Winner Notes: {{ prize_winner.winnernotes }}
+      Winner Notes: {{ claim.winnernotes }}
       </p>
       {% endif %}
 
       {% form_innards form showrequired=False %}
 
-      <input type="submit" name="form-saved-{{forloop.counter}}" value="Save">
       <br />
       <br />
     </li>
@@ -63,11 +64,13 @@
   {% endfor %}
   </ul>
 
+  <input type="submit" value="Save" />
+
   </form>
 {% endif %}
 
-{% if pendingWinners %}
-  <p>There {{ pendingWinners.count|pluralize:"is,are" }} {{ pendingWinners.count }} {% if formset %}additional {% endif %}pending winner{{ pendingWinners.count|pluralize:"s" }} for this prize.</p>
+{% if pending_claims %}
+  <p>There {{ pending_claims|pluralize:"is,are" }} {{ pending_claims.count }} {% if formset %}{{ pending_claims|pluralize:"an ," }}additional {% endif %}pending winner{{ pending_claims|pluralize:"s" }} for this prize.</p>
 {% elif not formset %}
   <p>There are currently no winners for this prize.</p>
 {% endif %}

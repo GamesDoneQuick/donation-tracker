@@ -1,25 +1,33 @@
 import datetime
+import operator
 import random
+from collections import defaultdict
 from decimal import Decimal
+from functools import reduce
 from unittest.mock import patch
 
 import post_office.models
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
+from django.contrib.sites.models import Site
 from django.core.exceptions import (
     ImproperlyConfigured,
     ObjectDoesNotExist,
     ValidationError,
 )
+from django.db.models import Sum
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
+from django.utils.formats import localize
 
-from tracker import models, prizemail, prizeutil, settings, util
+from tracker import models, prizeutil, settings, util
+from tracker.util import anywhere_on_earth_tz
 
 from . import randgen
 from .util import (
     AssertionHelpers,
     MigrationsTestCase,
+    create_test_template,
     long_ago_noon,
     parse_test_mail,
     today_noon,
@@ -27,44 +35,141 @@ from .util import (
 )
 
 
+class TestPrize(TransactionTestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand, start_time=today_noon)
+        self.event.save()
+        self.prize = randgen.generate_prize(self.rand, event=self.event, maxwinners=2)
+        self.prize.save()
+        self.donor = randgen.generate_donor(self.rand)
+        self.donor.save()
+        self.other_donor = randgen.generate_donor(self.rand)
+        self.other_donor.save()
+
+    def test_lifecycle_annotations(self):
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize, self.prize)
+        self.assertEqual(prize.winner_email_pending, 0)
+        self.assertEqual(prize.accept_count, 0)
+        self.assertEqual(prize.pending_count, 0)
+        self.assertEqual(prize.expired_count, 0)
+        self.assertEqual(prize.decline_count, 0)
+        self.assertEqual(prize.accept_email_sent_count, 0)
+        self.assertFalse(prize.accept_email_pending)
+        self.assertEqual(prize.needs_shipping, 0)
+        self.assertEqual(prize.shipped_email_pending, 0)
+        self.assertEqual(prize.lifecycle, 'notify_contributor')
+        prize.acceptemailsent = True
+        prize.endtime = tomorrow_noon
+        prize.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.lifecycle, 'accepted')
+        prize.endtime = None
+        prize.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.lifecycle, 'ready')
+        prize_claim = models.PrizeClaim.objects.create(prize=prize, winner=self.donor)
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.winner_email_pending, 1)
+        self.assertEqual(prize.accept_count, 0)
+        self.assertEqual(prize.pending_count, 1)
+        self.assertEqual(prize.expired_count, 0)
+        self.assertEqual(prize.decline_count, 0)
+        self.assertEqual(
+            prize.lifecycle, 'ready'
+        )  # because there's still another claim available
+        prize_claim.acceptdeadline = tomorrow_noon
+        prize_claim.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.pending_count, 1)
+        self.assertEqual(prize.expired_count, 0)
+        self.assertEqual(prize.decline_count, 0)
+        prize = (
+            models.Prize.objects.time_annotation()
+            .claim_annotations(tomorrow_noon)
+            .first()
+        )
+        self.assertEqual(prize.pending_count, 0)
+        self.assertEqual(prize.expired_count, 1)
+        self.assertEqual(prize.decline_count, 0)
+        prize_claim.winneremailsent = True
+        prize_claim.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.winner_email_pending, 0)
+        other_prize_claim = models.PrizeClaim.objects.create(
+            prize=self.prize, winner=self.other_donor
+        )
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.winner_email_pending, 1)
+        self.assertEqual(prize.pending_count, 2)
+        self.assertEqual(prize.lifecycle, 'drawn')
+        prize_claim.acceptcount = 1
+        prize_claim.pendingcount = 0
+        prize_claim.save()
+        other_prize_claim.winneremailsent = True
+        other_prize_claim.pendingcount = 0
+        other_prize_claim.declinecount = 1
+        other_prize_claim.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertFalse(prize.winner_email_pending)
+        self.assertEqual(prize.accept_count, 1)
+        self.assertEqual(prize.pending_count, 0)
+        self.assertEqual(prize.decline_count, 1)
+        self.assertEqual(prize.accept_email_sent_count, 0)
+        self.assertTrue(prize.accept_email_pending)
+        self.assertEqual(prize.needs_shipping, 0)
+        self.assertEqual(prize.lifecycle, 'ready')  # because there's a declined claim
+        prize_claim.acceptemailsentcount = 1
+        prize_claim.save()
+        other_prize_claim.acceptemailsentcount = 0
+        other_prize_claim.acceptcount = 1
+        other_prize_claim.declinecount = 0
+        other_prize_claim.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.accept_email_sent_count, 1)
+        self.assertTrue(prize.accept_email_pending)
+        self.assertEqual(prize.needs_shipping, 1)
+        self.assertEqual(prize.shipped_email_pending, 0)
+        self.assertEqual(prize.lifecycle, 'claimed')
+        other_prize_claim.acceptemailsentcount = 1
+        other_prize_claim.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+
+        self.assertEqual(prize.accept_email_sent_count, 2)
+        self.assertFalse(prize.accept_email_pending)
+        self.assertEqual(prize.needs_shipping, 2)
+        self.assertEqual(prize.shipped_email_pending, 0)
+        self.assertEqual(prize.lifecycle, 'needs_shipping')
+        prize_claim.shippingstate = 'SHIPPED'
+        prize_claim.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.needs_shipping, 1)
+        self.assertEqual(prize.shipped_email_pending, 1)
+        self.assertEqual(prize.lifecycle, 'needs_shipping')
+        other_prize_claim.shippingstate = 'SHIPPED'
+        other_prize_claim.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.needs_shipping, 0)
+        self.assertEqual(prize.shipped_email_pending, 2)
+        self.assertEqual(prize.lifecycle, 'shipped')
+        prize_claim.shippingemailsent = True
+        prize_claim.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.shipped_email_pending, 1)
+        self.assertEqual(prize.lifecycle, 'shipped')
+        other_prize_claim.shippingemailsent = True
+        other_prize_claim.save()
+        prize = models.Prize.objects.time_annotation().claim_annotations().first()
+        self.assertEqual(prize.shipped_email_pending, 0)
+        self.assertEqual(prize.lifecycle, 'completed')
+
+
 class TestPrizeGameRange(TransactionTestCase):
     def setUp(self):
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
         self.event.save()
-
-    def test_prize_range_single(self):
-        runs = randgen.generate_runs(self.rand, self.event, 4, ordered=True)
-        run = runs[1]
-        prize = randgen.generate_prize(
-            self.rand, event=self.event, start_run=run, end_run=run
-        )
-        prizeRuns = prize.games_range()
-        self.assertEqual(1, prizeRuns.count())
-        self.assertEqual(run.id, prizeRuns[0].id)
-
-    def test_prize_range_pair(self):
-        runs = randgen.generate_runs(self.rand, self.event, 5, ordered=True)
-        startRun = runs[2]
-        endRun = runs[3]
-        prize = randgen.generate_prize(
-            self.rand, event=self.event, start_run=startRun, end_run=endRun
-        )
-        prizeRuns = prize.games_range()
-        self.assertEqual(2, prizeRuns.count())
-        self.assertEqual(startRun.id, prizeRuns[0].id)
-        self.assertEqual(endRun.id, prizeRuns[1].id)
-
-    def test_prize_range_gap(self):
-        runs = randgen.generate_runs(self.rand, self.event, 7, ordered=True)
-        runsSlice = runs[2:5]
-        prize = randgen.generate_prize(
-            self.rand, event=self.event, start_run=runsSlice[0], end_run=runsSlice[-1]
-        )
-        prizeRuns = prize.games_range()
-        self.assertEqual(len(runsSlice), prizeRuns.count())
-        for i in range(0, len(runsSlice)):
-            self.assertEqual(runsSlice[i].id, prizeRuns[i].id)
 
     def test_time_prize_no_range(self):
         runs = randgen.generate_runs(self.rand, self.event, 7, ordered=True)
@@ -76,8 +181,6 @@ class TestPrizeGameRange(TransactionTestCase):
         prize = randgen.generate_prize(
             self.rand, event=self.event, start_time=randomStart, end_time=randomEnd
         )
-        prizeRuns = prize.games_range()
-        self.assertEqual(0, prizeRuns.count())
         self.assertEqual(randomStart, prize.start_draw_time())
         self.assertEqual(randomEnd, prize.end_draw_time())
 
@@ -113,7 +216,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         endRun = self.runsList[28]
         for useRandom in [True, False]:
             for useSum in [True, False]:
-                for donationSize in ['top', 'bottom', 'above', 'below', 'within']:
+                for donationSize in ['above', 'equal', 'below']:
                     prize = randgen.generate_prize(
                         self.rand,
                         event=self.event,
@@ -132,16 +235,8 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         max_time=prize.end_draw_time(),
                     )
                     if donationSize == 'above':
-                        donation.amount = prize.maximumbid + Decimal('5.00')
-                    elif donationSize == 'top':
-                        donation.amount = prize.maximumbid
-                    elif donationSize == 'within':
-                        donation.amount = randgen.random_amount(
-                            self.rand,
-                            min_amount=prize.minimumbid,
-                            max_amount=prize.maximumbid,
-                        )
-                    elif donationSize == 'bottom':
+                        donation.amount = prize.minimumbid + Decimal('5.00')
+                    elif donationSize == 'equal':
                         donation.amount = prize.minimumbid
                     elif donationSize == 'below':
                         donation.amount = max(
@@ -153,31 +248,17 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         self.assertEqual(0, len(eligibleDonors))
                     else:
                         self.assertEqual(1, len(eligibleDonors))
-                        self.assertEqual(donor.id, eligibleDonors[0]['donor'])
-                        self.assertEqual(donation.amount, eligibleDonors[0]['amount'])
-                        if prize.sumdonations and prize.randomdraw:
-                            if donationSize == 'top' or donationSize == 'above':
-                                expectedRatio = float(
-                                    prize.maximumbid / prize.minimumbid
-                                )
-                            else:
-                                expectedRatio = float(
-                                    donation.amount / prize.minimumbid
-                                )
-                            self.assertAlmostEqual(
-                                expectedRatio, eligibleDonors[0]['weight']
-                            )
-                        else:
-                            self.assertEqual(1.0, eligibleDonors[0]['weight'])
+                        self.assertEqual({donor}, set(eligibleDonors))
+                        self.assertEqual(donation.amount, eligibleDonors[donor])
                     result, message = prizeutil.draw_prize(prize)
                     if donationSize != 'below' or not prize.randomdraw:
                         self.assertTrue(result)
-                        self.assertEqual(donor, prize.get_winner())
+                        self.assertEqual([donor], prize.get_winners())
                     else:
                         self.assertFalse(result)
-                        self.assertEqual(None, prize.get_winner())
+                        self.assertEqual([], prize.get_winners())
                     donation.delete()
-                    prize.prizewinner_set.all().delete()
+                    prize.claims.all().delete()
                     prize.delete()
 
     def test_draw_prize_multiple_donors_random_nosum(self):
@@ -192,7 +273,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             end_run=endRun,
         )
         prize.save()
-        donationDonors = {}
+        donationDonors = set()
         for donor in self.donorList:
             if self.rand.getrandbits(1) == 0:
                 donation = randgen.generate_donation(
@@ -205,7 +286,7 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     max_time=prize.end_draw_time(),
                 )
                 donation.save()
-                donationDonors[donor.id] = donor
+                donationDonors.add(donor)
             # Add a few red herrings to make sure out of range donations aren't
             # used
             donation2 = randgen.generate_donation(
@@ -227,33 +308,27 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             )
             donation3.save()
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(donationDonors), len(eligibleDonors))
-        for eligibleDonor in eligibleDonors:
-            found = False
-            if eligibleDonor['donor'] in donationDonors:
-                donor = donationDonors[eligibleDonor['donor']]
-                donation = donor.donation_set.filter(
-                    timereceived__gte=prize.start_draw_time(),
-                    timereceived__lte=prize.end_draw_time(),
-                )[0]
-                self.assertEqual(donation.amount, eligibleDonor['amount'])
-                self.assertEqual(1.0, eligibleDonor['weight'])
-                found = True
-            self.assertTrue(found, 'Could not find the donor in the list')
+        self.assertEqual(set(donationDonors), set(eligibleDonors))
+        for donor, amount in eligibleDonors.items():
+            donation = donor.donation_set.filter(
+                timereceived__gte=prize.start_draw_time(),
+                timereceived__lte=prize.end_draw_time(),
+            )[0]
+            self.assertEqual(donation.amount, amount)
         winners = []
         # magic seeds to verify randomness
         for seed in [0, 1, 5]:
             result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
-            self.assertIn(prize.get_winner().id, donationDonors)
-            winners.append(prize.get_winner())
-            current = prize.get_winner()
-            prize.prizewinner_set.all().delete()
+            self.assertIn(prize.get_winners()[0], donationDonors)
+            winners.append(prize.get_winners()[0])
+            current = prize.get_winners()[0]
+            prize.claims.all().delete()
             prize.save()
             result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
-            self.assertEqual(current, prize.get_winner())
-            prize.prizewinner_set.all().delete()
+            self.assertEqual(current, prize.get_winners()[0])
+            prize.claims.all().delete()
             prize.save()
         self.assertEqual(
             len(set(winners)), 3, 'Winners were not unique (randomness failure?)'
@@ -271,11 +346,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             end_run=endRun,
         )
         prize.save()
-        donationDonors = {}
+        donationDonors = defaultdict(lambda: Decimal('0.00'))
         for donor in self.donorList:
             numDonations = self.rand.getrandbits(4)
             redHerrings = self.rand.getrandbits(4)
-            donationDonors[donor.id] = {'donor': donor, 'amount': Decimal('0.00')}
             for i in range(0, numDonations):
                 donation = randgen.generate_donation(
                     self.rand,
@@ -287,10 +361,9 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     max_time=prize.end_draw_time(),
                 )
                 donation.save()
-                donationDonors[donor.id]['amount'] += donation.amount
+                donationDonors[donor] += donation.amount
             # toss in a few extras to keep the drawer on its toes
             for i in range(0, redHerrings):
-                donation = None
                 if self.rand.getrandbits(1) == 0:
                     donation = randgen.generate_donation(
                         self.rand,
@@ -311,52 +384,35 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         min_time=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
-            if donationDonors[donor.id]['amount'] < prize.minimumbid:
-                del donationDonors[donor.id]
+        donationDonors = {
+            d: a for d, a in donationDonors.items() if a >= prize.minimumbid
+        }
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(len(donationDonors), len(eligibleDonors))
-        found = False
-        for eligibleDonor in eligibleDonors:
-            if eligibleDonor['donor'] in donationDonors:
-                entry = donationDonors[eligibleDonor['donor']]
-                donor = entry['donor']
-                if entry['amount'] >= prize.minimumbid:
-                    donations = donor.donation_set.filter(
-                        timereceived__gte=prize.start_draw_time(),
-                        timereceived__lte=prize.end_draw_time(),
-                    )
-                    countAmount = Decimal('0.00')
-                    for donation in donations:
-                        countAmount += donation.amount
-                    self.assertEqual(entry['amount'], eligibleDonor['amount'])
-                    self.assertEqual(countAmount, eligibleDonor['amount'])
-                    self.assertAlmostEqual(
-                        min(
-                            prize.maximumbid / prize.minimumbid,
-                            entry['amount'] / prize.minimumbid,
-                        ),
-                        Decimal(eligibleDonor['weight']),
-                    )
-                    found = True
-        # FIXME: what is this actually asserting? it's not very clear to me by glancing at it
-        self.assertTrue(found, 'Could not find the donor in the list')
+        self.assertEqual(set(donationDonors), set(eligibleDonors))
+        for donor in eligibleDonors:
+            amount = donationDonors[donor]
+            donations = donor.donation_set.filter(
+                timereceived__gte=prize.start_draw_time(),
+                timereceived__lte=prize.end_draw_time(),
+            )
+            amount_sum = donations.aggregate(Sum('amount'))['amount__sum']
+            self.assertEqual(amount, amount_sum)
         winners = []
+        # magic seeds for uniqueness
         for seed in [51234, 235426, 62363245]:
             result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
-            self.assertIn(prize.get_winner().id, donationDonors)
-            winners.append(prize.get_winner())
-            current = prize.get_winner()
-            prize.prizewinner_set.all().delete()
+            self.assertIn(prize.get_winners()[0], donationDonors)
+            winners.append(prize.get_winners()[0])
+            current = prize.get_winners()
+            prize.claims.all().delete()
             prize.save()
             result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
-            self.assertEqual(current, prize.get_winner())
-            prize.prizewinner_set.all().delete()
+            self.assertEqual(current, prize.get_winners())
+            prize.claims.all().delete()
             prize.save()
-        self.assertNotEqual(winners[0], winners[1])
-        self.assertNotEqual(winners[1], winners[2])
-        self.assertNotEqual(winners[0], winners[2])
+        self.assertEqual(len(winners), len(set(winners)), msg='Not unique')
 
     def test_draw_prize_multiple_donors_norandom_nosum(self):
         startRun = self.runsList[25]
@@ -414,16 +470,14 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     )
                 donation.save()
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(1, len(eligibleDonors))
-        self.assertEqual(largestDonor.id, eligibleDonors[0]['donor'])
-        self.assertEqual(1.0, eligibleDonors[0]['weight'])
-        self.assertEqual(largestAmount, eligibleDonors[0]['amount'])
+        self.assertEqual({largestDonor}, set(eligibleDonors))
+        self.assertEqual(largestAmount, eligibleDonors[largestDonor])
         for seed in [9524, 373, 747]:
-            prize.prizewinner_set.all().delete()
+            prize.claims.all().delete()
             prize.save()
             result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
-            self.assertEqual(largestDonor.id, prize.get_winner().id)
+            self.assertEqual(largestDonor.id, prize.get_winners()[0].id)
         newDonor = randgen.generate_donor(self.rand)
         newDonor.save()
         newDonation = randgen.generate_donation(
@@ -437,16 +491,14 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
         )
         newDonation.save()
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(1, len(eligibleDonors))
-        self.assertEqual(newDonor.id, eligibleDonors[0]['donor'])
-        self.assertEqual(1.0, eligibleDonors[0]['weight'])
-        self.assertEqual(newDonation.amount, eligibleDonors[0]['amount'])
+        self.assertEqual({newDonor}, set(eligibleDonors))
+        self.assertEqual(newDonation.amount, eligibleDonors[newDonor])
         for seed in [9524, 373, 747]:
-            prize.prizewinner_set.all().delete()
+            prize.claims.all().delete()
             prize.save()
             result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
-            self.assertEqual(newDonor.id, prize.get_winner().id)
+            self.assertEqual(newDonor.id, prize.get_winners()[0].id)
 
     def test_draw_prize_multiple_donors_norandom_sum(self):
         startRun = self.runsList[5]
@@ -460,11 +512,10 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             end_run=endRun,
         )
         prize.save()
-        donationDonors = {}
+        donationDonors = defaultdict(lambda: Decimal('0.00'))
         for donor in self.donorList:
             numDonations = self.rand.getrandbits(4)
             redHerrings = self.rand.getrandbits(4)
-            donationDonors[donor.id] = {'donor': donor, 'amount': Decimal('0.00')}
             for i in range(0, numDonations):
                 donation = randgen.generate_donation(
                     self.rand,
@@ -476,10 +527,9 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                     max_time=prize.end_draw_time(),
                 )
                 donation.save()
-                donationDonors[donor.id]['amount'] += donation.amount
+                donationDonors[donor] += donation.amount
             # toss in a few extras to keep the drawer on its toes
             for i in range(0, redHerrings):
-                donation = None
                 if self.rand.getrandbits(1) == 0:
                     donation = randgen.generate_donation(
                         self.rand,
@@ -502,23 +552,21 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
                         min_time=prize.end_draw_time() + datetime.timedelta(seconds=1),
                     )
                 donation.save()
-        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
+        maxDonor = max(donationDonors, key=lambda x: donationDonors[x])
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(1, len(eligibleDonors))
-        self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor'])
-        self.assertEqual(1.0, eligibleDonors[0]['weight'])
-        self.assertEqual(maxDonor['amount'], eligibleDonors[0]['amount'])
+        self.assertEqual({maxDonor}, set(eligibleDonors))
+        self.assertEqual(donationDonors[maxDonor], eligibleDonors[maxDonor])
         for seed in [9524, 373, 747]:
-            prize.prizewinner_set.all().delete()
+            prize.claims.all().delete()
             prize.save()
             result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
-            self.assertEqual(maxDonor['donor'].id, prize.get_winner().id)
-        oldMaxDonor = maxDonor
-        del donationDonors[oldMaxDonor['donor'].id]
-        maxDonor = max(donationDonors.items(), key=lambda x: x[1]['amount'])[1]
-        diff = oldMaxDonor['amount'] - maxDonor['amount']
-        newDonor = maxDonor['donor']
+            self.assertEqual([maxDonor], prize.get_winners())
+        oldMax = donationDonors[maxDonor]
+        del donationDonors[maxDonor]
+        maxDonor = max(donationDonors, key=lambda x: donationDonors[x])
+        diff = oldMax - donationDonors[maxDonor]
+        newDonor = maxDonor
         newDonation = randgen.generate_donation(
             self.rand,
             donor=newDonor,
@@ -529,19 +577,17 @@ class TestPrizeDrawingGeneratedEvent(TransactionTestCase):
             max_time=prize.end_draw_time(),
         )
         newDonation.save()
-        maxDonor['amount'] += newDonation.amount
+        donationDonors[maxDonor] += newDonation.amount
         prize = models.Prize.objects.get(id=prize.id)
         eligibleDonors = prize.eligible_donors()
-        self.assertEqual(1, len(eligibleDonors))
-        self.assertEqual(maxDonor['donor'].id, eligibleDonors[0]['donor'])
-        self.assertEqual(1.0, eligibleDonors[0]['weight'])
-        self.assertEqual(maxDonor['amount'], eligibleDonors[0]['amount'])
+        self.assertEqual({maxDonor}, set(eligibleDonors))
+        self.assertEqual(donationDonors[maxDonor], eligibleDonors[maxDonor])
         for seed in [9524, 373, 747]:
-            prize.prizewinner_set.all().delete()
+            prize.claims.all().delete()
             prize.save()
             result, message = prizeutil.draw_prize(prize, seed)
             self.assertTrue(result)
-            self.assertEqual(maxDonor['donor'].id, prize.get_winner().id)
+            self.assertEqual([maxDonor], prize.get_winners())
 
 
 class TestDonorPrizeEntryDraw(TransactionTestCase):
@@ -559,24 +605,17 @@ class TestDonorPrizeEntryDraw(TransactionTestCase):
         entry.save()
         eligible = prize.eligible_donors()
         self.assertEqual(1, len(eligible))
-        self.assertEqual(donor.pk, eligible[0]['donor'])
-        self.assertEqual(entry.weight, eligible[0]['weight'])
+        self.assertIn(donor, eligible)
+        self.assertEqual(eligible[donor], prize.minimumbid)
 
     def testMultipleEntries(self):
-        numDonors = 5
-        donors = []
         prize = randgen.generate_prize(self.rand, event=self.event)
         prize.save()
-        for i in range(0, numDonors):
-            donor = randgen.generate_donor(self.rand)
-            donor.save()
-            entry = models.DonorPrizeEntry(donor=donor, prize=prize)
-            entry.save()
-            donors.append(donor.pk)
-        eligible = prize.eligible_donors()
-        self.assertEqual(numDonors, len(eligible))
-        for donorId in [x['donor'] for x in eligible]:
-            self.assertTrue(donorId in donors)
+        donors = randgen.generate_donors(self.rand, 5)
+        models.DonorPrizeEntry.objects.bulk_create(
+            models.DonorPrizeEntry(donor=donor, prize=prize) for donor in donors
+        )
+        self.assertEqual(set(prize.eligible_donors()), set(donors))
 
 
 class TestPersistentPrizeWinners(TransactionTestCase):
@@ -612,11 +651,11 @@ class TestPersistentPrizeWinners(TransactionTestCase):
             event=self.event,
         )
         donationA.save()
-        self.assertEqual(1, len(targetPrize.eligible_donors()))
-        self.assertEqual(donorA.id, targetPrize.eligible_donors()[0]['donor'])
-        prizeutil.draw_prize(targetPrize)
-        self.assertEqual(donorA, targetPrize.get_winner())
-        self.assertEqual(0, len(targetPrize.eligible_donors()))
+        self.assertEqual({donorA}, set(targetPrize.eligible_donors()))
+        models.PrizeClaim.objects.create(
+            prize=targetPrize, winner=donorA, declinecount=1
+        ).save()
+        self.assertFalse(targetPrize.eligible_donors())
         donationB = randgen.generate_donation(
             self.rand,
             donor=donorB,
@@ -625,18 +664,7 @@ class TestPersistentPrizeWinners(TransactionTestCase):
             event=self.event,
         )
         donationB.save()
-        self.assertEqual(1, len(targetPrize.eligible_donors()))
-        self.assertEqual(donorB.id, targetPrize.eligible_donors()[0]['donor'])
-        prizeWinnerEntry = targetPrize.prizewinner_set.filter(winner=donorA)[0]
-        prizeWinnerEntry.pendingcount = 0
-        prizeWinnerEntry.declinecount = 1
-        prizeWinnerEntry.save()
-        self.assertEqual(1, len(targetPrize.eligible_donors()))
-        self.assertEqual(donorB.id, targetPrize.eligible_donors()[0]['donor'])
-        prizeutil.draw_prize(targetPrize)
-        self.assertEqual(donorB, targetPrize.get_winner())
-        self.assertEqual(1, targetPrize.current_win_count())
-        self.assertEqual(0, len(targetPrize.eligible_donors()))
+        self.assertEqual({donorB}, set(targetPrize.eligible_donors()))
 
     def test_cannot_exceed_max_winners(self):
         targetPrize = randgen.generate_prize(self.rand, event=self.event)
@@ -648,14 +676,14 @@ class TestPersistentPrizeWinners(TransactionTestCase):
             donor = randgen.generate_donor(self.rand)
             donor.save()
             donors.append(donor)
-        pw0 = models.PrizeWinner(winner=donors[0], prize=targetPrize)
+        pw0 = models.PrizeClaim(winner=donors[0], prize=targetPrize)
         pw0.clean()
         pw0.save()
-        pw1 = models.PrizeWinner(winner=donors[1], prize=targetPrize)
+        pw1 = models.PrizeClaim(winner=donors[1], prize=targetPrize)
         pw1.clean()
         pw1.save()
         with self.assertRaises(ValidationError):
-            pw2 = models.PrizeWinner(winner=donors[2], prize=targetPrize)
+            pw2 = models.PrizeClaim(winner=donors[2], prize=targetPrize)
             pw2.clean()
         pw0.pendingcount = 0
         pw0.declinecount = 1
@@ -671,21 +699,21 @@ class TestPersistentPrizeWinners(TransactionTestCase):
             self.rand, prize, donor=donors[1]
         )
         donation.save()
-        pw = models.PrizeWinner.objects.create(
+        ow = models.PrizeClaim.objects.create(
             prize=prize, winner=donors[0], acceptdeadline=tomorrow_noon
         )
         self.assertFalse(prizeutil.draw_prize(prize)[0])
-        pw.acceptdeadline = long_ago_noon
-        pw.save()
+        ow.acceptdeadline = long_ago_noon
+        ow.save()
         drawn, result = prizeutil.draw_prize(prize)
         self.assertTrue(drawn)
         self.assertEqual(result['winners'][0], donors[1].id)
         self.assertSetEqual(
-            set(pw.winner for pw in prize.get_prize_winners()), {donors[1]}
+            set(nw.winner for nw in prize.get_prize_claims()), {donors[1]}
         )
-        pw.refresh_from_db()
-        self.assertEqual(pw.pendingcount, 0)
-        self.assertEqual(pw.declinecount, 1)
+        ow.refresh_from_db()
+        self.assertEqual(ow.pendingcount, 0)
+        self.assertEqual(ow.declinecount, 1)
 
 
 class TestPrizeCountryFilter(TransactionTestCase):
@@ -872,7 +900,7 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
         self.event.prize_accept_deadline_delta = 10
         # TODO: it should not take this much set-up to draw a single donor to a single prize
         amount = Decimal('50.0')
-        targetPrize = randgen.generate_prize(
+        prize = randgen.generate_prize(
             self.rand,
             event=self.event,
             sum_donations=False,
@@ -880,35 +908,33 @@ class TestPrizeDrawAcceptOffset(TransactionTestCase):
             min_amount=amount,
             maxwinners=1,
         )
-        targetPrize.save()
+        prize.save()
         winner = randgen.generate_donor(self.rand)
         winner.save()
-        winningDonation = randgen.generate_donation(
+        donation = randgen.generate_donation(
             self.rand,
             donor=winner,
             min_amount=amount,
             max_amount=amount,
             event=self.event,
         )
-        winningDonation.save()
-        self.assertEqual(1, len(targetPrize.eligible_donors()))
-        self.assertEqual(winner.id, targetPrize.eligible_donors()[0]['donor'])
-        self.assertEqual(0, len(prizeutil.get_past_due_prize_winners(self.event)))
-        currentDate = datetime.date.today()
-        result, status = prizeutil.draw_prize(targetPrize)
-        prizeWin = models.PrizeWinner.objects.get(prize=targetPrize)
+        donation.save()
+        self.assertEqual({winner}, set(prize.eligible_donors()))
+        self.assertEqual(0, len(prizeutil.get_past_due_prize_claims(self.event)))
+        today = datetime.date.today()
+        prizeutil.draw_prize(prize)
+        claim = models.PrizeClaim.objects.get(prize=prize)
         self.assertEqual(
-            prizeWin.accept_deadline_date(),
-            currentDate
-            + datetime.timedelta(days=self.event.prize_accept_deadline_delta),
+            claim.accept_deadline_date(),
+            today + datetime.timedelta(days=self.event.prize_accept_deadline_delta),
         )
 
-        prizeWin.acceptdeadline = util.utcnow() - datetime.timedelta(days=2)
-        prizeWin.save()
-        self.assertEqual(0, len(targetPrize.eligible_donors()))
-        pastDue = prizeutil.get_past_due_prize_winners(self.event)
-        self.assertEqual(1, len(prizeutil.get_past_due_prize_winners(self.event)))
-        self.assertEqual(prizeWin, pastDue[0])
+        claim.acceptdeadline = util.utcnow() - datetime.timedelta(days=2)
+        claim.save()
+        self.assertEqual(0, len(prize.eligible_donors()))
+        pastDue = prizeutil.get_past_due_prize_claims(self.event)
+        self.assertEqual(1, len(prizeutil.get_past_due_prize_claims(self.event)))
+        self.assertEqual(claim, pastDue[0])
 
 
 class TestBackfillPrevNextMigrations(MigrationsTestCase):
@@ -1210,31 +1236,34 @@ class TestPrizeKey(TestCase):
         )
         self.prize.key_code = True
         self.prize.save()
-        randgen.generate_prize_keys(self.rand, self.prize, 100)
-        self.prize_keys = self.prize.prizekey_set.all()
+        self.prize_keys = randgen.generate_prize_keys(self.rand, self.prize, 100)
+        self.prize.refresh_from_db()
 
     def test_leave_winners_alone_for_non_key_code(self):
         self.prize.key_code = False
+        self.prize.requiresshipping = True
         self.prize.maxwinners = 10
         self.prize.save()
+        self.assertTrue(self.prize.requiresshipping)
         self.assertEqual(self.prize.maxwinners, 10)
 
     def test_set_winners_to_key_number_on_prize_save(self):
-        self.assertEqual(self.prize.maxwinners, 0)
-        self.prize.maxmultiwin = 5
+        self.prize.maxwinners = 1
+        self.prize.requiresshipping = True
         self.prize.save()
-        self.assertEqual(self.prize.maxwinners, self.prize_keys.count())
-        self.assertEqual(self.prize.maxmultiwin, 1)
+        self.assertFalse(self.prize.requiresshipping)
+        self.assertEqual(self.prize.maxwinners, self.prize.prize_keys.count())
 
     def test_set_winners_to_key_number_on_prize_key_create(self):
+        old_count = self.prize.maxwinners
         randgen.generate_prize_key(self.rand, self.prize).save()
         self.prize.refresh_from_db()
-        self.assertEqual(self.prize.maxwinners, self.prize_keys.count())
-        self.assertEqual(self.prize.maxmultiwin, 1)
+        self.assertEqual(self.prize.maxwinners, old_count + 1)
+        self.assertEqual(self.prize.maxwinners, self.prize.prize_keys.count())
 
     def test_fewer_donors_than_keys(self):
         self.prize.save()
-        donor_count = self.prize_keys.count() // 2
+        donor_count = len(self.prize_keys) // 2
         models.Donor.objects.bulk_create(
             [randgen.generate_donor(self.rand) for _ in range(donor_count)]
         )
@@ -1246,35 +1275,31 @@ class TestPrizeKey(TestCase):
                 for d in donors
             ]
         )
-        self.assertSetEqual(
-            {d['donor'] for d in self.prize.eligible_donors()}, {d.id for d in donors}
-        )
+        self.assertSetEqual(set(self.prize.eligible_donors()), set(donors))
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
         self.assertSetEqual(set(result['winners']), {d.id for d in donors})
         self.assertSetEqual(
-            {k.winner.id for k in self.prize_keys if k.winner}, {d.id for d in donors}
+            {k.winner.id for k in self.prize.prize_keys.all() if k.winner},
+            {d.id for d in donors},
         )
-        for key in self.prize_keys:
-            if not key.winner:
-                continue
-            self.assertIn(key.winner, donors, '%s was not in donors.' % key.winner)
-            self.assertEqual(key.prize_winner.pendingcount, 0)
-            self.assertEqual(key.prize_winner.acceptcount, 1)
-            self.assertEqual(key.prize_winner.declinecount, 0)
-            self.assertTrue(key.prize_winner.emailsent)
-            self.assertEqual(key.prize_winner.acceptemailsentcount, 1)
-            self.assertEqual(key.prize_winner.shippingstate, 'SHIPPED')
-            self.assertFalse(key.prize_winner.shippingemailsent)
+        self.assertQuerySetEqual(
+            self.prize.prize_keys.filter(
+                prize_claim__winner__in=donors,
+                prize_claim__pendingcount=0,
+                prize_claim__acceptcount=1,
+                prize_claim__declinecount=0,
+                prize_claim__winneremailsent=True,
+                prize_claim__acceptemailsentcount=1,
+                prize_claim__shippingstate='AWARDED',
+                prize_claim__shippingemailsent=False,
+            ),
+            self.prize.prize_keys.exclude(prize_claim__winner=None),
+        )
 
     def test_draw_with_claimed_keys(self):
         self.prize.save()
-        donor_count = self.prize_keys.count() // 2
-        models.Donor.objects.bulk_create(
-            [randgen.generate_donor(self.rand) for _ in range(donor_count)]
-        )
-        # only Postgres returns the objects with pks, so refetch
-        old_donors = set(models.Donor.objects.order_by('-id')[:donor_count])
+        old_donors = set(randgen.generate_donors(self.rand, len(self.prize_keys) // 2))
         old_ids = {d.id for d in old_donors}
         models.Donation.objects.bulk_create(
             [
@@ -1283,15 +1308,14 @@ class TestPrizeKey(TestCase):
             ]
         )
         self.assertSetEqual(
-            {d['donor'] for d in self.prize.eligible_donors()},
-            {d.id for d in old_donors},
+            set(self.prize.eligible_donors()),
+            set(old_donors),
         )
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
-        models.Donor.objects.bulk_create(
-            [randgen.generate_donor(self.rand) for _ in range(donor_count)]
-        )
-        new_donors = set(models.Donor.objects.order_by('-id')[:donor_count])
+
+        new_donors = set(randgen.generate_donors(self.rand, len(self.prize_keys) // 2))
+        new_ids = {d.id for d in new_donors}
         models.Donation.objects.bulk_create(
             [
                 randgen.generate_donation_for_prize(self.rand, self.prize, donor=d)
@@ -1299,74 +1323,69 @@ class TestPrizeKey(TestCase):
             ]
         )
         self.assertSetEqual(
-            {d['donor'] for d in self.prize.eligible_donors()},
-            {d.id for d in new_donors},
+            set(self.prize.eligible_donors()),
+            set(new_donors),
         )
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
-        self.assertSetEqual(set(result['winners']), {d.id for d in new_donors})
+        self.assertSetEqual(set(result['winners']), new_ids)
         self.assertSetEqual(
-            {k.winner.id for k in self.prize_keys if k.winner},
-            old_ids | {d.id for d in new_donors},
+            {k.winner.id for k in self.prize.prize_keys.all() if k.winner},
+            old_ids | new_ids,
         )
         all_donors = old_donors | new_donors
-        for key in self.prize_keys:
-            self.assertIn(key.winner, all_donors, '%s was not in donors.' % key.winner)
-            self.assertEqual(key.prize_winner.pendingcount, 0)
-            self.assertEqual(key.prize_winner.acceptcount, 1)
-            self.assertEqual(key.prize_winner.declinecount, 0)
-            self.assertTrue(key.prize_winner.emailsent)
-            self.assertEqual(key.prize_winner.acceptemailsentcount, 1)
-            self.assertEqual(key.prize_winner.shippingstate, 'SHIPPED')
-            self.assertFalse(key.prize_winner.shippingemailsent)
+        self.assertQuerySetEqual(
+            self.prize.prize_keys.filter(
+                prize_claim__winner__in=all_donors,
+                prize_claim__pendingcount=0,
+                prize_claim__acceptcount=1,
+                prize_claim__declinecount=0,
+                prize_claim__winneremailsent=True,
+                prize_claim__acceptemailsentcount=1,
+                prize_claim__shippingstate='AWARDED',
+                prize_claim__shippingemailsent=False,
+            ),
+            self.prize_keys,
+        )
 
     def test_more_donors_than_keys(self):
         self.prize.save()
-        donor_count = self.prize_keys.count() * 2
-        models.Donor.objects.bulk_create(
-            [randgen.generate_donor(self.rand) for _ in range(donor_count)]
-        )
-        # only Postgres returns the objects with pks, so refetch
-        donors = list(models.Donor.objects.order_by('id')[:donor_count])
+        donors = randgen.generate_donors(self.rand, len(self.prize_keys) * 2)
         models.Donation.objects.bulk_create(
             [
                 randgen.generate_donation_for_prize(self.rand, self.prize, donor=d)
                 for d in donors
             ]
         )
-        self.assertSetEqual(
-            {d['donor'] for d in self.prize.eligible_donors()}, {d.id for d in donors}
-        )
+        self.assertSetEqual(set(self.prize.eligible_donors()), set(donors))
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
-        self.assertEqual(self.prize.prizewinner_set.count(), self.prize_keys.count())
-        for key in self.prize_keys:
-            self.assertIn(
-                key.winner, donors, '%s was not in eligible donors.' % key.winner
-            )
-            self.assertIn(
-                key.winner.id, result['winners'], '%s was not in winners.' % key.winner
-            )
-            self.assertEqual(key.prize_winner.pendingcount, 0)
-            self.assertEqual(key.prize_winner.acceptcount, 1)
-            self.assertEqual(key.prize_winner.declinecount, 0)
-            self.assertTrue(key.prize_winner.emailsent)
-            self.assertEqual(key.prize_winner.acceptemailsentcount, 1)
-            self.assertEqual(key.prize_winner.shippingstate, 'SHIPPED')
-            self.assertFalse(key.prize_winner.shippingemailsent)
-        old_winners = sorted(result['winners'])
-        old_donors = sorted(w.winner.id for w in self.prize.prizewinner_set.all())
+        self.assertEqual(self.prize.claims.count(), self.prize.prize_keys.count())
+        self.assertQuerySetEqual(
+            self.prize.prize_keys.filter(
+                prize_claim__winner__in=donors,
+                prize_claim__pendingcount=0,
+                prize_claim__acceptcount=1,
+                prize_claim__declinecount=0,
+                prize_claim__winneremailsent=True,
+                prize_claim__acceptemailsentcount=1,
+                prize_claim__shippingstate='AWARDED',
+                prize_claim__shippingemailsent=False,
+            ),
+            self.prize_keys,
+        )
 
-        self.prize.prizekey_set.update(prize_winner=None)
-        self.prize.prizewinner_set.all().delete()
+        old_winners = set(result['winners'])
+        old_donors = {w.winner.id for w in self.prize.claims.all()}
+
+        self.prize.prize_keys.update(prize_claim=None)
+        self.prize.claims.all().delete()
 
         # assert actual randomness
         success, result = prizeutil.draw_keys(self.prize, rand=self.rand)
         self.assertTrue(success, result)
-        self.assertNotEqual(sorted(result['winners']), old_winners)
-        self.assertNotEqual(
-            sorted(w.winner.id for w in self.prize.prizewinner_set.all()), old_donors
-        )
+        self.assertNotEqual(set(result['winners']), old_winners)
+        self.assertNotEqual({w.winner.id for w in self.prize.claims.all()}, old_donors)
 
 
 class TestPrizeAdmin(TestCase, AssertionHelpers):
@@ -1375,17 +1394,21 @@ class TestPrizeAdmin(TestCase, AssertionHelpers):
         self.staff_user = User.objects.create_user(
             'staff', 'staff@example.com', 'staff'
         )
+        self.staff_user.is_staff = True
+        self.staff_user.save()
+        self.staff_user.user_permissions.add(
+            Permission.objects.get(codename='view_prize')
+        )
         self.super_user = User.objects.create_superuser(
             'admin', 'admin@example.com', 'password'
         )
         self.rand = random.Random(None)
         self.event = randgen.generate_event(self.rand)
         self.event.save()
+        self.other_event = randgen.generate_event(self.rand, tomorrow_noon)
+        self.other_event.save()
         self.prize = randgen.generate_prize(self.rand, event=self.event)
-        self.prize.maximumbid = self.prize.minimumbid + 5
         self.prize.save()
-        # TODO: janky place to test this behavior, but it'll do for now
-        self.assertEqual(self.prize.minimumbid, self.prize.maximumbid)
         self.prize_with_keys = randgen.generate_prize(self.rand, event=self.event)
         self.prize_with_keys.key_code = True
         self.prize_with_keys.save()
@@ -1393,15 +1416,59 @@ class TestPrizeAdmin(TestCase, AssertionHelpers):
         self.donor.save()
         self.no_prizes_donor = randgen.generate_donor(self.rand)
         self.no_prizes_donor.save()
-        self.prize_winner = models.PrizeWinner.objects.create(
+        self.prize_winner = models.PrizeClaim.objects.create(
             winner=self.donor, prize=self.prize
         )
         self.donor_prize_entry = models.DonorPrizeEntry.objects.create(
             donor=self.donor, prize=self.prize
         )
-        self.prize_key = models.PrizeKey.objects.create(
-            prize=self.prize_with_keys, key='dead-beef-dead-beef'
+        self.prize_keys = randgen.generate_prize_keys(
+            self.rand, self.prize_with_keys, 5
         )
+        self.prize_with_keys.refresh_from_db()
+        self.prize_contributor_template = create_test_template(
+            'Prize Contributor',
+            {'event.id', 'handler.id', 'reply_address', 'user_index_url'},
+            {'accepted_prizes', 'denied_prizes'},
+        )
+        self.prize_winner_template = create_test_template(
+            'Prize Winner',
+            {
+                'event',
+                'event.id',
+                'winner',
+                'winner.id',
+                'winner.contact_name',
+                'requires_shipping',
+                'reply_address',
+                'accept_deadline',
+            },
+            extra='{% for claim in claims %}claim_id: {{ claim.id }}\nclaim_url: {{ claim.claim_url}}\n{% endfor %}',
+        )
+        self.prize_winner_accept_template = create_test_template(
+            'Prize Accepted',
+            {'user_index_url', 'event.id', 'handler.id', 'reply_address'},
+            {'claims'},
+        )
+        self.prize_shipped_template = create_test_template(
+            'Prize Shipped',
+            {'event.id', 'winner.contact_name', 'reply_address'},
+            extra="""{% for claim in claims %}
+claim_id: {{ claim.id }}
+claim_url: {{ claim.claim_url}}
+{% if claim.prize.key_code %}
+claim_key: {{ claim.prize_key.key }}
+{% endif %}
+{% endfor %}
+""",
+        )
+
+        self.site = Site.objects.create(name='Public', domain='http://example.com/')
+
+    def test_maximumbid(self):
+        with self.assertRaises(ValidationError):
+            self.prize.maximumbid = self.prize.minimumbid + 5
+            self.prize.clean()
 
     def test_prize_admin(self):
         self.client.login(username='admin', password='password')
@@ -1413,6 +1480,15 @@ class TestPrizeAdmin(TestCase, AssertionHelpers):
             reverse('admin:tracker_prize_change', args=(self.prize.id,))
         )
         self.assertEqual(response.status_code, 200)
+        self.client.force_login(self.staff_user)
+        response = self.client.get(reverse('admin:tracker_prize_changelist'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Lifecycle')
+        response = self.client.get(
+            reverse('admin:tracker_prize_change', args=(self.prize.id,))
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Lifecycle')
 
     def test_prize_key_import_action(self):
         self.client.login(username='admin', password='password')
@@ -1476,6 +1552,9 @@ class TestPrizeAdmin(TestCase, AssertionHelpers):
         )
         self.assertEqual(response.status_code, 200)
 
+        old_count = self.prize_with_keys.maxwinners
+        old_keys = {key.key for key in self.prize_with_keys.prize_keys.all()}
+
         keys_input = (
             '\n' + ' \n '.join(keys) + '\n%s\n\n' % keys[0]
         )  # test whitespace stripping and deduping
@@ -1487,10 +1566,11 @@ class TestPrizeAdmin(TestCase, AssertionHelpers):
         self.assertRedirects(response, reverse('admin:tracker_prize_changelist'))
         self.assertMessages(response, ['5 key(s) added to prize.'])
         self.prize_with_keys.refresh_from_db()
-        self.assertEqual(self.prize_with_keys.maxwinners, 6)
-        self.assertEqual(self.prize_with_keys.prizekey_set.count(), 6)
+        self.assertEqual(self.prize_with_keys.prize_keys.count(), old_count + 5)
+        self.assertEqual(self.prize_with_keys.maxwinners, old_count + 5)
         self.assertSetEqual(
-            set(keys), {key.key for key in self.prize_with_keys.prizekey_set.all()[1:]}
+            set(keys),
+            {key.key for key in self.prize_with_keys.prize_keys.all()} - old_keys,
         )
 
         response = self.client.post(
@@ -1503,12 +1583,12 @@ class TestPrizeAdmin(TestCase, AssertionHelpers):
 
     def test_prize_winner_admin(self):
         self.client.login(username='admin', password='password')
-        response = self.client.get(reverse('admin:tracker_prizewinner_changelist'))
+        response = self.client.get(reverse('admin:tracker_prizeclaim_changelist'))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('admin:tracker_prizewinner_add'))
+        response = self.client.get(reverse('admin:tracker_prizeclaim_add'))
         self.assertEqual(response.status_code, 200)
         response = self.client.get(
-            reverse('admin:tracker_prizewinner_change', args=(self.prize_winner.id,))
+            reverse('admin:tracker_prizeclaim_change', args=(self.prize_winner.id,))
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1531,76 +1611,187 @@ class TestPrizeAdmin(TestCase, AssertionHelpers):
         response = self.client.get(reverse('admin:tracker_prizekey_changelist'))
         self.assertEqual(response.status_code, 200)
         response = self.client.get(
-            reverse('admin:tracker_prizekey_change', args=(self.prize_key.id,))
+            reverse('admin:tracker_prizekey_change', args=(self.prize_keys[0].id,))
         )
         self.assertEqual(response.status_code, 200)
 
-    def test_prize_mail_winners(self):
-        email_template = post_office.models.EmailTemplate.objects.create(
-            name='testing_prize_winner_notification',
-            description='',
-            subject='You Win!',
-            content="""
-EVENT:{{ event.id }}
-WINNER:{{ winner.id }}
-WINNER_CONTACT_NAME:{{ winner.contact_name }}
-ACCEPT_DEADLINE:{{ accept_deadline }}
-{% for prize_winner in prize_wins %}
-PRIZE:{{ prize_winner.prize.id }}
-CLAIM_URL:{{ prize_winner.claim_url }}
-{% endfor %}
-""",
+    def test_prize_mail_contributors(self):
+        prize_contributors = []
+        for i in range(0, 10):
+            prize_contributors.append(
+                User.objects.create(
+                    username='u' + str(i),
+                    email='u' + str(i) + '@email.com',
+                    is_active=True,
+                )
+            )
+        prizes = []
+        for _ in range(20):
+            prizes.append(
+                randgen.generate_prize(
+                    self.rand,
+                    event=self.other_event,
+                    handler=self.rand.choice(prize_contributors),
+                )
+            )
+            prizes[-1].save()
+        accept_count = 0
+        deny_count = 0
+        pending_count = 0
+        contributor_prizes = defaultdict(lambda: {'accepted': [], 'denied': []})
+        for prize in prizes:
+            prize.handler = self.rand.choice(prize_contributors)
+            state = self.rand.choice(['ACCEPTED', 'DENIED', 'PENDING'])
+            prize.state = state
+            if state == 'ACCEPTED':
+                accept_count += 1
+                contributor_prizes[prize.handler]['accepted'].append(prize)
+            elif state == 'DENIED':
+                deny_count += 1
+                contributor_prizes[prize.handler]['denied'].append(prize)
+            else:
+                pending_count += 1
+            prize.save()
+
+        pending_prizes = reduce(
+            lambda x, y: x + y['accepted'] + y['denied'],
+            contributor_prizes.values(),
+            [],
+        )
+        self.assertSetEqual(
+            set(
+                models.Prize.objects.filter(
+                    event=self.other_event
+                ).contributor_email_pending()
+            ),
+            set(pending_prizes),
         )
 
+        email_count = post_office.models.Email.objects.count()
+
+        self.client.force_login(self.super_user)
+        resp = self.client.post(
+            reverse(
+                'admin:tracker_automail_prize_contributors', args=(self.other_event.id,)
+            ),
+            data={
+                'prizes': [p.id for p in pending_prizes],
+                'from_address': 'root@localhost',
+                'email_template': self.prize_contributor_template.id,
+            },
+        )
+
+        self.assertRedirects(resp, reverse('admin:index'))
+        self.assertMessages(
+            resp,
+            [
+                f'Mailed prize handler {handler} for {len(handler_prizes["accepted"]) + len(handler_prizes["denied"])} prize(s)'
+                for handler, handler_prizes in contributor_prizes.items()
+            ],
+        )
+
+        self.assertQuerySetEqual(
+            models.Prize.objects.filter(event=self.other_event, state='PENDING'),
+            models.Prize.objects.filter(event=self.other_event, acceptemailsent=False),
+            msg='Pending emails were sent',
+        )
+        self.assertQuerySetEqual(
+            models.Prize.objects.filter(event=self.other_event).exclude(
+                state='PENDING'
+            ),
+            models.Prize.objects.filter(event=self.other_event, acceptemailsent=True),
+            msg='Non-pending emails were not sent',
+        )
+        self.assertEqual(
+            email_count + len(contributor_prizes),
+            post_office.models.Email.objects.count(),
+            msg='Incorrect number of emails',
+        )
+
+        for contributor in prize_contributors:
+            accepted_prizes = contributor_prizes[contributor]['accepted']
+            denied_prizes = contributor_prizes[contributor]['denied']
+            contributor_mail = post_office.models.Email.objects.filter(
+                to=contributor.email
+            ).first()
+            if accepted_prizes or denied_prizes:
+                parsed = parse_test_mail(contributor_mail)
+                self.assertEqual([str(self.other_event.id)], parsed['event.id'])
+                self.assertEqual([str(contributor.id)], parsed['handler.id'])
+                self.assertEqual(
+                    {p.name for p in accepted_prizes},
+                    set(parsed.get('accepted_prizes', [])),
+                )
+                self.assertEqual(
+                    {p.name for p in denied_prizes},
+                    set(parsed.get('denied_prizes', [])),
+                )
+            else:
+                self.assertIsNone(contributor_mail)
+
+    def test_prize_mail_winners(self):
         self.client.force_login(self.super_user)
 
         donor2 = randgen.generate_donor(self.rand)
         donor2.save()
-        self.prize_key.prize_winner = models.PrizeWinner.objects.create(
-            winner=donor2, prize=self.prize_with_keys
-        )
-        self.prize_key.save()
+        donor3 = randgen.generate_donor(self.rand)
+        donor3.save()
+        # make a couple key claims to ensure that it doesn't show up in this list, as that's handled by shipped/awarded
+        self.prize_keys[0].create_winner(donor2)
+        self.prize_keys[1].create_winner(donor3)
         extra_prize = randgen.generate_prize(self.rand, event=self.event)
         extra_prize.save()
-        extra_winner = models.PrizeWinner.objects.create(
-            winner=donor2, prize=extra_prize
+        extra_claim = models.PrizeClaim.objects.create(winner=donor2, prize=extra_prize)
+        another_extra_prize = randgen.generate_prize(self.rand, event=self.event)
+        another_extra_prize.save()
+        another_extra_claim = models.PrizeClaim.objects.create(
+            winner=donor2, prize=another_extra_prize
         )
 
-        donors = [self.donor, self.no_prizes_donor, donor2]
-        winners = [self.prize_winner, self.prize_key.prize_winner, extra_winner]
+        donors = [self.donor, self.no_prizes_donor, donor2, donor3]
+        winners = [self.prize_winner, extra_claim, another_extra_claim]
+
+        deadline = (today_noon + datetime.timedelta(days=1)).astimezone(
+            anywhere_on_earth_tz()
+        )
 
         self.assertSetEqual(
             {
-                pw.winner.id
-                for pw in prizemail.prize_winners_with_email_pending(self.event)
+                c.winner_id
+                for c in models.PrizeClaim.objects.filter(
+                    prize__event=self.event
+                ).winner_email_pending()
             },
-            {pw.winner.id for pw in winners},
+            {pw.winner_id for pw in winners},
         )
         resp = self.client.post(
-            reverse('admin:automail_prize_winners', args=(self.event.short,)),
+            reverse('admin:tracker_automail_prize_winners', args=(self.event.short,)),
             data={
-                'prizewinners': [pw.id for pw in winners],
-                'fromaddress': 'root@localhost',
-                'emailtemplate': email_template.id,
-                'acceptdeadline': '2020-10-21',
+                'claims': [pw.id for pw in winners],
+                'from_address': 'root@localhost',
+                'email_template': self.prize_winner_template.id,
+                'accept_deadline': deadline.date(),
             },
         )
 
-        self.assertContains(resp, 'Sent emails for the following prize winners:')
+        self.assertRedirects(resp, reverse('admin:index'))
+        self.assertMessages(
+            resp,
+            {
+                f'Mailed Donor {self.donor.email} for 1 won prize claim(s)',
+                f'Mailed Donor {donor2.email} for 2 won prize claim(s)',
+            },
+        )
 
         for winner in winners:
             winner.refresh_from_db()
-            self.assertContains(resp, str(winner.prize))
-            self.assertContains(resp, str(winner.winner))
             self.assertTrue(
-                winner.emailsent,
+                winner.winneremailsent,
                 f'Prize Winner {winner.id} did not have email sent flag set',
             )
             self.assertEqual(
-                winner.acceptdeadline.astimezone(util.anywhere_on_earth_tz()),
-                datetime.datetime(
-                    2020, 10, 22, 0, 0, 0, tzinfo=util.anywhere_on_earth_tz()
-                ),
+                winner.accept_deadline_date(),
+                deadline.date(),
             )
 
         self.assertEqual(
@@ -1609,11 +1800,14 @@ CLAIM_URL:{{ prize_winner.claim_url }}
             'Should have sent 2 total emails',
         )
         for donor in donors:
-            won_prizes = models.PrizeWinner.objects.filter(winner=donor)
+            won_prizes = models.PrizeClaim.objects.filter(
+                winner=donor, prize__key_code=False
+            )
             for p in won_prizes:
-                p.create_claim_url(
-                    self.factory.get('/what/ever')
-                )  # just needs any request with the source domain
+                with override_settings(TRACKER_PUBLIC_SITE_ID=self.site.id):
+                    p.create_claim_url(
+                        self.factory.get('/what/ever')
+                    )  # test with the site id
             donor_mail = post_office.models.Email.objects.filter(to=donor.email)
             if len(won_prizes) == 0:
                 self.assertEqual(
@@ -1628,27 +1822,216 @@ CLAIM_URL:{{ prize_winner.claim_url }}
                     f'Should have sent exactly one email to {donor.email}',
                 )
                 contents = parse_test_mail(donor_mail.first())
-                self.assertEqual([self.event.id], [int(e) for e in contents['event']])
-                self.assertEqual([donor.id], [int(w) for w in contents['winner']])
+                self.assertEqual([str(self.event)], contents['event'])
+                self.assertEqual([str(donor)], contents['winner'])
+                self.assertEqual([donor.id], [int(w) for w in contents['winner.id']])
                 self.assertEqual(
-                    [donor.contact_name()], contents['winner_contact_name']
+                    [localize(deadline.date())], contents['accept_deadline']
                 )
-                self.assertEqual(['Oct. 21, 2020'], contents['accept_deadline'])
                 self.assertSetEqual(
-                    {p.prize.id for p in won_prizes},
-                    {int(p) for p in contents['prize']},
+                    {str(p.id) for p in won_prizes},
+                    set(contents['claim_id']),
                 )
                 self.assertSetEqual(
                     {p.claim_url for p in won_prizes}, set(contents['claim_url'])
                 )
 
-    def test_prize_mail_preview(self):
+    def test_preview_prize_winner_mail(self):
         self.client.login(username='admin', password='password')
         response = self.client.get(
-            reverse('admin:preview_prize_winner_mail', args=(self.prize_winner.id,))
+            reverse(
+                'admin:tracker_preview_prize_winner_mail',
+                args=(self.prize_winner.id, self.prize_winner_template.id),
+            )
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(post_office.models.Email.objects.count(), 0)
+
+    def test_prize_mail_winner_acceptance(self):
+        prize_contributors = []
+
+        for i in range(0, 10):
+            prize_contributors.append(
+                User.objects.create(
+                    username='u' + str(i),
+                    email='u' + str(i) + '@email.com',
+                    is_active=True,
+                )
+            )
+
+        prizes = []
+        for _ in range(20):
+            prizes.append(
+                randgen.generate_prize(
+                    self.rand,
+                    event=self.other_event,
+                    handler=self.rand.choice(prize_contributors),
+                )
+            )
+            prizes[-1].save()
+
+        donors = randgen.generate_donors(self.rand, 20)
+
+        prize_claims = defaultdict(list)
+
+        for prize in prizes:
+            models.PrizeClaim.objects.create(
+                winner=self.rand.choice(donors),
+                prize=prize,
+                acceptcount=1,
+                winneremailsent=True,
+                acceptemailsentcount=0,
+            )
+            prize_claims[prize.handler].append(prize)
+
+        pending_prizes = reduce(lambda x, y: x + y, prize_claims.values(), [])
+        self.assertSetEqual(
+            set(
+                models.PrizeClaim.objects.filter(
+                    prize__event=self.other_event
+                ).accept_email_pending()
+            ),
+            set(
+                sum((list(p.claims.accept_email_pending()) for p in pending_prizes), [])
+            ),
+        )
+
+        self.client.force_login(self.super_user)
+
+        resp = self.client.post(
+            reverse(
+                'admin:tracker_automail_prize_accept_notifications',
+                args=(self.other_event.id,),
+            ),
+            data={
+                'claims': [pw.id for p in prizes for pw in p.get_accepted_claims()],
+                'from_address': 'root@localhost',
+                'email_template': self.prize_winner_accept_template.id,
+            },
+        )
+
+        self.assertRedirects(resp, reverse('admin:index'))
+        self.assertMessages(
+            resp,
+            {
+                f'Mailed handler {handler} for {len(claims)} accepted prize claim(s)'
+                for handler, claims in prize_claims.items()
+            },
+        )
+
+        for contributor in prize_contributors:
+            prizes = prize_claims[contributor]
+            contributor_mail = post_office.models.Email.objects.filter(
+                to=contributor.email
+            ).first()
+            if prizes:
+                parsed = parse_test_mail(contributor_mail)
+                self.assertEqual([str(self.other_event.id)], parsed['event.id'])
+                self.assertEqual([str(contributor.id)], parsed['handler.id'])
+                self.assertEqual(
+                    {str(c) for p in prizes for c in p.claims.all()},
+                    set(parsed['claims']),
+                )
+            else:
+                self.assertIsNone(contributor_mail)
+
+    def test_prize_mail_shipped(self):
+        prizes = []
+        for _ in range(20):
+            prize = randgen.generate_prize(
+                self.rand,
+                event=self.other_event,
+            )
+            prize.save()
+            if self.rand.getrandbits(2) == 0:
+                prize.key_code = True
+                prize.save()
+                randgen.generate_prize_keys(self.rand, prize, 5)
+            prizes.append(prize)
+
+        donors = randgen.generate_donors(self.rand, 20)
+
+        prize_claims = defaultdict(list)
+
+        for prize in prizes:
+            if prize.key_code:
+                key_donors = list(donors)
+                for key in prize.prize_keys.all():
+                    key.prize_claim = models.PrizeClaim.objects.create(
+                        winner=self.rand.choice(key_donors),
+                        prize=prize,
+                        acceptcount=1,
+                        winneremailsent=True,
+                        acceptemailsentcount=1,
+                        shippingstate='AWARDED',
+                    )
+                    key.save()
+                    key_donors.remove(key.prize_claim.winner)
+                    prize_claims[key.prize_claim.winner].append(key.prize_claim)
+            else:
+                claim = models.PrizeClaim.objects.create(
+                    winner=self.rand.choice(donors),
+                    prize=prize,
+                    acceptcount=1,
+                    winneremailsent=True,
+                    acceptemailsentcount=1,
+                    shippingstate='SHIPPED',
+                )
+                prize_claims[claim.winner].append(claim)
+
+        pending_claims = reduce(operator.add, prize_claims.values(), [])
+        self.assertSetEqual(
+            set(
+                models.PrizeClaim.objects.filter(
+                    prize__event=self.other_event
+                ).shipped_email_pending()
+            ),
+            set(pending_claims),
+        )
+
+        self.client.force_login(self.super_user)
+
+        resp = self.client.post(
+            reverse(
+                'admin:tracker_automail_prize_shipping_notifications',
+                args=(self.other_event.id,),
+            ),
+            data={
+                'claims': [c.id for c in pending_claims],
+                'from_address': 'root@localhost',
+                'email_template': self.prize_shipped_template.id,
+            },
+        )
+
+        self.assertRedirects(resp, reverse('admin:index'))
+        self.assertMessages(
+            resp,
+            {
+                f'Mailed donor {winner.email} for {len(claims)} shipped prize(s)'
+                for winner, claims in prize_claims.items()
+            },
+        )
+
+        for winner, claims in prize_claims.items():
+            winner_mail = post_office.models.Email.objects.filter(
+                to=winner.email
+            ).first()
+
+            if claims:
+                parsed = parse_test_mail(winner_mail)
+                for claim in claims:
+                    claim.create_claim_url(self.factory.get('/what/ever'))
+                self.assertEqual([str(self.other_event.id)], parsed['event.id'])
+                self.assertEqual([winner.contact_name()], parsed['winner.contact_name'])
+                self.assertEqual(
+                    {c.claim_url for c in claims}, set(parsed['claim_url'])
+                )
+                self.assertEqual(
+                    {c.prize_key.key for c in claims if c.prize.key_code},
+                    set(parsed.get('claim_key', [])),
+                )
+            else:
+                self.assertIsNone(winner_mail)
 
     @patch('tracker.tasks.draw_prize')
     @override_settings(TRACKER_HAS_CELERY=True)
@@ -1706,38 +2089,43 @@ class TestPrizeList(TestCase):
             self.rand, event=self.event, maxwinners=2
         )
         regular_prize.save()
-        donors = randgen.generate_donors(self.rand, 2)
-        for d in donors:
-            models.PrizeWinner.objects.create(prize=regular_prize, winner=d)
-        key_prize = randgen.generate_prize(self.rand, event=self.event)
-        key_prize.key_code = True
-        key_prize.save()
-        key_winners = randgen.generate_donors(self.rand, 50)
-        prize_keys = randgen.generate_prize_keys(self.rand, key_prize, 50)
-        for w, k in zip(key_winners, prize_keys):
-            k.prize_winner = models.PrizeWinner.objects.create(
-                prize=key_prize, winner=w
-            )
-            k.save()
+        # FIXME: we don't display winners any more, but maybe we'll show something else in the future
+        # donors = randgen.generate_donors(self.rand, 2)
+        # for d in donors:
+        #     models.PrizeClaim.objects.create(prize=regular_prize, winner=d)
+        # key_prize = randgen.generate_prize(self.rand, event=self.event)
+        # key_prize.key_code = True
+        # key_prize.save()
+        # key_winners = randgen.generate_donors(self.rand, 50)
+        # prize_keys = randgen.generate_prize_keys(self.rand, key_prize, 50)
+        # for w, k in zip(key_winners, prize_keys):
+        #     k.prize_claim = models.PrizeClaim.objects.create(prize=key_prize, winner=w)
+        #     k.save()
 
         response = self.client.get(reverse('tracker:prizeindex', args=(self.event.id,)))
-        self.assertContains(response, donors[0].visible_name)
-        self.assertContains(response, donors[1].visible_name)
-        self.assertContains(response, '50 winner(s)')
         self.assertNotContains(response, 'Invalid Variable')
 
 
-class TestPrizeWinner(TestCase):
+class TestPrizeClaim(TestCase):
     def setUp(self):
         self.rand = random.Random(None)
+        self.coordinator = User.objects.create(username='coordinator')
         self.event = randgen.generate_event(self.rand, start_time=today_noon)
+        self.event.prizecoordinator = self.coordinator
         self.event.save()
         randgen.generate_runs(self.rand, self.event, 1, ordered=True)
         self.write_in_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
         self.write_in_donor = randgen.generate_donors(self.rand, 1)[0]
-        models.PrizeWinner.objects.create(
+        self.write_in_claim = models.PrizeClaim.objects.create(
             prize=self.write_in_prize, winner=self.write_in_donor, pendingcount=1
         )
+        self.digital_prize = randgen.generate_prize(self.rand, event=self.event)
+        self.digital_prize.requiresshipping = False
+        self.digital_prize.save()
+        self.key_prize = randgen.generate_prize(self.rand, event=self.event)
+        self.key_prize.key_code = True
+        self.key_prize.save()
+        self.keys = randgen.generate_prize_keys(self.rand, self.key_prize, 5)
         self.donation_prize = randgen.generate_prizes(self.rand, self.event, 1)[0]
         self.donation_donor = randgen.generate_donors(self.rand, 1)[0]
         models.Donation.objects.create(
@@ -1746,35 +2134,239 @@ class TestPrizeWinner(TestCase):
             transactionstate='COMPLETED',
             amount=5,
         )
-        self.donation_prize_winner = models.PrizeWinner.objects.create(
+        self.donation_claim = models.PrizeClaim.objects.create(
             prize=self.donation_prize, winner=self.donation_donor, pendingcount=1
         )
         self.super_user = User.objects.create_superuser(
             'admin', 'nobody@example.com', 'password'
         )
 
-    def test_prize_winner_donor_cache(self):
-        self.assertEqual(
-            self.write_in_prize.get_prize_winner().donor_cache, self.write_in_donor
+    def test_prize_claim_queryset(self):
+        def _get_prize(state):
+            prize = randgen.generate_prize(self.rand, event=self.event)
+            prize.name = state
+            prize.save()
+            randgen.assign_prize_lifecycle(self.rand, prize, state)
+            return prize
+
+        lifecycle_prizes = {
+            state: _get_prize(state)
+            for state in [
+                'pending',
+                'notify_contributor',
+                'denied',
+                'accepted',
+                'drawn',
+                'winner_notified',
+                'claimed',
+                'needs_shipping',
+                'shipped',
+                'completed',
+            ]
+        }
+
+        lifecycle_claims = {
+            state: prize.claims.all() for state, prize in lifecycle_prizes.items()
+        }
+
+        models.PrizeClaim.objects.filter(acceptdeadline=None).update(
+            acceptdeadline=today_noon + datetime.timedelta(days=14)
         )
+
         self.assertEqual(
-            self.donation_prize.get_prize_winner().donor_cache,
-            self.donation_donor.cache_for(self.event.id),
+            {
+                self.write_in_claim,
+                self.donation_claim,
+                *lifecycle_claims['drawn'],
+                *lifecycle_claims['winner_notified'],
+            },
+            set(models.PrizeClaim.objects.pending()),
         )
+
+        deadline = max(
+            p.acceptdeadline
+            for p in models.PrizeClaim.objects.filter(
+                id__in=(
+                    p.id
+                    for p in (
+                        self.write_in_claim,
+                        self.donation_claim,
+                        *lifecycle_claims['drawn'],
+                        *lifecycle_claims['winner_notified'],
+                    )
+                )
+            )
+        ) + datetime.timedelta(days=1)
+
+        self.assertEqual(
+            set(),
+            set(models.PrizeClaim.objects.pending(deadline)),
+        )
+
+        self.assertEqual(
+            {
+                self.write_in_claim,
+                self.donation_claim,
+                *lifecycle_claims['drawn'],
+                *lifecycle_claims['winner_notified'],
+            },
+            set(models.PrizeClaim.objects.expired(deadline)),
+        )
+
+        winner_email_pending = models.PrizeClaim.objects.winner_email_pending()
+
+        self.assertEqual(
+            set(winner_email_pending),
+            {
+                *lifecycle_prizes['drawn'].claims.all(),
+                *self.write_in_prize.claims.all(),
+                *self.donation_prize.claims.all(),
+            },
+        )
+        self.assertTrue(
+            all(
+                not pc.winner_email_pending
+                for pc in models.PrizeClaim.objects.exclude(
+                    id__in=(pc.id for pc in winner_email_pending)
+                )
+            )
+        )
+        self.assertTrue(all(pc.winner_email_pending for pc in winner_email_pending))
+
+        self.assertEqual(
+            {
+                self.donation_claim,
+                self.write_in_claim,
+                *lifecycle_claims['drawn'],
+                *lifecycle_claims['winner_notified'],
+                *lifecycle_claims['claimed'],
+                *lifecycle_claims['needs_shipping'],
+                *lifecycle_claims['shipped'],
+                *lifecycle_claims['completed'],
+            },
+            set(models.PrizeClaim.objects.claimed_or_pending()),
+        )
+
+        models.PrizeClaim.objects.decline_expired(deadline)
+
+        self.assertQuerySetEqual(
+            models.PrizeClaim.objects.none(), models.PrizeClaim.objects.pending()
+        )
+
+        self.assertEqual(
+            {
+                *lifecycle_claims['claimed'],
+                *lifecycle_claims['needs_shipping'],
+                *lifecycle_claims['shipped'],
+                *lifecycle_claims['completed'],
+            },
+            set(models.PrizeClaim.objects.claimed_or_pending()),
+        )
+
+        accept_email_pending = models.PrizeClaim.objects.accept_email_pending()
+        self.assertEqual(
+            set(accept_email_pending),
+            set(lifecycle_prizes['claimed'].claims.all()),
+        )
+        self.assertTrue(
+            all(
+                not pc.accept_email_pending
+                for pc in models.PrizeClaim.objects.exclude(
+                    id__in=(pc.id for pc in accept_email_pending)
+                )
+            )
+        )
+        self.assertTrue(all(pc.accept_email_pending for pc in accept_email_pending))
+
+        self.assertEqual(
+            set(lifecycle_claims['needs_shipping']),
+            set(models.PrizeClaim.objects.needs_shipping()),
+        )
+
+        shipped_email_pending = models.PrizeClaim.objects.shipped_email_pending()
+        self.assertEqual(
+            set(shipped_email_pending),
+            set(lifecycle_claims['shipped']),
+        )
+        self.assertTrue(
+            all(
+                not pc.shipped_email_pending
+                for pc in models.PrizeClaim.objects.exclude(
+                    id__in=(pc.id for pc in shipped_email_pending)
+                )
+            )
+        )
+        self.assertTrue(all(pc.shipped_email_pending for pc in shipped_email_pending))
+
+        accepted = lifecycle_prizes['claimed']
+        self.event.prizecoordinator = self.super_user
+        self.event.save()
+        self.assertIn(
+            accepted.claims.first(), models.PrizeClaim.objects.accept_email_pending()
+        )
+        accepted.refresh_from_db()  # ensure that nested event is up to date
+        accepted.handler = self.super_user
+        accepted.save()
+        self.assertNotIn(
+            accepted.claims.first(), models.PrizeClaim.objects.accept_email_pending()
+        )
+
+        self.assertEqual(
+            set(lifecycle_claims['completed']),
+            set(models.PrizeClaim.objects.completed()),
+        )
+
+    def test_prize_claim_email_fields(self):
+        # go through the steps one by one
+        self.assertTrue(self.donation_claim.winner_email_pending)
+        self.assertFalse(self.donation_claim.accept_email_pending)
+        self.assertFalse(self.donation_claim.shipped_email_pending)
+        self.donation_claim.winneremailsent = True
+        self.assertFalse(self.donation_claim.winner_email_pending)
+        self.donation_claim.acceptcount = 1
+        self.donation_claim.pendingcount = 0
+        self.assertTrue(self.donation_claim.accept_email_pending)
+        self.donation_claim.acceptemailsentcount = 1
+        self.assertFalse(self.donation_claim.accept_email_pending)
+        self.donation_claim.prize.handler = self.coordinator
+        self.donation_claim.acceptemailsentcount = 0
+        self.donation_claim.save()
+        # if the handler is the coordinator, overrides the accepted email count
+        self.assertEqual(self.donation_claim.acceptemailsentcount, 1)
+        self.assertFalse(self.donation_claim.accept_email_pending)
+        self.donation_claim.shippingstate = 'SHIPPED'
+        self.assertTrue(self.donation_claim.shipped_email_pending)
+        self.donation_claim.shippingemailsent = True
+        self.assertFalse(self.donation_claim.shipped_email_pending)
+
+        key_claim = self.keys[0].create_winner(self.donation_donor)
+        self.assertEqual(key_claim.acceptcount, 1)
+        self.assertEqual(key_claim.pendingcount, 0)
+        self.assertEqual(key_claim.declinecount, 0)
+        self.assertTrue(key_claim.winneremailsent)
+        self.assertEqual(key_claim.acceptemailsentcount, 1)
+        self.assertEqual(key_claim.shippingstate, 'AWARDED')
+        self.assertFalse(key_claim.winner_email_pending)
+        self.assertFalse(key_claim.accept_email_pending)
+        self.assertTrue(key_claim.shipped_email_pending)
 
     def test_prize_winner(self):
         resp = self.client.get(
-            f'{reverse("tracker:prize_winner", args=[self.donation_prize_winner.pk])}'
+            f'{reverse("tracker:prize_winner", args=[self.donation_claim.pk])}'
         )
         self.assertEqual(resp.status_code, 404, msg='Missing auth code did not 404')
         resp = self.client.get(
-            f'{reverse("tracker:prize_winner", args=[self.donation_prize_winner.pk])}?auth_code={self.donation_prize_winner.auth_code}'
+            f'{reverse("tracker:prize_winner", args=[self.donation_claim.pk])}?auth_code={self.write_in_claim.auth_code}'
+        )
+        self.assertEqual(resp.status_code, 404, msg='Wrong auth code did not 404')
+        resp = self.client.get(
+            f'{reverse("tracker:prize_winner", args=[self.donation_claim.pk])}?auth_code={self.donation_claim.auth_code}'
         )
         self.assertContains(resp, str(self.donation_prize))
 
     def test_prize_accept(self):
         resp = self.client.post(
-            f'{reverse("tracker:prize_winner", args=[self.donation_prize_winner.pk])}?auth_code={self.donation_prize_winner.auth_code}',
+            f'{reverse("tracker:prize_winner", args=[self.donation_claim.pk])}?auth_code={self.donation_claim.auth_code}',
             data={
                 'prizeaccept-count': 1,
                 'prizeaccept-total': 1,
@@ -1789,22 +2381,16 @@ class TestPrizeWinner(TestCase):
         )
         self.assertContains(resp, 'You have accepted')
         self.donation_donor.refresh_from_db()
-        self.donation_prize_winner.refresh_from_db()
+        self.donation_claim.refresh_from_db()
         self.assertEqual(self.donation_donor.addressname, 'Foo Bar')
         self.assertEqual(self.donation_donor.addressstreet, '123 Somewhere Lane')
         self.assertEqual(self.donation_donor.addresscity, 'Atlantis')
         self.assertEqual(self.donation_donor.addressstate, 'NJ')
         self.assertEqual(self.donation_donor.addresscountry.alpha2, 'US')
         self.assertEqual(self.donation_donor.addresszip, '20000')
-        self.assertEqual(
-            self.donation_prize_winner.pendingcount, 0, 'Pending count is not 0'
-        )
-        self.assertEqual(
-            self.donation_prize_winner.acceptcount, 1, 'Accept count is not 1'
-        )
-        self.assertEqual(
-            self.donation_prize_winner.declinecount, 0, 'Declined count is not 0'
-        )
+        self.assertEqual(self.donation_claim.pendingcount, 0, 'Pending count is not 0')
+        self.assertEqual(self.donation_claim.acceptcount, 1, 'Accept count is not 1')
+        self.assertEqual(self.donation_claim.declinecount, 0, 'Declined count is not 0')
         self.client.force_login(self.super_user)
         resp = self.client.get(
             reverse('tracker:user_prize', args=(self.donation_prize.pk,))
@@ -1813,7 +2399,7 @@ class TestPrizeWinner(TestCase):
 
     def test_prize_decline(self):
         resp = self.client.post(
-            f'{reverse("tracker:prize_winner", args=[self.donation_prize_winner.pk])}?auth_code={self.donation_prize_winner.auth_code}',
+            f'{reverse("tracker:prize_winner", args=[self.write_in_claim.pk])}?auth_code={self.write_in_claim.auth_code}',
             data={
                 'prizeaccept-count': 1,
                 'prizeaccept-total': 1,
@@ -1827,24 +2413,44 @@ class TestPrizeWinner(TestCase):
             },
         )
         self.assertContains(resp, 'You have declined')
-        self.donation_donor.refresh_from_db()
-        self.donation_prize_winner.refresh_from_db()
-        # a bit weird perhaps but it still updates the address because it's easier than not doing it
-        self.assertEqual(self.donation_donor.addressname, 'Foo Bar')
-        self.assertEqual(self.donation_donor.addressstreet, '123 Somewhere Lane')
-        self.assertEqual(self.donation_donor.addresscity, 'Atlantis')
-        self.assertEqual(self.donation_donor.addressstate, 'NJ')
-        self.assertEqual(self.donation_donor.addresscountry.alpha2, 'US')
-        self.assertEqual(self.donation_donor.addresszip, '20000')
-        self.assertEqual(
-            self.donation_prize_winner.pendingcount, 0, 'Pending count is not 0'
+        self.write_in_donor.refresh_from_db()
+        self.write_in_claim.refresh_from_db()
+        # a bit weird perhaps, but it still updates the address because it's easier than not doing it
+        self.assertEqual(self.write_in_donor.addressname, 'Foo Bar')
+        self.assertEqual(self.write_in_donor.addressstreet, '123 Somewhere Lane')
+        self.assertEqual(self.write_in_donor.addresscity, 'Atlantis')
+        self.assertEqual(self.write_in_donor.addressstate, 'NJ')
+        self.assertEqual(self.write_in_donor.addresscountry.alpha2, 'US')
+        self.assertEqual(self.write_in_donor.addresszip, '20000')
+        self.assertEqual(self.write_in_claim.pendingcount, 0, 'Pending count is not 0')
+        self.assertEqual(self.write_in_claim.acceptcount, 0, 'Accept count is not 0')
+        self.assertEqual(self.write_in_claim.declinecount, 1, 'Declined count is not 1')
+        self.client.force_login(self.super_user)
+        resp = self.client.get(
+            reverse('tracker:user_prize', args=(self.write_in_prize.pk,))
         )
-        self.assertEqual(
-            self.donation_prize_winner.acceptcount, 0, 'Accept count is not 0'
+        self.assertContains(resp, 'There are currently no winners for this prize.')
+
+    def test_prize_already_accepted(self):
+        self.donation_claim.acceptcount = 1
+        self.donation_claim.pendingcount = 0
+        self.donation_claim.save()
+        # smoke test to make sure that it doesn't blow up if they refresh the page
+        resp = self.client.post(
+            f'{reverse("tracker:prize_winner", args=[self.donation_claim.pk])}?auth_code={self.donation_claim.auth_code}',
+            data={
+                'prizeaccept-count': 1,
+                'prizeaccept-total': 1,
+                'address-addressname': 'Foo Bar',
+                'address-addressstreet': '123 Somewhere Lane',
+                'address-addresscity': 'Atlantis',
+                'address-addressstate': 'NJ',
+                'address-addresscountry': models.Country.objects.get(alpha2='US').pk,
+                'address-addresszip': 20000,
+                'accept': 'Accept',
+            },
         )
-        self.assertEqual(
-            self.donation_prize_winner.declinecount, 1, 'Declined count is not 1'
-        )
+        self.assertContains(resp, 'You have accepted')
 
 
 class TestPrizeClaimUrl(TestCase):
@@ -1856,25 +2462,29 @@ class TestPrizeClaimUrl(TestCase):
         self.prize.save()
         self.donor = randgen.generate_donor(self.rand)
         self.donor.save()
-        self.prize_winner = models.PrizeWinner.objects.create(
+        self.prize_winner = models.PrizeClaim.objects.create(
             prize=self.prize, winner=self.donor
         )
         self.prize_winner.save()
 
     @override_settings(
-        INSTALLED_APPS=settings.INSTALLED_APPS + ['django.contrib.sites']
+        INSTALLED_APPS=set(settings.INSTALLED_APPS) & {'django.contrib.sites'}
     )
     def test_with_sites_enabled(self):
         from django.contrib.sites.models import Site
 
         request = RequestFactory().get('/foo/bar')
 
-        with patch('django.contrib.sites.shortcuts.get_current_site') as site:
-            site.return_value = Site(domain='a.site', name='a.site')
+        site = Site.objects.create(domain='a.site', name='The Site')
+
+        with override_settings(TRACKER_PUBLIC_SITE_ID=site.id):
             self.prize_winner.create_claim_url(request)
             self.assertIn('a.site', self.prize_winner.claim_url)
             self.assertNotIn(request.get_host(), self.prize_winner.claim_url)
 
+    @override_settings(
+        INSTALLED_APPS=set(settings.INSTALLED_APPS) ^ {'django.contrib.sites'}
+    )
     def test_with_sites_disabled(self):
         request = RequestFactory().get('/foo/bar')
 
@@ -1901,7 +2511,8 @@ class TestPrizeNoSweepstakes(TestCase):
         with override_settings(
             TRACKER_SWEEPSTAKES_URL='temp'
         ):  # create a worst case scenario
-            randgen.generate_prize(self.rand, event=self.event).save()
+            prize = randgen.generate_prize(self.rand, event=self.event)
+            randgen.assign_prize_lifecycle(self.rand, prize, 'accepted')
         with self.assertRaisesRegex(ImproperlyConfigured, 'TRACKER_SWEEPSTAKES_URL'):
             self.client.get(reverse('tracker:ui:donate', args=(self.event.id,)))
 
@@ -1912,3 +2523,84 @@ class TestPrizeNoSweepstakes(TestCase):
     def test_model_save_raises(self):
         with self.assertRaisesRegex(ImproperlyConfigured, 'TRACKER_SWEEPSTAKES_URL'):
             models.Prize.objects.create(event=self.event)
+
+
+class TestPrizeClaimRename(MigrationsTestCase):
+    migrate_from = [('tracker', '0070_backfill_donor_cache_enhancements')]
+    migrate_to = [('tracker', '0072_rename_prize_claim_permissions')]
+
+    def setUpBeforeMigration(self, apps):
+        Permission = apps.get_model('auth', 'Permission')
+        User = apps.get_model('auth', 'User')
+        Group = apps.get_model('auth', 'Group')
+        User.objects.create(username='test_user').user_permissions.add(
+            Permission.objects.get(codename='add_prizewinner')
+        )
+        Group.objects.create(name='Test Group').permissions.add(
+            Permission.objects.get(codename='view_prizewinner')
+        )
+
+    def test_migrated_permissions(self):
+        Permission = self.apps.get_model('auth', 'Permission')
+        User = self.apps.get_model('auth', 'User')
+        Group = self.apps.get_model('auth', 'Group')
+        self.assertTrue(
+            User.objects.get(username='test_user')
+            .user_permissions.filter(codename='add_prizeclaim')
+            .exists()
+        )
+        self.assertTrue(
+            Group.objects.get(name='Test Group')
+            .permissions.filter(codename='view_prizeclaim')
+            .exists()
+        )
+        self.assertFalse(
+            Permission.objects.filter(codename__endswith='_prizewinner').exists()
+        )
+
+
+class TestPrizeSubmission(TestCase, AssertionHelpers):
+    def setUp(self):
+        super().setUp()
+        self.rand = random.Random()
+        self.event = randgen.generate_event(self.rand, tomorrow_noon)
+        self.event.save()
+        self.user = User.objects.create(username='test_user')
+        randgen.generate_runs(self.rand, self.event, 5, ordered=True)
+        randgen.generate_runs(self.rand, self.event, 1, ordered=False)
+
+    def test_smoke(self):
+        self.client.force_login(self.user)
+        resp = self.client.post(
+            reverse('tracker:submit_prize', args=(self.event.id,)),
+            data={
+                'event': self.event.id,
+                'name': 'Test Prize',
+                'description': 'This prize is great.',
+                'maxwinners': 1,
+                'extrainfo': 'I made this with pink Himalayan sea salt.',
+                'estimatedvalue': '5.00',
+                'imageurl': 'https://example.com/deadbeef.jpg',
+                'creatorname': 'Jesse Doe',
+                'creatoremail': 'jesse@example.com',
+                'creatorwebsite': 'https://example.com/jesse',
+                'agreement': 1,
+            },
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.context['form'].is_valid())
+        prize = models.Prize.objects.get(name='Test Prize')
+        self.assertDictContainsSubset(
+            dict(
+                event_id=self.event.id,
+                description='This prize is great.',
+                maxwinners=1,
+                extrainfo='I made this with pink Himalayan sea salt.',
+                estimatedvalue=Decimal('5.00'),
+                image='https://example.com/deadbeef.jpg',
+                creator='Jesse Doe',
+                creatoremail='jesse@example.com',
+                creatorwebsite='https://example.com/jesse',
+            ),
+            prize.__dict__,
+        )

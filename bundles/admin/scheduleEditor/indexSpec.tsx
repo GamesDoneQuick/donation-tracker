@@ -8,7 +8,8 @@ import { Route, Routes } from 'react-router';
 import { StaticRouter } from 'react-router-dom/server';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 
-import { APIAd, APIEvent, APIInterview, APIRun, Me, PaginationInfo } from '@public/apiv2/APITypes';
+import Constants, { DefaultConstants } from '@common/Constants';
+import { APIAd, APIEvent, APIInterview, APIPrize, APIRun, Me, PaginationInfo } from '@public/apiv2/APITypes';
 import Endpoints from '@public/apiv2/Endpoints';
 import { parseTime, toInputTime } from '@public/apiv2/helpers/luxon';
 import HTTPUtils from '@public/apiv2/HTTPUtils';
@@ -21,6 +22,7 @@ import { getFixturePagedAds } from '@spec/fixtures/ad';
 import { getFixtureError } from '@spec/fixtures/error';
 import { getFixturePagedEvent } from '@spec/fixtures/event';
 import { getFixturePagedInterviews } from '@spec/fixtures/interview';
+import { getFixturePagedPrizes } from '@spec/fixtures/Prize';
 import { getFixturePagedRuns } from '@spec/fixtures/run';
 import { getFixtureValue } from '@spec/fixtures/util';
 import { getByChainedTestId, queryByChainedTestId, waitForAPIErrors, waitForSpinner } from '@spec/helpers/rtl';
@@ -32,6 +34,7 @@ import styles from './styles.mod.css';
 describe('ScheduleEditor', () => {
   let subject: ReturnType<typeof render>;
   const eventId = 1;
+  let CONSTANTS: Partial<typeof DefaultConstants> = {};
   let mock: MockAdapter;
   let me: Me;
   let events: PaginationInfo<APIEvent>;
@@ -46,12 +49,16 @@ describe('ScheduleEditor', () => {
   let ads: PaginationInfo<APIAd>;
   let adError: APIError;
   let adCode = 200;
+  let prizes: PaginationInfo<APIPrize>;
+  let prizeError: APIError;
+  let prizeCode = 200;
 
   beforeAll(() => {
     mock = new MockAdapter(HTTPUtils.getInstance());
   });
 
   beforeEach(() => {
+    CONSTANTS = {};
     store.dispatch(setRoot({ root: '//testserver/', limit: 500, csrfToken: 'deadbeef' }));
     mock.reset();
     me = {
@@ -72,6 +79,9 @@ describe('ScheduleEditor', () => {
     ads = getFixturePagedAds();
     adError = getFixtureError();
     adCode = 200;
+    prizes = getFixturePagedPrizes([{ startrun: runs.results[0].id, endrun: runs.results[0].id }]);
+    prizeError = getFixtureError();
+    prizeCode = 200;
     mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
     mock.onGet('//testserver/' + Endpoints.EVENTS).reply(getFixtureValue(() => eventCode, events, eventError));
     mock.onGet('//testserver/' + Endpoints.RUNS(eventId)).reply(getFixtureValue(() => runCode, runs, runError));
@@ -79,6 +89,7 @@ describe('ScheduleEditor', () => {
       .onGet('//testserver/' + Endpoints.INTERVIEWS(eventId))
       .reply(getFixtureValue(() => interviewCode, interviews, interviewError));
     mock.onGet('//testserver/' + Endpoints.ADS(eventId)).reply(getFixtureValue(() => adCode, ads, adError));
+    mock.onGet('//testserver/' + Endpoints.PRIZES(eventId)).reply(getFixtureValue(() => prizeCode, prizes, prizeError));
   });
 
   afterAll(() => {
@@ -118,6 +129,15 @@ describe('ScheduleEditor', () => {
         urlParams: eventId,
       });
       expect(subject.getByText('Show Ads')).not.toBeNull();
+    });
+
+    it('loads all prizes on mount', async () => {
+      CONSTANTS.SWEEPSTAKES_URL = 'https://example.com/';
+      me.permissions.push('tracker.view_prize');
+      await renderComponent();
+      expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'prizes')).toContain({
+        urlParams: { eventId, feed: 'all' },
+      });
     });
   });
 
@@ -215,6 +235,29 @@ describe('ScheduleEditor', () => {
     interviews.results[0].anchor = 1;
     await renderComponent();
     expect(subject.getByTestId(`interview-${interviews.results[0].id}`).querySelector('.fa.fa-anchor')).not.toBeNull();
+  });
+
+  describe('with prizes enabled', () => {
+    beforeEach(() => {
+      CONSTANTS.SWEEPSTAKES_URL = 'https://example.com/';
+    });
+
+    it('loads prizes on mount', async () => {
+      await renderComponent();
+      expect(trackerApi.util.selectCachedArgsForQuery(store.getState(), 'prizes')).toContain({
+        urlParams: { eventId },
+      });
+    });
+
+    it('displays prize counts', async () => {
+      await renderComponent();
+      expect(
+        subject.getByTestId(`run-${prizes.results[0].startrun}`).querySelector('.fa.fa-arrow-down')?.textContent,
+      ).toEqual('1');
+      expect(
+        subject.getByTestId(`run-${prizes.results[0].endrun}`).querySelector('.fa.fa-arrow-up')?.textContent,
+      ).toEqual('1');
+    });
   });
 
   describe('editing', () => {
@@ -419,11 +462,13 @@ describe('ScheduleEditor', () => {
     subject = render(
       <DndProvider backend={HTML5Backend}>
         <Provider store={store}>
-          <StaticRouter location={`/${eventId}`}>
-            <Routes>
-              <Route path="/:eventId" element={<ScheduleEditor />} />
-            </Routes>
-          </StaticRouter>
+          <Constants.Provider value={{ ...DefaultConstants, ...CONSTANTS }}>
+            <StaticRouter location={`/${eventId}`}>
+              <Routes>
+                <Route path="/:eventId" element={<ScheduleEditor />} />
+              </Routes>
+            </StaticRouter>
+          </Constants.Provider>
         </Provider>
       </DndProvider>,
     );

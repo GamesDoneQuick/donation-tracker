@@ -140,6 +140,7 @@ class TrackerFilter(filters.BaseFilterBackend):
         return value
 
     def has_filter_permission(self, request, field, value=empty):
+        # only for generic parameters, use a Permission class otherwise
         return True
 
 
@@ -263,12 +264,14 @@ class PrizeFilter(TrackerFilter):
         return value
 
     def has_filter_permission(self, request, field, value=empty):
-        return (
-            field != 'state'
-            or value is empty
-            or value in Prize.PUBLIC_STATES
-            or request.user.has_perm('tracker.view_prize')
-        )
+        if field == 'state':
+            return (
+                value is empty
+                or value in Prize.PUBLIC_STATES
+                or request.user.has_perm('tracker.view_prize')
+            )
+        else:
+            return True
 
     def filter_queryset(self, request, queryset, view):
         feed = view.get_feed()
@@ -279,7 +282,14 @@ class PrizeFilter(TrackerFilter):
         if view.detail or view.action == ['create']:
             return queryset
 
-        if feed is None or feed == 'public':
+        if lifecycle := query_params.getlist('lifecycle', None):
+            try:
+                queryset = queryset.lifecycle(
+                    lifecycle, time=query_params.get('time', None)
+                )
+            except ValueError as e:
+                raise ParseError(e, code=messages.INVALID_SEARCH_PARAMETER_CODE)
+        elif feed is None or feed == 'public':
             if 'state' not in query_params:
                 queryset = queryset.public()
         elif feed == 'current':

@@ -13,6 +13,7 @@ import {
   Interview,
   Milestone,
   Prize,
+  PrizeLifecycle,
   PrizeState,
   Run,
   Talent,
@@ -310,6 +311,9 @@ export interface PrizeGet {
   name?: string;
   q?: string;
   run?: number;
+  // blank string means to return all lifecycles and include the field in the response, 'archived' is a meta-lifecycle
+  // supports multiple lookups for the standard values
+  lifecycle?: '' | 'archived' | PrizeLifecycle | PrizeLifecycle[];
 }
 
 export interface PrizePost {

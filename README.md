@@ -33,16 +33,17 @@ For further reading on what else your server needs to look like:
 - [Using Celery with Django](https://docs.celeryproject.org/en/stable/django/first-steps-with-django.html) (optional)
 - [Daemonizing Celery](https://docs.celeryproject.org/en/stable/userguide/daemonizing.html) (optional)
 
-Docker should also work but support is still in the experimental phases.
+Docker and Kubernetes have also been shown to work, but setting that up is beyond the scope of this document.
 
 If `tqdm` is installed, certain long-running migrations and commands will use it to display progress on your console.
+This can be disabled by setting the environment variable `TRACKER_DISABLE_TQDM` to any non-blank value.
 
-**Ensure that `PAYPAL_TEST` is present in your settings.** It should be set to True for development/testing and False for
-production mode.
+**Ensure that `PAYPAL_TEST` is present in your settings.** It should be set to True for development/testing and False
+for production mode.
 
 ### Configuration
 
-The Donation Tracker adds a few configuration options.
+The Donation Tracker adds several configuration options.
 
 #### TRACKER_HAS_CELERY (deprecated alias: HAS_CELERY)
 
@@ -183,6 +184,200 @@ Default: `settings.TRACKER_REGISTRATION_FROM_EMAIL`
 If you want to override the default email address that volunteer import registration emails (i.e. the `Send Volunteer
 Emails` via the Event Admin action dropdown) come from, you can do so with this setting. You can still override it in
 the form itself before doing the import.
+
+#### TRACKER_PUBLIC_SITE_ID
+
+Type: `int`
+
+Default: `SITE_ID` if `django.contrib.sites` is installed, else `None`
+
+If specified, allows you to override the domain used for generating certain urls. Right now it's just prize emails and
+"View on Site" admin links.
+
+If set, requires the `django.contrib.sites` application to be installed, or it will be ignored.
+
+Expects the domain from the specified site in one of three formats:
+- `one.com` - bare domain, treated the same as `//one.com`
+- `//two.com` - domain with scheme-relative specifier, will use scheme from the request
+- `https://three.com` - domain with scheme, will override the scheme from the request
+
+#### TRACKER_DEFAULT_PRIZE_COORDINATOR
+
+Type: `str`
+
+Default: None
+
+If specified, new events will default to this username for the Prize Coordinator field. Note that the value is
+case-sensitive if using the standard User model. If the User cannot be found, this value will be ignored.
+
+### Prizes
+
+The Tracker has a comprehensive prize flow once configured properly. You'll need to configure the sweepstakes URL as
+mentioned above, as well as ensure that your outgoing email configuration works. The Diagnostics page can be useful for
+this.
+
+The Tracker has support for three types of prizes:
+
+#### Physical
+
+Just what they sound like. They need to be shipped to the winner. If the contributor is expected to handle shipping,
+they are also the handler. You may wish to have one central location that your contributors send prizes to, in which
+case the handler should be assigned to one of your staff members upon acceptance of the prize.
+
+#### Digital
+
+Mostly the same as physical, except that no shipping is required. An example might be "Custom Digital Art" where the
+winner chooses what is drawn. These prizes should have `requiresshipping` set to `false`, and they will skip some of
+the later lifecycle steps.
+
+#### Digital Keys
+
+A variant of digital prizes. After they are drawn *they cannot be automatically reassigned*, and move to the `shipped`
+part of the prize lifecycle. Before sending out the notifications you may wish to validate the list of winners.
+Indicated in the DB by the `key_code` field. You can import a list of keys to a given prize with the `Import Prize Keys`
+admin action.
+
+#### Prize Lifecycle, Including Email
+
+You can consider prizes to be in one of thirteen states. If you have the necessary API permissions (`tracker.view_prize`
+and `tracker.view_prizeclaim`) you can query the prize API endpoint with the parameter `?lifecycle={state}` to get a
+list of prizes in certain states. If the parameter is repeated, you can retrieve multiple states in a single query. Note
+that prizes that have multiple copies may be in multiple states at once. When this parameter is provided, an
+additional `lifecycle` field will be returned. The exception to this is `archived`, where it will return the state as
+if the event were not archived, to make it easier to tell where the prize would otherwise be. You may also leave the
+parameter blank (i.e. `?lifecycle=`) if you just want to see the lifecycle without filtering.
+
+Suggested example email templates can be set up with the Django management command `default_email_templates`. See that
+command for further details, but the short version is that you probably want `default_email_templates -ao` to create
+the standard set of examples, or `-aop {your_prefix}` to create them with your custom prefix. The Prize mail pages will
+not let you choose a template whose name starts with `default`, and will verify that a) there are no invalid variables
+in the template and b) certain required variables are used.
+
+#### Pending
+
+API state: `pending`
+Needs email: No
+
+A user (contributor) has submitted a prize via the form, and is in a 'PENDING' state. Somebody with prize editing
+access should either accept or deny the prize, possibly after cleaning up the information.
+
+If you are letting the contributor handle shipping, you can leave the `handler` field alone, but if you are, for
+example, asking your contributors to send the prizes to a central location, you should edit the handler field, likely
+to your event's Prize Coordinator. For certain prizes this may not be practical, but that's the fun of logistics!
+
+#### Accepted/Denied
+
+API state: `notify_contributor`
+Needs email: Yes
+
+The prize has been accepted or denied, but the contributor has not been notified. `Mail Prize Contributors` will show a
+list of all pending emails, grouped by contributor.
+
+#### Denied w/notification
+
+API state: `denied`
+Needs email: No
+
+Same as `notify_contributor` when a prize has been denied and the notification is sent.
+
+#### Accepted w/notification, not ready to draw
+
+API state: `accepted`
+Needs email: No
+
+Same as `notify_contributor` when a prize has been accepted and the notification is sent, and is not ready to draw. The
+standard state of prizes while an event is ongoing.
+
+#### Ready to draw
+
+API state: `ready`
+Needs email: No
+
+Accepted prizes that are ready to draw because:
+
+- the event's prize window has closed (after waiting for write-ins, etc.)
+- there are not enough claimed or pending-but-not-expired winners for the number of copies
+
+The latter condition is true when either no winners exist, or some of the existing winners have either explicitly
+declined the prize, or the accept deadline has passed.
+
+Note: Currently, a winner can still claim a prize that has passed its deadline *so long as it has not been redrawn*.
+This is an implementation detail and is subject to change at any time.
+
+The difference between `accepted` and `ready` depends on the precise time of the request, or the value of the `time`
+parameter, e.g. `?time=2020-01-08` or `?time=2020-01-08T06:00:00-4:00`. Anything that looks like an ISO timestamp
+should work.
+
+#### Drawn
+
+API state: `drawn`
+Needs email: Yes
+
+The prize has been drawn, and a winner picked, but the winner has not been notified. `Mail Prize Winners` will show a
+list of prizes in this state, grouped by winner.
+
+#### Drawn w/notification
+
+API state: `winner_notified`
+Needs email: No
+
+Same as above, except the notification email has been sent.
+
+For physical prizes, the winner will be asked to fill in or verify address information.
+
+For digital prizes, the winner will be asked to accept or decline the prize so that the handler can contact them.
+
+Key prizes skip this step and instead move to `shipped`.
+
+#### Claimed
+
+API state: `claimed`
+Needs email: Yes
+
+The winner has claimed at least one copy of the prize, but the handler has not been notified. `Mail Prize Winner Accept
+Notifications` will show a list of prizes in this state, grouped by handler. Note that if the handler is the same as the
+event's `prizecoordinator`, it will skip this step and move to `needs_shipping`.
+
+#### Claimed w/notification, needs shipping information
+
+API state: `needs_shipping`
+Needs email: No
+
+Same as above, but either the notification has been sent, or the handler is the same as the event's Prize Coordinator,
+and the prize needs to be shipped. If the handler is not the prize coordinator, the notification email from the previous
+step will provide instructions on how to submit shipping information via a custom Tracker form.
+
+Digital prizes skip this step and instead move to `completed`.
+
+#### Shipped/Awarded
+
+API state: `shipped`
+Needs email: Yes
+
+For physical prizes, the claim has been marked as `SHIPPED`, possibly with tracking information.
+
+For key prizes, it means that the key has been assigned to a winner. It cannot be re-assigned without manual
+intervention at this step, for example if the winner is not supposed to be eligible for the prize. If the winner doesn't
+want the key, it's a better idea to tell them to pass it on themselves rather than try and reassign it.
+
+#### Completed
+
+API state: `completed`
+Needs email: No
+
+For physical or key prizes, the prize has been marked as shipped or awarded and the winner notified.
+
+For digital prizes, the handler has been notified of the prize claim. At that point it is the handler's responsibility
+to contact the winner and work out any remaining details.
+
+#### Archived
+
+API state: `archived`
+
+If a prize is not in either the `pending`, `notify_contributor`, `denied` or `complete` part of its lifecycle, but the
+event it's attached to has been archived, it will be in this state. Usually this is a sign that something was left
+unfinished, so you may wish to investigate further and figure out why. The API will still list the lifecycle as if the
+prize were not archived, but querying for this will restrict it to only the prizes that are archived.
 
 ### Event Configuration
 
