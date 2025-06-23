@@ -277,10 +277,12 @@ def tqdm_groupby(iterable: Iterable, *args, key, **kwargs):
             total = len(iterable) if isinstance(iterable, Sized) else None
             with tqdm(iterable, *args, total=total, **kwargs) as t:
                 for k, g in groupby(iterable, key):
-                    yield k, g
+                    g = list(g)
+                    yield k, (i for i in g)
                     if total is not None:
-                        t.update(len(list(g)))
+                        t.update(len(g))
         except ImportError:
             pass
 
-    yield from groupby(iterable, key)
+    else:
+        yield from groupby(iterable, key)
