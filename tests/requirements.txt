@@ -20,4 +20,5 @@ msgpack==1.1.1
 responses~=0.25.7
 selenium==4.33.0
 tblib==3.1.0
+tqdm==4.67.1
 unittest-xml-reporting==3.2.0

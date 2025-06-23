@@ -1,4 +1,7 @@
+import os
 import re
+from collections import defaultdict
+from io import StringIO
 
 from django.test import RequestFactory, TestCase, override_settings
 
@@ -130,3 +133,42 @@ class TestUtil(TestCase):
                 util.build_public_url('/foo/bar', request),
                 request.build_absolute_uri('/foo/bar'),
             )
+
+
+class TestTQDM(TestCase):
+    def groups(self, output):
+        test = ((1, 0), (1, 1), (2, 0), (2, 1), (2, 2))
+
+        groups = defaultdict(list)
+
+        for k, g in util.tqdm_groupby(
+            test, key=lambda i: i[0], file=output, mininterval=0
+        ):
+            groups[k] += list(g)
+
+        return groups
+
+    def test_tqdm_groupby(self):
+        output = StringIO()
+
+        os.environ.pop('TRACKER_DISABLE_TQDM', None)
+
+        groups = self.groups(output)
+
+        self.assertEqual(groups, {1: [(1, 0), (1, 1)], 2: [(2, 0), (2, 1), (2, 2)]})
+        self.assertIn('0%', output.getvalue())
+        self.assertIn('0/5', output.getvalue())
+        self.assertIn('40%', output.getvalue())
+        self.assertIn('2/5', output.getvalue())
+        self.assertIn('100%', output.getvalue())
+        self.assertIn('5/5', output.getvalue())
+
+    def test_tqdm_groupby_without_tqdm(self):
+        output = StringIO()
+
+        os.environ['TRACKER_DISABLE_TQDM'] = '1'
+
+        groups = self.groups(output)
+
+        self.assertEqual(groups, {1: [(1, 0), (1, 1)], 2: [(2, 0), (2, 1), (2, 2)]})
+        self.assertEqual(output.getvalue(), '')
