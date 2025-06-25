@@ -12,7 +12,8 @@
     {{ API_PREFETCH|json_script:'API_PREFETCH' }}
     <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}"/>
 
-    <%= htmlWebpackPlugin.tags.headTags %>
+    <% _.forEach(htmlWebpackPlugin.files.js, function(file) { %><script defer src="{% static '<%- file %>' %}"></script><% }); %>
+    <% _.forEach(htmlWebpackPlugin.files.css, function(file) { %><link href="{% static '<%- file %>' %}" rel="stylesheet"><% }); %>
 
     <script type='text/javascript'>
       <!--
