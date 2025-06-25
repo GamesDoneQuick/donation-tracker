@@ -3,7 +3,9 @@ from django.db import models
 
 
 class Log(models.Model):
-    timestamp = models.DateTimeField(auto_now_add=True, verbose_name='Timestamp')
+    timestamp = models.DateTimeField(
+        auto_now_add=True, verbose_name='Timestamp', db_index=True
+    )
     category = models.CharField(
         max_length=64, default='other', blank=False, null=False, verbose_name='Category'
     )
