@@ -529,12 +529,7 @@ The following keys are considered boolean and will activate if any non-empty val
 - `ANALYZE` - activates [Webpack Bundle Analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)
 - `SOURCE_MAPS` - activates source maps, defaults to on when running in dev mode
 
-Other variables that take string values:
-
-- `STATIC_ROOT` - defaults to `/static/gen`, i.e. `http://yourserver/static/gen`, if your static files are deployed at
-  a different path you'll need to override this
-
-Same with the following, except they only matter for development:
+Other variables that take string values, but only matter for development:
 
 - `TRACKER_API_HOST` - if you want to send `/tracker/api` requests to a different host, you can override this, will
   prefer this over `TRACKER_HOST`

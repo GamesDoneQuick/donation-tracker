@@ -18,13 +18,18 @@ const SOURCE_MAPS = !!process.env.SOURCE_MAPS ?? false;
 const ANALYZE = !!process.env.ANALYZE ?? false;
 const NO_MANIFEST = !!process.env.NO_MANIFEST ?? false;
 const PROJECT_ROOT = __dirname;
-const STATIC_ROOT = process.env.STATIC_ROOT ?? '/static/gen';
 
 const BUNDLE_TO_TEMPLATE_MAP = {
   admin: PROJECT_ROOT + '/tracker/templates/ui/index.html',
   tracker: PROJECT_ROOT + '/tracker/templates/ui/index.html',
   processing: PROJECT_ROOT + '/tracker/templates/ui/minimal.html',
 };
+
+if (process.env.STATIC_ROOT) {
+  console.warn(
+    "STATIC_ROOT no longer needs to be passed to the build step, as the templates now use Django's built-in static tags.",
+  );
+}
 
 function generateHTMLWebpackPlugins() {
   return Object.entries(BUNDLE_TO_TEMPLATE_MAP).map(([bundle, template]) => {
@@ -50,7 +55,7 @@ module.exports = {
     filename: PROD ? 'tracker-[name]-[contenthash].js' : 'tracker-[name].js',
     pathinfo: true,
     path: PROJECT_ROOT + '/tracker/static/gen',
-    publicPath: STATIC_ROOT,
+    publicPath: 'gen',
   },
   stats: 'minimal',
   module: {
