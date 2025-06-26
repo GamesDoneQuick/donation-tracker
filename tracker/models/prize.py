@@ -264,6 +264,10 @@ class PrizeManager(models.Manager):
         return self.get(name=name, event=Event.objects.get_by_natural_key(*event))
 
 
+def prize_path_id(i, f):
+    return f'prizes/{i.id}/{f}'
+
+
 class Prize(models.Model):
     PUBLIC_FEEDS = PrizeQuerySet.PUBLIC_FEEDS
     HIDDEN_FEEDS = PrizeQuerySet.HIDDEN_FEEDS
@@ -285,7 +289,7 @@ class Prize(models.Model):
         verbose_name='Alternate Image',
         help_text='A second image to display in situations where the default image is not appropriate (tight spaces, stream, etc...)',
     )
-    imagefile = models.FileField(upload_to='prizes', null=True, blank=True)
+    imagefile = models.FileField(upload_to=prize_path_id, null=True, blank=True)
     description = models.TextField(max_length=1024, blank=True)
     shortdescription = models.TextField(
         max_length=256,
