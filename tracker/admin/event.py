@@ -14,7 +14,7 @@ from django.contrib.admin.views.autocomplete import AutocompleteJsonView
 from django.contrib.auth import get_user_model
 from django.contrib.auth import models as auth
 from django.contrib.auth.decorators import permission_required, user_passes_test
-from django.core.files.storage import DefaultStorage
+from django.core.files.storage import InvalidStorageError, default_storage, storages
 from django.core.validators import EmailValidator
 from django.db.models import Q, Sum
 from django.http import Http404, HttpResponse, HttpResponseRedirect
@@ -452,7 +452,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
             test_email_form = TestEmailForm()
 
         try:
-            storage = DefaultStorage()
+            storage = default_storage
             output = storage.save(f'testfile_{int(time.time())}', BytesIO(b'test file'))
             storage.open(output).read()
             assert storage.exists(output)
@@ -460,6 +460,21 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
             storage_works = True
         except Exception as e:
             storage_works = e
+
+        try:
+            prize_storage = storages['prizes']
+            try:
+                output = prize_storage.save(
+                    f'testfile_{int(time.time())}', BytesIO(b'test file')
+                )
+                prize_storage.open(output).read()
+                assert prize_storage.exists(output)
+                prize_storage.delete(output)
+                prize_storage_works = True
+            except Exception as e:
+                prize_storage_works = e
+        except InvalidStorageError:
+            prize_storage_works = 'default'
 
         return render(
             request,
@@ -470,6 +485,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                 'ping_socket_url': ping_socket_url,
                 'celery_socket_url': celery_socket_url,
                 'storage_works': storage_works,
+                'prize_storage_works': prize_storage_works,
                 'TRACKER_HAS_CELERY': settings.TRACKER_HAS_CELERY,
             },
         )

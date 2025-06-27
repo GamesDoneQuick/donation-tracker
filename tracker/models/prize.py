@@ -1,4 +1,5 @@
 import datetime
+import logging
 import operator
 from collections import defaultdict
 from decimal import Decimal
@@ -29,6 +30,8 @@ __all__ = [
     'PrizeClaim',
     'DonorPrizeEntry',
 ]
+
+logger = logging.getLogger(__name__)
 
 USER_MODEL_NAME = getattr(settings, 'AUTH_USER_MODEL', User)
 
@@ -264,6 +267,20 @@ class PrizeManager(models.Manager):
         return self.get(name=name, event=Event.objects.get_by_natural_key(*event))
 
 
+def prize_path_id(i, f):
+    return f'prizes/{i.id}/{f}'
+
+
+def prefer_prize_storage():
+    from django.core.files.storage import InvalidStorageError, default_storage, storages
+
+    try:
+        return storages['prizes']
+    except InvalidStorageError:
+        logger.info('no prizes storage, falling back to default')
+        return default_storage
+
+
 class Prize(models.Model):
     PUBLIC_FEEDS = PrizeQuerySet.PUBLIC_FEEDS
     HIDDEN_FEEDS = PrizeQuerySet.HIDDEN_FEEDS
@@ -285,7 +302,9 @@ class Prize(models.Model):
         verbose_name='Alternate Image',
         help_text='A second image to display in situations where the default image is not appropriate (tight spaces, stream, etc...)',
     )
-    imagefile = models.FileField(upload_to='prizes', null=True, blank=True)
+    imagefile = models.FileField(
+        upload_to=prize_path_id, storage=prefer_prize_storage, null=True, blank=True
+    )
     description = models.TextField(max_length=1024, blank=True)
     shortdescription = models.TextField(
         max_length=256,

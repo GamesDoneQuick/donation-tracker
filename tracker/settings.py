@@ -1,7 +1,8 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.checks import Error, Warning, register
+from django.core.checks import Error, Info, Warning, register
 from django.core.exceptions import ValidationError
+from django.core.files.storage import InvalidStorageError
 from django.core.validators import EmailValidator
 from django.db import OperationalError
 
@@ -110,101 +111,101 @@ class TrackerSettings(object):
 def tracker_settings_checks(app_configs, **kwargs):
     from django.apps import apps
 
-    errors = []
+    messages = []
     if hasattr(settings, 'HAS_CELERY'):
-        errors.append(
+        messages.append(
             Warning(
                 'HAS_CELERY is deprecated, use TRACKER_HAS_CELERY instead',
                 id='tracker.W100',
             )
         )
     if not isinstance(TrackerSettings().TRACKER_HAS_CELERY, bool):
-        errors.append(Error('TRACKER_HAS_CELERY should be a bool', id='tracker.E100'))
+        messages.append(Error('TRACKER_HAS_CELERY should be a bool', id='tracker.E100'))
     if hasattr(settings, 'GIANTBOMB_API_KEY'):
-        errors.append(
+        messages.append(
             Warning(
                 'GIANTBOMB_API_KEY is deprecated, use TRACKER_GIANTBOMB_API_KEY instead',
                 id='tracker.W101',
             )
         )
     if not isinstance(TrackerSettings().TRACKER_GIANTBOMB_API_KEY, str):
-        errors.append(
+        messages.append(
             Error('TRACKER_GIANTBOMB_API_KEY should be a string', id='tracker.E101')
         )
     # TODO: validate Giant Bomb key?
     if hasattr(settings, 'PRIVACY_POLICY_URL'):
-        errors.append(
+        messages.append(
             Warning(
                 'PRIVACY_POLICY_URL is deprecated, use TRACKER_PRIVACY_POLICY_URL instead',
                 id='tracker.W102',
             )
         )
     if not isinstance(TrackerSettings().TRACKER_PRIVACY_POLICY_URL, str):
-        errors.append(
+        messages.append(
             Error('TRACKER_PRIVACY_POLICY_URL should be a string', id='tracker.E102')
         )
     if hasattr(settings, 'SWEEPSTAKES_URL'):
-        errors.append(
+        messages.append(
             Warning(
                 'SWEEPSTAKES_URL is deprecated, use TRACKER_SWEEPSTAKES_URL instead',
                 id='tracker.W103',
             )
         )
     if not isinstance(TrackerSettings().TRACKER_SWEEPSTAKES_URL, str):
-        errors.append(
+        messages.append(
             Error('TRACKER_SWEEPSTAKES_URL should be a string', id='tracker.E103')
         )
     if not isinstance(TrackerSettings().TRACKER_PAGINATION_LIMIT, int):
-        errors.append(
+        messages.append(
             Error('TRACKER_PAGINATION_LIMIT should be an integer', id='tracker.E104')
         )
     if not isinstance(TrackerSettings().TRACKER_LOGO, str):
-        errors.append(Error('TRACKER_LOGO should be a string', id='tracker.E105'))
+        messages.append(Error('TRACKER_LOGO should be a string', id='tracker.E105'))
     # TODO: validate logo URL works?
     if not isinstance(TrackerSettings().TRACKER_ENABLE_BROWSABLE_API, bool):
-        errors.append(
+        messages.append(
             Error('TRACKER_ENABLE_BROWSABLE_API should be a bool', id='tracker.E106')
         )
     if not isinstance(TrackerSettings().PAYPAL_TEST, bool):
-        errors.append(Error('PAYPAL_TEST should be a bool', id='tracker.E107'))
+        messages.append(Error('PAYPAL_TEST should be a bool', id='tracker.E107'))
     if not hasattr(settings, 'PAYPAL_TEST'):
-        errors.append(
+        messages.append(
             Error(
                 'PAYPAL_TEST is completely missing, set it to True for development/testing and False for production mode',
                 id='tracker.E108',
             )
         )
     if not isinstance(TrackerSettings().TRACKER_CONTRIBUTORS_URL, str):
-        errors.append(
+        messages.append(
             Error('TRACKER_CONTRIBUTORS_URL should be a string', id='tracker.E109')
         )
     if not isinstance(TrackerSettings().TRACKER_PAYPAL_MAX_DONATE_AGE, int):
-        errors.append(
+        messages.append(
             Error(
                 'TRACKER_PAYPAL_MAX_DONATE_AGE should be an integer', id='tracker.E110'
             )
         )
     if not isinstance(TrackerSettings().TRACKER_PAYPAL_SIGNATURE_PREFIX, str):
-        errors.append(
+        messages.append(
             Error(
                 'TRACKER_PAYPAL_SIGNATURE_PREFIX should be a string', id='tracker.E111'
             )
         )
     elif not (1 <= len(TrackerSettings().TRACKER_PAYPAL_SIGNATURE_PREFIX) <= 8):
-        errors.append(
+        messages.append(
             Error(
                 'TRACKER_PAYPAL_SIGNATURE_PREFIX should be between 1 and 8 characters',
                 id='tracker.E111',
             )
         )
     if not isinstance(TrackerSettings().TRACKER_PAYPAL_MAXIMUM_AMOUNT, int):
-        errors.append(
+        messages.append(
             Error(
                 'TRACKER_PAYPAL_MAXIMUM_AMOUNT should be an integer', id='tracker.E112'
             )
         )
     if not isinstance(TrackerSettings().TRACKER_REGISTRATION_FROM_EMAIL, str):
-        errors.append(
+        messages.append(
             Error(
                 'TRACKER_REGISTRATION_FROM_EMAIL should be a string', id='tracker.E113'
             )
@@ -213,14 +214,14 @@ def tracker_settings_checks(app_configs, **kwargs):
         try:
             EmailValidator()(TrackerSettings().TRACKER_REGISTRATION_FROM_EMAIL)
         except ValidationError:
-            errors.append(
+            messages.append(
                 Error(
                     'TRACKER_REGISTRATION_FROM_EMAIL is not a valid email address',
                     id='tracker.E113',
                 )
             )
     if not isinstance(TrackerSettings().TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL, str):
-        errors.append(
+        messages.append(
             Error(
                 'TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL should be a string',
                 id='tracker.E114',
@@ -232,7 +233,7 @@ def tracker_settings_checks(app_configs, **kwargs):
                 TrackerSettings().TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL
             )
         except ValidationError:
-            errors.append(
+            messages.append(
                 Error(
                     'TRACKER_VOLUNTEER_REGISTRATION_FROM_EMAIL is not a valid email address',
                     id='tracker.E114',
@@ -245,34 +246,34 @@ def tracker_settings_checks(app_configs, **kwargs):
 
             try:
                 if not Site.objects.filter(id=site_id).exists():
-                    errors.append(
+                    messages.append(
                         Error(
                             'Site specified by TRACKER_PUBLIC_SITE_ID/SITE_ID does not exist',
                             id='tracker.E115',
                         )
                     )
             except OperationalError as e:
-                errors.append(
+                messages.append(
                     Error(
                         f'TRACKER_PUBLIC_SITE_ID/SITE_ID is set, but had an error retrieving it\nEnsure that Sites is installed and migrated before you apply this setting\n{e}',
                         id='tracker.E115',
                     )
                 )
         else:
-            errors.append(
+            messages.append(
                 Error(
                     'TRACKER_PUBLIC_SITE_ID/SITE_ID should be an int', id='tracker.E115'
                 )
             )
     elif hasattr(settings, 'TRACKER_PUBLIC_SITE_ID'):
-        errors.append(
+        messages.append(
             Warning(
                 'TRACKER_PUBLIC_SITE_ID is set, but will be ignored because the Sites application is not installed.',
                 id='tracker.W115',
             )
         )
     if hasattr(settings, 'DOMAIN'):
-        errors.append(
+        messages.append(
             Warning(
                 'DOMAIN is set. This is a deprecated setting for the Tracker, but it might have uses on other apps. If this is the case, you may safely silence this warning. See the SILENCED_SYSTEM_CHECKS setting.',
                 id='tracker.W116',
@@ -280,7 +281,7 @@ def tracker_settings_checks(app_configs, **kwargs):
         )
     if username := getattr(settings, 'TRACKER_DEFAULT_PRIZE_COORDINATOR', None):
         if not isinstance(username, str):
-            errors.append(
+            messages.append(
                 Error(
                     'TRACKER_DEFAULT_PRIZE_COORDINATOR should be a string.',
                     id='tracker.E117',
@@ -291,10 +292,21 @@ def tracker_settings_checks(app_configs, **kwargs):
 
             user = User.objects.filter(**{User.USERNAME_FIELD: username}).first()
             if not user:
-                errors.append(
+                messages.append(
                     Warning(
                         'TRACKER_DEFAULT_PRIZE_COORDINATOR is set, but the username cannot be found. Double check spelling and case sensitivity.',
                         id='tracker.W117',
                     )
                 )
-    return errors
+    try:
+        from django.core.files.storage import storages
+
+        storages['prizes']
+    except InvalidStorageError:
+        messages.append(
+            Info(
+                'STORAGES does not have a valid `prizes` configuration, default storage will be used instead.',
+                id='tracker.I118',
+            )
+        )
+    return messages

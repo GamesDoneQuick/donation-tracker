@@ -39,5 +39,10 @@
     <div style="grid-column: 1">Storage Works</div>
     <div>{{ storage_works }}</div>
     <div>(Was Django able to save, read, and delete a test file?)</div>
+    {% if prize_storage_works != 'default' %}
+      <div style="grid-column: 1">Prize Storage Works</div>
+      <div>{{ prize_storage_works }}</div>
+      <div>(Was Django able to save, read, and delete a test file on the prize storage?)</div>
+    {% endif %}
   </div>
 {% endblock %}

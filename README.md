@@ -253,6 +253,25 @@ the standard set of examples, or `-aop {your_prefix}` to create them with your c
 not let you choose a template whose name starts with `default`, and will verify that a) there are no invalid variables
 in the template and b) certain required variables are used.
 
+In order to allow customization of where your prize images are stored, you may provide a `prizes` key in the `STORAGES`
+setting like so:
+
+```python
+# using django-storages[s3] as an example
+
+STORAGES = {
+  # ... default and staticfiles
+  'prizes': {
+    'BACKEND': 'storages.backends.s3.S3Storage',
+    'OPTIONS': {
+      # see django-storages documentation for things like `access_key`, `secret_key`, `session_profile` etc
+    }
+  }
+}
+```
+
+If the `prizes` storage is not present, it will fall back on `default`.
+
 #### Pending
 
 API state: `pending`
