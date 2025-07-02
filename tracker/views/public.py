@@ -416,7 +416,9 @@ def donationindex(request, event=None):
         caches = DonorCache.objects.filter(donor=None, event=None)
 
     donations = views_common.fixorder(donations, orderdict, sort, order)
-    donations = donations.select_related('donor').prefetch_related('donor__cache')
+    donations = donations.select_related('donor', 'event').prefetch_related(
+        'donor__cache'
+    )
 
     pages = paginator.Paginator(donations, 50)
     # TODO: these should really be errors

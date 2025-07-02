@@ -609,12 +609,13 @@ class Bid(mptt.models.MPTTModel):
             self.count = options['count']
 
     def __str__(self):
+        parts = [f'{self.event} (Event)']
+        if self.speedrun:
+            parts.append(f'{self.speedrun.name_with_category} (Run)')
         if self.parent:
-            return f'{self.parent} (Parent) -- {self.name}'
-        elif self.speedrun:
-            return f'{self.speedrun.name_with_category} (Run) -- {self.name}'
-        else:
-            return f'{self.event} (Event) -- {self.name}'
+            parts.append(f'{self.parent.name} (Parent)')
+        parts.append(self.name)
+        return ' -- '.join(parts)
 
 
 class DonationBidQuerySet(models.QuerySet):
