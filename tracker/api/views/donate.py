@@ -174,6 +174,7 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
     domainId = CharField(read_only=True)
     donor_id = IntegerField(required=False)
     donor_email = EmailField(required=False)
+    donor_twitch_id = IntegerField(required=False)
     email_optin = BooleanField()
     event = IntegerField()
     requested_alias = CharField(
@@ -271,14 +272,14 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                         ErrorDetail('Specified donor does not exist.', code='invalid')
                     )
             elif 'donor_email' in attrs:
-                if not Donor.objects.filter(
-                    email__iexact=attrs['donor_email']
-                ).exists():
+                donor = Donor.objects.filter(email__iexact=attrs['donor_email']).first()
+                if not donor:
                     errors['donor_email'].append(
                         ErrorDetail(
                             'Specified donor email could not be found.', code='invalid'
                         )
                     )
+                attrs['donor_id'] = donor.id
             else:
                 errors['domain'].append(
                     ErrorDetail(
@@ -288,6 +289,24 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                 )
         elif domain == 'PAYPAL':
             pass
+        elif domain == 'TWITCH':
+            if 'donor_twitch_id' in attrs:
+                attrs['donor_id'] = Donor.objects.get_or_create(
+                    twitch_id=attrs['donor_twitch_id'],
+                    defaults={
+                        'email': attrs.get(
+                            'donor_email',
+                            f'{attrs["donor_twitch_id"]}@users.twitch.tv.fake',
+                        )
+                    },
+                )[0].id
+            else:
+                errors['domain'].append(
+                    ErrorDetail(
+                        'Twitch donations require `donor_twitch_id` field.',
+                        code='invalid',
+                    )
+                )
         else:
             errors['domain'].append(
                 ErrorDetail(
@@ -327,7 +346,8 @@ class DonateViewSet(GenericViewSet):
             event = Event.objects.get(id=data['event'])
             query = dict(
                 event=event,
-                domain='PAYPAL',
+                donor_id=data.get('donor_id', None),
+                domain=data['domain'],
                 domainId=data['domainId'],
                 currency=event.paypalcurrency,
                 amount=_trim(data['amount']),

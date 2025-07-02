@@ -191,6 +191,14 @@ export interface DonationPost {
   // only with creation permission
   donor_email?: string;
   donor_id?: number;
+  donor_twitch_id?: number;
+}
+
+export interface DonationBidPost {
+  bid?: number;
+  amount: number;
+  parent?: number;
+  name?: string;
 }
 
 export interface APIRun
