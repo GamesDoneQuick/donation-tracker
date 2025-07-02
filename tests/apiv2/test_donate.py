@@ -386,3 +386,20 @@ class TestDonate(APITestCase):
             )
             donation = models.Donation.objects.get(id=response['id'])
             self.assertV2ModelPresent(DonationSerializer(donation).data, response)
+
+        with self.subTest('create twitch'), self.saveSnapshot():
+            response = self.post_new(
+                data={
+                    **valid,
+                    # FIXME: what to do about hidden bids?
+                    'bids': [],
+                    'domain': 'TWITCH',
+                    'donor_email': '12345678@fake.users.twitch.tv',
+                    'donor_twitch_id': 12345678,
+                },
+                model_name='donate',
+                status_code=201,
+                user=self.add_user,
+            )
+            donation = models.Donation.objects.get(id=response['id'])
+            self.assertV2ModelPresent(DonationSerializer(donation).data, response)

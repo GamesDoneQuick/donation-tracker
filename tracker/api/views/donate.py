@@ -174,6 +174,7 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
     domainId = CharField(read_only=True)
     donor_id = IntegerField(required=False)
     donor_email = EmailField(required=False)
+    donor_twitch_id = IntegerField(required=False)
     email_optin = BooleanField()
     event = IntegerField()
     requested_alias = CharField(
@@ -288,6 +289,24 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                 )
         elif domain == 'PAYPAL':
             pass
+        elif domain == 'TWITCH':
+            if 'donor_twitch_id' in attrs:
+                attrs['donor_id'] = Donor.objects.get_or_create(
+                    twitch_id=attrs['donor_twitch_id'],
+                    defaults={
+                        'email': attrs.get(
+                            'donor_email',
+                            f'{attrs["donor_twitch_id"]}@users.twitch.tv.fake',
+                        )
+                    },
+                )[0].id
+            else:
+                errors['domain'].append(
+                    ErrorDetail(
+                        'Twitch donations require `donor_twitch_id` field.',
+                        code='invalid',
+                    )
+                )
         else:
             errors['domain'].append(
                 ErrorDetail(

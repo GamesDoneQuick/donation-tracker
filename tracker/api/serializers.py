@@ -806,6 +806,18 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
             self._bids = [donation_bids.bid]
             self._bid_serializer = BidSerializer(self._bids)
 
+    def to_internal_value(self, data):
+        if (
+            (request := self.context.get('request', None))
+            and request.method.upper() == 'POST'
+            and (view := self.context.get('view', None))
+        ):
+            if 'donation' not in data and (donation := view.donation):
+                data['donation'] = donation.id
+            if 'bid' not in data and (bid := view.bid):
+                data['bid'] = bid.id
+        return super().to_internal_value(data)
+
     def to_representation(self, instance):
         # final check
         assert self._has_permission(
