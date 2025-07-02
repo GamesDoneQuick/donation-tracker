@@ -14,7 +14,7 @@ except ImportError:
 __bare_version__ = '3.3.1.dev0'
 
 if __tag__ := os.environ.get('BUILD_NUMBER', ''):
-    __version__ = __bare_version__.replace('dev0', __tag__)
+    __version__ = __bare_version__.replace('dev0', f'{__tag__}.dev0')
 else:
     __version__ = __bare_version__
 
