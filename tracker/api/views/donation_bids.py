@@ -4,10 +4,16 @@ from tracker import models
 from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import DonationBidStatePermission
 from tracker.api.serializers import DonationBidSerializer
-from tracker.api.views import TrackerReadViewSet, WithSerializerPermissionsMixin
+from tracker.api.views import (
+    TrackerCreateMixin,
+    TrackerReadViewSet,
+    WithSerializerPermissionsMixin,
+)
 
 
-class DonationBidViewSet(WithSerializerPermissionsMixin, TrackerReadViewSet):
+class DonationBidViewSet(
+    WithSerializerPermissionsMixin, TrackerReadViewSet, TrackerCreateMixin
+):
     serializer_class = DonationBidSerializer
     pagination_class = TrackerPagination
     permission_classes = [DonationBidStatePermission]

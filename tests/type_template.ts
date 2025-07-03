@@ -7,6 +7,7 @@ import {
   BidGet,
   BidPatch,
   BidPost,
+  DonationBidPost,
   DonationCommentPatch,
   DonationGet,
   DonationPost,
@@ -65,4 +66,5 @@ let talentPost: TalentPost;
 let talentPatch: TalentPatch;
 let donationGet: DonationGet;
 let donatePost: DonationPost;
+let donationBidPost: DonationBidPost;
 let commentPatch: DonationCommentPatch;
