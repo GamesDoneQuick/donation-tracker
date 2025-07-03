@@ -272,14 +272,14 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                         ErrorDetail('Specified donor does not exist.', code='invalid')
                     )
             elif 'donor_email' in attrs:
-                if not Donor.objects.filter(
-                    email__iexact=attrs['donor_email']
-                ).exists():
+                donor = Donor.objects.filter(email__iexact=attrs['donor_email']).first()
+                if not donor:
                     errors['donor_email'].append(
                         ErrorDetail(
                             'Specified donor email could not be found.', code='invalid'
                         )
                     )
+                attrs['donor_id'] = donor.id
             else:
                 errors['domain'].append(
                     ErrorDetail(
@@ -346,7 +346,8 @@ class DonateViewSet(GenericViewSet):
             event = Event.objects.get(id=data['event'])
             query = dict(
                 event=event,
-                domain='PAYPAL',
+                donor_id=data.get('donor_id', None),
+                domain=data['domain'],
                 domainId=data['domainId'],
                 currency=event.paypalcurrency,
                 amount=_trim(data['amount']),

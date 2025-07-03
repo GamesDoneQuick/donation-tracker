@@ -371,6 +371,7 @@ class TestDonate(APITestCase):
             )
             donation = models.Donation.objects.get(id=response['id'])
             self.assertV2ModelPresent(DonationSerializer(donation).data, response)
+            self.assertEqual(donation.donor, self.donor)
 
             response = self.post_new(
                 data={
@@ -386,6 +387,7 @@ class TestDonate(APITestCase):
             )
             donation = models.Donation.objects.get(id=response['id'])
             self.assertV2ModelPresent(DonationSerializer(donation).data, response)
+            self.assertEqual(donation.donor, self.donor)
 
         with self.subTest('create twitch'), self.saveSnapshot():
             response = self.post_new(
@@ -394,7 +396,7 @@ class TestDonate(APITestCase):
                     # FIXME: what to do about hidden bids?
                     'bids': [],
                     'domain': 'TWITCH',
-                    'donor_email': '12345678@fake.users.twitch.tv',
+                    'requested_alias': 'Kappa',
                     'donor_twitch_id': 12345678,
                 },
                 model_name='donate',
@@ -403,3 +405,8 @@ class TestDonate(APITestCase):
             )
             donation = models.Donation.objects.get(id=response['id'])
             self.assertV2ModelPresent(DonationSerializer(donation).data, response)
+            self.assertEqual(donation.donor.twitch_id, 12345678)
+            self.assertEqual(donation.donor.email, '12345678@users.twitch.tv.fake')
+            self.assertEqual(donation.requestedalias, 'Kappa')
+            self.assertEqual(donation.requestedvisibility, 'ALIAS')
+            self.assertEqual(donation.transactionstate, 'COMPLETED')

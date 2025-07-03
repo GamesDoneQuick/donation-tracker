@@ -367,6 +367,8 @@ class Donation(models.Model):
         if self.domain == 'LOCAL':  # local donations are always complete, duh
             self.cleared_at = self.timereceived
             self.transactionstate = 'COMPLETED'
+        if self.domain == 'TWITCH':
+            self.transactionstate = 'COMPLETED'
         # reminder that this does not run during migrations tests, so you have to provide the domainId yourself
         if not self.domainId:
             self.domainId = f'{int(time.time())}-{random.getrandbits(128)}'
