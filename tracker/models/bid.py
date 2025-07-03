@@ -74,6 +74,7 @@ class BidQuerySet(mptt.managers.TreeQuerySet):
             parent_name=F('parent__name'),
             speedrun_name=F('speedrun__name'),
             event_name=F('event__name'),
+            currency=F('event__paypalcurrency'),
         ).order_by(
             *Bid._meta.ordering
         )  # Django 3.x erases the default ordering after an annotate

@@ -80,7 +80,7 @@ class BidViewSet(
         )
 
     def get_queryset(self):
-        return super().get_queryset().select_related('speedrun', 'event')
+        return super().get_queryset().select_related('speedrun', 'event', 'parent')
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

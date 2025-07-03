@@ -886,10 +886,6 @@ class DonationSerializer(
         assert not self.with_groups or self._has_permission(
             'tracker.view_donation'
         ), 'attempting to serialize a donation with groups without the expected permission'
-        bids = self.fields.get('bids', None)
-        if isinstance(bids, (ListSerializer, DonationBidSerializer)):
-            bids = getattr(bids, 'child', bids)
-            bids.prefetch_bids_for_donations(self.instance)
         value = super().to_representation(instance)
         if not self.with_donor_ids:
             value.pop('donor', None)
