@@ -289,7 +289,7 @@ class TestDonationBids(APITestCase):
                     kwargs={'pk': self.blank_donation.id},
                     data={
                         'bid': self.opened_child.id,
-                        'amount': self.blank_donation.amount,
+                        'amount': float(self.blank_donation.amount),
                     },
                     model_name='donation',
                     user=self.add_user,
