@@ -1,4 +1,5 @@
 import datetime
+import logging
 import math
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -20,6 +21,8 @@ from tracker.api.views import (
     WithSerializerPermissionsMixin,
 )
 from tracker.models import Interstitial, SpeedRun
+
+logger = logging.getLogger(__name__)
 
 
 class SpeedRunViewSet(
@@ -337,6 +340,7 @@ class SpeedRunViewSet(
                 ).select_related('anchor')
                 interstitials.update(order=None)
                 for i in interstitials:
+                    logger.info(f'Trying to clean {i}')
                     try:
                         i.full_clean(exclude=['order'])
                     except DjangoValidationError as exc:
