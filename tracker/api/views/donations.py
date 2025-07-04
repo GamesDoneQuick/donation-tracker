@@ -146,7 +146,11 @@ class DonationViewSet(
             and self.request.user.has_perm('tracker.view_bid')
         ):
             queryset = queryset.prefetch_related(
-                'bids', 'bids__bid', 'bids__speedrun', 'bids__event'
+                'bids',
+                'bids__bid',
+                'bids__bid__parent',
+                'bids__bid__speedrun',
+                'bids__bid__event',
             )
         else:
             queryset = queryset.prefetch_public_bids()
