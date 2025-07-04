@@ -2559,6 +2559,23 @@ class TestPrizeClaimRename(MigrationsTestCase):
         )
 
 
+class TestPrizeRemoveMaximumBid(MigrationsTestCase):
+    migrate_from = [('tracker', '0077_alter_prize_imagefile')]
+    migrate_to = [('tracker', '0078_clear_prize_maximumbid')]
+
+    def setUpBeforeMigration(self, apps):
+        Prize = apps.get_model('tracker', 'Prize')
+        Event = apps.get_model('tracker', 'Event')
+        event = Event.objects.create(name='Test Event', datetime=today_noon)
+        Prize.objects.create(name='Range', event=event, minimumbid=5, maximumbid=10)
+        Prize.objects.create(name='No Range', event=event, minimumbid=5, maximumbid=5)
+
+    def test_after_migration(self):
+        Prize = self.apps.get_model('tracker', 'Prize')
+        self.assertIsNone(Prize.objects.get(name='No Range').maximumbid)
+        self.assertEqual(Prize.objects.get(name='Range').maximumbid, 10)
+
+
 class TestPrizeSubmission(TestCase, AssertionHelpers):
     def setUp(self):
         super().setUp()
