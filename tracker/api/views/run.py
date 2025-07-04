@@ -335,9 +335,10 @@ class SpeedRunViewSet(
                 interstitials = Interstitial.objects.filter(
                     anchor__in=changed
                 ).select_related('anchor')
+                interstitials.update(order=None)
                 for i in interstitials:
                     try:
-                        i.full_clean()
+                        i.full_clean(exclude=['order'])
                     except DjangoValidationError as exc:
                         raise DjangoValidationError({'interstitial': exc.messages})
                     i.save()

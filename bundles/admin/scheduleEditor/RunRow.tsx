@@ -131,7 +131,15 @@ function StartTimeControls({
   );
 }
 
-export function RunRow({ run, prizeCount }: { run: Run; prizeCount?: { start: number; end: number } }) {
+export function RunRow({
+  run,
+  prizeCount,
+  refreshInterstitials,
+}: {
+  run: Run;
+  prizeCount?: { start: number; end: number };
+  refreshInterstitials: () => void;
+}) {
   const { ADMIN_ROOT } = useConstants();
   const canViewRuns = usePermission('tracker.view_speedrun');
   const canChangeRuns = useArchivedPermission('tracker.change_speedrun');
@@ -178,7 +186,7 @@ export function RunRow({ run, prizeCount }: { run: Run; prizeCount?: { start: nu
         );
       },
       drop(item) {
-        moveRun({ id: item.id, before: run.id });
+        moveRun({ id: item.id, before: run.id }).then(refreshInterstitials);
       },
       collect: monitor => {
         return {
@@ -188,10 +196,17 @@ export function RunRow({ run, prizeCount }: { run: Run; prizeCount?: { start: nu
         };
       },
     }),
-    [moveRun, run],
+    [moveRun, run, refreshInterstitials],
   );
 
-  const moveRunTo = React.useCallback((order: number | null) => moveRun({ id: run.id, order }), [moveRun, run.id]);
+  const moveRunTo = React.useCallback(
+    (order: number | null) => {
+      const result = moveRun({ id: run.id, order });
+      result.unwrap().then(refreshInterstitials);
+      return result;
+    },
+    [moveRun, run.id, refreshInterstitials],
+  );
 
   const patchField = React.useCallback(
     (field: keyof RunPatch) => (value: string | null) => patchRun({ id: run.id, [field]: value }).unwrap(),

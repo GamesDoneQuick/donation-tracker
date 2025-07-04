@@ -148,6 +148,12 @@ export default function ScheduleEditor() {
     }
     refetchPrizes();
   }, [canViewAds, refetchAds, refetchEvent, refetchInterviews, refetchPrizes, refetchRuns]);
+  const refreshInterstitials = React.useCallback(() => {
+    refetchInterviews();
+    if (canViewAds) {
+      refetchAds();
+    }
+  }, [canViewAds, refetchAds, refetchInterviews]);
 
   return (
     <>
@@ -177,7 +183,7 @@ export default function ScheduleEditor() {
             <tbody>
               {orderedRuns.map((r, i, runs) => (
                 <React.Fragment key={r.id}>
-                  <RunRow run={r} prizeCount={prizeCount?.[r.id]} />
+                  <RunRow run={r} prizeCount={prizeCount?.[r.id]} refreshInterstitials={refreshInterstitials} />
                   {interstitials[r.id].map(i =>
                     i.type === 'interview'
                       ? showInterviews && <InterviewRow key={i.id} interview={i} />
@@ -201,7 +207,7 @@ export default function ScheduleEditor() {
                 </tr>
               )}
               {unorderedRuns.map(r => (
-                <RunRow key={r.id} run={r} />
+                <RunRow key={r.id} run={r} refreshInterstitials={refreshInterstitials} />
               ))}
             </tbody>
           </table>
