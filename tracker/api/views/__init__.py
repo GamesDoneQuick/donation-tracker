@@ -147,19 +147,23 @@ class EventNestedMixin:
             return queryset
 
     def get_event_from_request(self):
+        if event := getattr(self, '_event', None):
+            return event
         if event_pk := self.kwargs.get('event_pk', None):
             from tracker.api.views.events import EventViewSet
 
-            return EventViewSet(
+            self._event = EventViewSet(
                 kwargs={'pk': event_pk, 'skip_annotations': True}, request=self.request
             ).get_object()
+            return self._event
         if (
             not self.detail
             and isinstance(self.request.data, dict)
             and (event := self.request.data.get('event', None))
         ):
             with contextlib.suppress(TypeError, ValueError):
-                return models.Event.objects.filter(pk=event).first()
+                self._event = models.Event.objects.filter(pk=event).first()
+                return self._event
         return None
 
     def get_event_from_body(self, event=None):
