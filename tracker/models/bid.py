@@ -685,7 +685,7 @@ class DonationBid(models.Model):
                 },
             )
 
-            if self.donation.domain == 'LOCAL':
+            if self.donation.domain in ['LOCAL', 'TWITCH']:
                 from .. import settings, tasks
 
                 if settings.TRACKER_HAS_CELERY:

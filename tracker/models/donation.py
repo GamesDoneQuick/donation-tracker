@@ -384,7 +384,7 @@ class Donation(models.Model):
         # TODO: language detection again?
         self.commentlanguage = 'un'
 
-        post = self.id is None and self.domain == 'LOCAL'
+        post = self.id is None and self.domain in ['LOCAL', 'TWITCH']
 
         super(Donation, self).save(*args, **kwargs)
 
