@@ -1,3 +1,6 @@
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
 from tracker.api.filters import PrizeFilter
 from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import (
@@ -30,6 +33,10 @@ class PrizeViewSet(
     ]
     filter_backends = [PrizeFilter]
     pagination_class = TrackerPagination
+
+    @method_decorator(cache_page(60))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = super().get_queryset()

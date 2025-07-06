@@ -1,3 +1,6 @@
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
 from tracker import models
 from tracker.api.filters import EventFilter
 from tracker.api.pagination import TrackerPagination
@@ -10,6 +13,10 @@ class EventViewSet(FlatteningViewSetMixin, TrackerReadViewSet):
     filter_backends = [EventFilter]
     serializer_class = EventSerializer
     pagination_class = TrackerPagination
+
+    @method_decorator(cache_page(60))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_queryset(self):
         return super().get_queryset().with_cache()
