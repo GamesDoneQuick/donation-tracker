@@ -12,6 +12,8 @@ from tracker.api.serializers import DonationSerializer
 class TestDonate(APITestCase):
     def setUp(self):
         super().setUp()
+        self.event.minimumdonation = 5
+        self.event.save()
         self.opened_challenge = models.Bid.objects.create(
             event=self.event, name='Challenge', goal=1000, istarget=True, state='OPENED'
         )
@@ -393,6 +395,7 @@ class TestDonate(APITestCase):
             response = self.post_new(
                 data={
                     **valid,
+                    'amount': 1,  # twitch donations can be as small as a dollar
                     # FIXME: what to do about hidden bids?
                     'bids': [],
                     'domain': 'TWITCH',

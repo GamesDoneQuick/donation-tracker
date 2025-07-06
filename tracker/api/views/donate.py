@@ -211,7 +211,7 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                         code='invalid',
                     )
                 )
-            if attrs['amount'] < event.minimumdonation:
+            if attrs['domain'] != 'TWITCH' and attrs['amount'] < event.minimumdonation:
                 errors['amount'].append(
                     ErrorDetail(
                         'Donation amount is below event minimum.', code='invalid'
