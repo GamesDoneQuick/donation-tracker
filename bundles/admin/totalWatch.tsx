@@ -22,6 +22,7 @@ import { useAppSelector } from '@public/apiv2/Store';
 import { useDateTime } from '@public/hooks/useDateTime';
 import { useNow } from '@public/hooks/useNow';
 import Spinner from '@public/spinner';
+import { sum } from '@public/util/reduce';
 
 const intervals = [5, 15, 30, 60, 180];
 
@@ -140,13 +141,15 @@ export default React.memo(function TotalWatch() {
     }, intervalData);
   }, [donations, currentRunStart, now, previousRunStart]);
   const domainData = React.useMemo(() => {
+    const total = donations.map(d => d.amount).reduce(sum, 0);
     return donations.reduce(
       (domains, donation) => {
-        domains[donation.domain] = domains[donation.domain] || 0;
-        domains[donation.domain] += donation.amount;
+        domains[donation.domain] = domains[donation.domain] || [0, 0];
+        domains[donation.domain][0] += donation.amount;
+        domains[donation.domain][1] = domains[donation.domain][0] / total;
         return domains;
       },
-      {} as Record<DonationDomain, number>,
+      {} as Record<DonationDomain, [number, number]>,
     );
   }, [donations]);
 
@@ -235,9 +238,9 @@ export default React.memo(function TotalWatch() {
           Total in the last {k} minutes: ${format.format(v[1])} ({v[0]})
         </h4>
       ))}
-      {Object.entries(domainData).map(([domain, total]) => (
+      {Object.entries(domainData).map(([domain, [total, pct]]) => (
         <h4 key={domain}>
-          {domain}: ${format.format(total)}
+          {domain}: ${format.format(total)} ({Math.floor(pct * 100)}%)
         </h4>
       ))}
       {milestones?.map(milestone => {
