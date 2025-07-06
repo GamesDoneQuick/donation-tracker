@@ -297,7 +297,9 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                         'email': attrs.get(
                             'donor_email',
                             f'{attrs["donor_twitch_id"]}@users.twitch.tv.fake',
-                        )
+                        ),
+                        'alias': attrs['requested_alias'],
+                        'visibility': 'ALIAS',
                     },
                 )[0].id
             else:

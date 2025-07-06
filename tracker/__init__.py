@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 try:
@@ -23,3 +24,9 @@ try:
         assert json.load(pkg)['version'] == __bare_version__
 except IOError:
     pass
+
+
+class DBTrace(logging.Handler):
+    def emit(self, record):
+        # put a breakpoint here when trying to debug N+1 queries
+        pass

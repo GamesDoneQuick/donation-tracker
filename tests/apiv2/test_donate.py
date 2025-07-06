@@ -410,6 +410,8 @@ class TestDonate(APITestCase):
             self.assertV2ModelPresent(DonationSerializer(donation).data, response)
             self.assertEqual(donation.donor.twitch_id, 12345678)
             self.assertEqual(donation.donor.email, '12345678@users.twitch.tv.fake')
+            self.assertEqual(donation.donor.alias, 'Kappa')
+            self.assertEqual(donation.donor.visibility, 'ALIAS')
             self.assertEqual(donation.requestedalias, 'Kappa')
             self.assertEqual(donation.requestedvisibility, 'ALIAS')
             self.assertEqual(donation.transactionstate, 'COMPLETED')
