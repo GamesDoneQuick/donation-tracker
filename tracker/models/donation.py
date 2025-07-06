@@ -98,6 +98,8 @@ class DonationQuerySet(models.QuerySet):
         return self.prefetch_related(
             Prefetch('bids', queryset=DonationBid.objects.public()),
             Prefetch('bids__bid', queryset=bids),
+            'bids__bid__speedrun',
+            'bids__bid__event',
         )
 
 

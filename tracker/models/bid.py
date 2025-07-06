@@ -74,6 +74,7 @@ class BidQuerySet(mptt.managers.TreeQuerySet):
             parent_name=F('parent__name'),
             speedrun_name=F('speedrun__name'),
             event_name=F('event__name'),
+            currency=F('event__paypalcurrency'),
         ).order_by(
             *Bid._meta.ordering
         )  # Django 3.x erases the default ordering after an annotate
@@ -619,12 +620,13 @@ class Bid(mptt.models.MPTTModel):
         return ''.join(result)
 
     def __str__(self):
+        parts = [f'{self.event} (Event)']
+        if self.speedrun:
+            parts.append(f'{self.speedrun.name_with_category} (Run)')
         if self.parent:
-            return f'{self.parent} (Parent) -- {self.name}'
-        elif self.speedrun:
-            return f'{self.speedrun.name_with_category} (Run) -- {self.name}'
-        else:
-            return f'{self.event} (Event) -- {self.name}'
+            parts.append(f'{self.parent.name} (Parent)')
+        parts.append(self.name)
+        return ' -- '.join(parts)
 
 
 class DonationBidQuerySet(models.QuerySet):

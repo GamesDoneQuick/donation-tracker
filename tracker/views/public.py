@@ -138,7 +138,7 @@ def get_bid_info(bid, bids):
         'parent': bid.parent_name,
         'speedrun': bid.speedrun_name,
         'event': bid.event_name if not bid.speedrun_name else '',
-        'currency': bid.event.paypalcurrency,
+        'currency': bid.currency,
         'description': bid.description,
         'goal': bid.goal,
         'total': bid.total,
@@ -416,7 +416,9 @@ def donationindex(request, event=None):
         caches = DonorCache.objects.filter(donor=None, event=None)
 
     donations = views_common.fixorder(donations, orderdict, sort, order)
-    donations = donations.select_related('donor').prefetch_related('donor__cache')
+    donations = donations.select_related('donor', 'event').prefetch_related(
+        'donor__cache'
+    )
 
     pages = paginator.Paginator(donations, 50)
     # TODO: these should really be errors
@@ -510,11 +512,12 @@ def run_detail(request, pk):
             SpeedRun.objects.prefetch_related('runners', 'hosts', 'commentators')
             .exclude(order=None)
             .filter(event__draft=False)
+            .select_related('event')
             .get(pk=pk)
         )
         event = run.event
         bids = Bid.objects.public().filter(speedrun=pk).with_annotations()
-        bids = [get_bid_info(bid, bids) for bid in bids.filter(level=0)]
+        bids = [get_bid_info(bid, bids) for bid in bids if bid.level == 0]
 
         return views_common.tracker_response(
             request,

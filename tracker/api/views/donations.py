@@ -145,10 +145,16 @@ class DonationViewSet(
             self.request.method in ('PATCH', 'DELETE')
             and self.request.user.has_perm('tracker.view_bid')
         ):
-            queryset = queryset.prefetch_related('bids', 'bids__bid')
+            queryset = queryset.prefetch_related(
+                'bids',
+                'bids__bid',
+                'bids__bid__parent',
+                'bids__bid__speedrun',
+                'bids__bid__event',
+            )
         else:
             queryset = queryset.prefetch_public_bids()
-        return queryset
+        return queryset.select_related('donor')
 
     def get_serializer(
         self,

@@ -40,5 +40,5 @@ class DonationBidViewSet(WithSerializerPermissionsMixin, TrackerReadViewSet):
                 state_filter = Q()
             queryset = queryset.filter(
                 (Q(bid=self.bid) | Q(bid__in=self.bid.get_descendants()) & state_filter)
-            )
+            ).select_related('bid__speedrun', 'bid__event', 'bid__parent')
         return queryset
