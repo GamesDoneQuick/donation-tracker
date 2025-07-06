@@ -17,11 +17,13 @@
           </tr>
         {% endif %}
         <tr>
-          <td><a href="{% url 'admin:tracker_automail_prize_accept_notifications' %}">Mail Prize Winner Accept Notifications</a></td>
+          <td><a href="{% url 'admin:tracker_automail_prize_accept_notifications' %}">Mail Prize Winner Accept
+            Notifications</a></td>
         </tr>
         {% if perms.tracker.view_donor %}
           <tr>
-            <td><a href="{% url 'admin:tracker_automail_prize_shipping_notifications' %}">Mail Prize Winner Shipping Notifications</a></td>
+            <td><a href="{% url 'admin:tracker_automail_prize_shipping_notifications' %}">Mail Prize Winner Shipping
+              Notifications</a></td>
           </tr>
         {% endif %}
       {% endif %}
@@ -38,7 +40,11 @@
       <td><a href="{% url 'admin:tracker_ui' extra='total_watch/' %}">Total Watch (EXPERIMENTAL)</a></td>
     </tr>
     <tr>
-      <td><a href="{% url 'admin:tracker_ui' extra='schedule_editor/' %}">View Schedule</a></td>
+      <td>
+        <a href="{% url 'admin:tracker_ui' extra='schedule_editor/' %}">
+          {% if perms.tracker.change_speedrun %}Schedule Editor{% else %}View Schedule{% endif %}
+        </a>
+      </td>
     </tr>
     {% if perms.tracker.view_bid %}
       <tr>

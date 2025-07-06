@@ -16,7 +16,7 @@ import {
   useRunsQuery,
   useSplitRuns,
 } from '@public/apiv2/hooks';
-import { isAnchored, OrderedRun } from '@public/apiv2/Models';
+import { DonationDomain, isAnchored, OrderedRun } from '@public/apiv2/Models';
 import { getSocketPath } from '@public/apiv2/reducers/sockets';
 import { useAppSelector } from '@public/apiv2/Store';
 import { useDateTime } from '@public/hooks/useDateTime';
@@ -139,6 +139,16 @@ export default React.memo(function TotalWatch() {
       return intervalData;
     }, intervalData);
   }, [donations, currentRunStart, now, previousRunStart]);
+  const domainData = React.useMemo(() => {
+    return donations.reduce(
+      (domains, donation) => {
+        domains[donation.domain] = domains[donation.domain] || 0;
+        domains[donation.domain] += donation.amount;
+        return domains;
+      },
+      {} as Record<DonationDomain, number>,
+    );
+  }, [donations]);
 
   // convenience so we don't have to keep typechecking event amount
   const total = React.useMemo(() => event?.amount ?? 0, [event]);
@@ -223,6 +233,11 @@ export default React.memo(function TotalWatch() {
       {Object.entries(intervalData.intervals).map(([k, v]) => (
         <h4 key={k}>
           Total in the last {k} minutes: ${format.format(v[1])} ({v[0]})
+        </h4>
+      ))}
+      {Object.entries(domainData).map(([domain, total]) => (
+        <h4 key={domain}>
+          {domain}: ${format.format(total)}
         </h4>
       ))}
       {milestones?.map(milestone => {
