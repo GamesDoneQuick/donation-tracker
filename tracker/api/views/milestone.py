@@ -1,5 +1,4 @@
 from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 
 from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import PrivateGenericPermissions
@@ -9,6 +8,7 @@ from tracker.api.views import (
     TrackerFullViewSet,
     WithSerializerPermissionsMixin,
 )
+from tracker.api.views.decorators import cache_page_for_public
 from tracker.models import Milestone
 
 
@@ -24,7 +24,7 @@ class MilestoneViewSet(
         *PrivateGenericPermissions('milestone', lambda o: o.visible),
     ]
 
-    @method_decorator(cache_page(60))
+    @method_decorator(cache_page_for_public(60))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
