@@ -3,7 +3,6 @@ import logging
 
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
-from django.views.decorators.cache import cache_page
 from rest_framework.decorators import action
 from rest_framework.exceptions import (
     ErrorDetail,
@@ -27,6 +26,7 @@ from tracker.api.views import (
     TrackerFullViewSet,
     WithSerializerPermissionsMixin,
 )
+from tracker.api.views.decorators import cache_page_for_public
 from tracker.api.views.donation_bids import DonationBidViewSet
 from tracker.models import Bid, SpeedRun
 
@@ -99,7 +99,7 @@ class BidViewSet(
             )
         return super().create(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60))
+    @method_decorator(cache_page_for_public(60))
     @action(detail=False)
     def tree(self, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset().filter(level=0))
