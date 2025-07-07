@@ -5,7 +5,6 @@ import math
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
@@ -22,6 +21,7 @@ from tracker.api.views import (
     TrackerFullViewSet,
     WithSerializerPermissionsMixin,
 )
+from tracker.api.views.decorators import cache_page_for_public
 from tracker.models import Interstitial, SpeedRun
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ class SpeedRunViewSet(
         *PrivateGenericPermissions('speedrun', lambda r: r.order is not None),
     ]
 
-    @method_decorator(cache_page(60))
+    @method_decorator(cache_page_for_public(60))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
