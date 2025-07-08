@@ -144,12 +144,13 @@ export default React.memo(function TotalWatch() {
     const total = donations.map(d => d.amount).reduce(sum, 0);
     return donations.reduce(
       (domains, donation) => {
-        domains[donation.domain] = domains[donation.domain] || [0, 0];
+        domains[donation.domain] = domains[donation.domain] || [0, 0, 0];
         domains[donation.domain][0] += donation.amount;
         domains[donation.domain][1] = domains[donation.domain][0] / total;
+        domains[donation.domain][2] += donation.bids.map(b => b.amount).reduce(sum, 0);
         return domains;
       },
-      {} as Record<DonationDomain, [number, number]>,
+      {} as Record<DonationDomain, [number, number, number]>,
     );
   }, [donations]);
 
@@ -238,9 +239,10 @@ export default React.memo(function TotalWatch() {
           Total in the last {k} minutes: ${format.format(v[1])} ({v[0]})
         </h4>
       ))}
-      {Object.entries(domainData).map(([domain, [total, pct]]) => (
+      {Object.entries(domainData).map(([domain, [total, pct, bidTotal]]) => (
         <h4 key={domain}>
-          {domain}: ${format.format(total)} ({Math.floor(pct * 100)}%)
+          {domain}: ${format.format(total)} ({Math.floor(pct * 100)}%) (Allocated:{' '}
+          {Math.floor((bidTotal / total) * 100)}%)
         </h4>
       ))}
       {milestones?.map(milestone => {
