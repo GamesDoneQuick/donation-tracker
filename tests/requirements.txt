@@ -18,7 +18,7 @@ daphne==4.2.1
 lxml==6.0.0 ; python_version<"3.10" # azure issue?
 msgpack==1.1.1
 responses~=0.25.7
-selenium==4.34.0
+selenium==4.34.2
 tblib==3.1.0
 tqdm==4.67.1
 unittest-xml-reporting==3.2.0
