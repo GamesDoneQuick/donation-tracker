@@ -90,10 +90,10 @@ function Sidebar(props: SidebarProps) {
 
   // TODO: pull this logic out into a helper
   React.useEffect(() => {
-    if (event?.screening_mode !== 'two_pass') {
-      setProcessingMode('onestep');
-    } else if (event) {
-      if (
+    if (event) {
+      if (event.screening_mode !== 'two_pass') {
+        setProcessingMode('onestep');
+      } else if (
         (event.screening_mode === 'two_pass' && processingMode === 'onestep') ||
         (processingMode === 'confirm' && !canSelectModes)
       ) {
