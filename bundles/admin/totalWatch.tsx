@@ -265,7 +265,7 @@ export default React.memo(function TotalWatch() {
                 <div
                   style={{
                     backgroundColor: '#00aeef',
-                    flexGrow: Math.min(total, milestone.amount),
+                    flexGrow: Math.max(0, Math.min(total - milestone.start, milestone.amount - milestone.start)),
                     borderLeft: milestone.start === 0 ? '' : '1px solid black',
                     textAlign: 'right',
                     alignContent: 'center',
