@@ -18,6 +18,7 @@ from django.db.models import (
     Max,
     Prefetch,
     Q,
+    Subquery,
     Sum,
     signals,
 )
@@ -282,7 +283,7 @@ class Donation(models.Model):
                     name=f'{column}_event_completed',
                     condition=Q(testdonation=False, transactionstate='COMPLETED'),
                 )
-                for column in ('amount', 'commentstate', 'readstate')
+                for column in ('donor_id', 'amount', 'commentstate', 'readstate')
             ),
         )
 
@@ -684,6 +685,8 @@ class DonorCache(models.Model):
         )[0].update()
 
     def update(self):
+        from . import Event
+
         # TODO: separate caches for test donations?
         donations = Donation.objects.completed().filter(testdonation=False)
         if self.donor:
@@ -691,7 +694,13 @@ class DonorCache(models.Model):
         if self.event:
             donations = donations.filter(event=self.event)
         else:
-            donations = donations.filter(event__paypalcurrency=self.currency)
+            donations = donations.filter(
+                event__in=Subquery(
+                    Event.objects.filter(paypalcurrency=self.currency)
+                    .order_by()
+                    .values('pk')
+                )
+            )
         aggregate = donations.aggregate(
             total=Cast(Coalesce(Sum('amount'), 0.0), output_field=FloatField()),
             count=Coalesce(Count('amount'), 0),
