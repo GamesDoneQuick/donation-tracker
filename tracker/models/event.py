@@ -68,7 +68,7 @@ class EventQuerySet(models.QuerySet):
         return self.prefetch_related(
             Prefetch(
                 'donorcache_set',
-                queryset=DonorCache.objects.filter(donor=None),
+                queryset=DonorCache.objects.filter(donor=None).order_by(),
             )
         )
 
