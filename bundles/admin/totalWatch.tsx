@@ -253,7 +253,7 @@ export default React.memo(function TotalWatch() {
           milestone.amount,
         )}`;
         return (
-          total / (milestone.amount - milestone.start) < 1.25 && (
+          (total - milestone.start) / (milestone.amount - milestone.start) < 1.25 && (
             <React.Fragment key={`milestone-${milestone.id}`}>
               <h3>
                 {`${milestone.name} ${milestone.start ? `$${format.format(milestone.start)}–` : ''}$${format.format(
