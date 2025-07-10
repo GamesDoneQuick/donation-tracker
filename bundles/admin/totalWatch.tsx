@@ -155,7 +155,7 @@ export default React.memo(function TotalWatch() {
   }, [donations]);
 
   // convenience so we don't have to keep typechecking event amount
-  const total = React.useMemo(() => event?.amount ?? 0, [event]);
+  const total = React.useMemo(() => event?.donation_total ?? 0, [event]);
 
   const refresh = React.useCallback(() => {
     eventState.refetch();
@@ -245,49 +245,50 @@ export default React.memo(function TotalWatch() {
           {Math.floor((bidTotal / total) * 100)}%)
         </h4>
       ))}
-      {milestones?.map(milestone => {
-        const ratio = (total - milestone.start) / (milestone.amount - milestone.start);
-        const display = `$${format.format(total)} — ${percentage(
-          0,
-          Math.min(total, milestone.amount),
-          milestone.amount,
-        )}`;
-        return (
-          (total - milestone.start) / (milestone.amount - milestone.start) < 1.25 && (
-            <React.Fragment key={`milestone-${milestone.id}`}>
-              <h3>
-                {`${milestone.name} ${milestone.start ? `$${format.format(milestone.start)}–` : ''}$${format.format(
-                  milestone.amount,
-                )}`}
-              </h3>
-              <div style={{ display: 'flex', width: '80%', height: 40, border: '1px solid black' }}>
-                <div style={{ backgroundColor: '#3fff00', flexBasis: milestone.start === 0 ? 0 : '10%' }} />
-                <div
-                  style={{
-                    backgroundColor: '#00aeef',
-                    flexGrow: Math.max(0, Math.min(total - milestone.start, milestone.amount - milestone.start)),
-                    borderLeft: milestone.start === 0 ? '' : '1px solid black',
-                    textAlign: 'right',
-                    alignContent: 'center',
-                  }}>
-                  {ratio >= 0.5 ? <span style={{ paddingRight: 10 }}>{display}</span> : ''}
+      {event?.donation_total != null &&
+        milestones?.map(milestone => {
+          const ratio = (total - milestone.start) / (milestone.amount - milestone.start);
+          const display = `$${format.format(total)} — ${percentage(
+            0,
+            Math.min(total, milestone.amount),
+            milestone.amount,
+          )}`;
+          return (
+            (total - milestone.start) / (milestone.amount - milestone.start) < 1.25 && (
+              <React.Fragment key={`milestone-${milestone.id}`}>
+                <h3>
+                  {`${milestone.name} ${milestone.start ? `$${format.format(milestone.start)}–` : ''}$${format.format(
+                    milestone.amount,
+                  )}`}
+                </h3>
+                <div style={{ display: 'flex', width: '80%', height: 40, border: '1px solid black' }}>
+                  <div style={{ backgroundColor: '#3fff00', flexBasis: milestone.start === 0 ? 0 : '10%' }} />
+                  <div
+                    style={{
+                      backgroundColor: '#00aeef',
+                      flexGrow: Math.max(0, Math.min(total - milestone.start, milestone.amount - milestone.start)),
+                      borderLeft: milestone.start === 0 ? '' : '1px solid black',
+                      textAlign: 'right',
+                      alignContent: 'center',
+                    }}>
+                    {ratio >= 0.5 ? <span style={{ paddingRight: 10 }}>{display}</span> : ''}
+                  </div>
+                  <div
+                    style={{
+                      backgroundColor: 'gray',
+                      color: 'white',
+                      flexGrow: Math.max(0, milestone.amount - total),
+                      borderLeft: milestone.amount > total ? '1px dotted black' : '',
+                      textAlign: 'left',
+                      alignContent: 'center',
+                    }}>
+                    {ratio < 0.5 ? <span style={{ paddingLeft: 10 }}>{display}</span> : ''}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    backgroundColor: 'gray',
-                    color: 'white',
-                    flexGrow: Math.max(0, milestone.amount - total),
-                    borderLeft: milestone.amount > total ? '1px dotted black' : '',
-                    textAlign: 'left',
-                    alignContent: 'center',
-                  }}>
-                  {ratio < 0.5 ? <span style={{ paddingLeft: 10 }}>{display}</span> : ''}
-                </div>
-              </div>
-            </React.Fragment>
-          )
-        );
-      })}
+              </React.Fragment>
+            )
+          );
+        })}
       {bids?.map(bid => {
         const run = orderedRuns.find(r => bid.speedrun === r.id);
         if (bid.chain && bid.goal != null && bid.chain_goal != null && bid.chain_remaining != null && bid.chain_steps) {

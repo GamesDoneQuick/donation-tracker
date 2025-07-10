@@ -28,7 +28,7 @@ function Header({ timezone, title }: { timezone?: string; title?: string }) {
     [timezone],
   );
   const canViewRuns = usePermission('tracker.view_speedrun');
-  const colSpan = canViewRuns ? 8 : 7;
+  const colSpan = canViewRuns ? 9 : 8;
   return (
     <thead>
       {!sameTimezone && (
@@ -156,21 +156,23 @@ export default function ScheduleEditor() {
   }, [canViewAds, refetchAds, refetchInterviews]);
 
   return (
-    <>
-      <div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 190px)',
+        overflow: 'hidden',
+      }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <button disabled={isFetching} onClick={refetch}>
           Refresh
         </button>
-      </div>
-      {canViewAds && (
-        <div>
+        {canViewAds && (
           <label>
             <input type="checkbox" checked={showAds} onChange={e => setShowAds(e.target.checked)} />
             Show Ads
           </label>
-        </div>
-      )}
-      <div>
+        )}
         <label>
           <input type="checkbox" checked={showInterviews} onChange={e => setShowInterviews(e.target.checked)} />
           Show Interviews
@@ -178,41 +180,43 @@ export default function ScheduleEditor() {
       </div>
       <APIErrorList errors={[runsError, eventError, interviewsError, adsError, prizesError]}>
         <Spinner spinning={isFetching} showPartial={(event && runs) != null}>
-          <table className="table table-striped table-condensed small">
-            <Header timezone={event?.timezone} title={event?.name} />
-            <tbody>
-              {orderedRuns.map((r, i, runs) => (
-                <React.Fragment key={r.id}>
-                  <RunRow run={r} prizeCount={prizeCount?.[r.id]} refreshInterstitials={refreshInterstitials} />
-                  {interstitials[r.id].map(i =>
-                    i.type === 'interview'
-                      ? showInterviews && <InterviewRow key={i.id} interview={i} />
-                      : showAds && <AdRow key={i.id} ad={i} />,
-                  )}
-                </React.Fragment>
-              ))}
-              {runs?.length ? (
-                canChangeRuns && (
-                  <LastSlotDropTarget elementType="tr" displayError={lastTargetError}>
-                    <td colSpan={colSpan} style={{ textAlign: 'center' }}>
-                      --The End--
+          <div style={{ overflow: 'scroll' }}>
+            <table className="table table-striped table-condensed small">
+              <Header timezone={event?.timezone} title={event?.name} />
+              <tbody>
+                {orderedRuns.map((r, i, runs) => (
+                  <React.Fragment key={r.id}>
+                    <RunRow run={r} prizeCount={prizeCount?.[r.id]} refreshInterstitials={refreshInterstitials} />
+                    {interstitials[r.id].map(i =>
+                      i.type === 'interview'
+                        ? showInterviews && <InterviewRow key={i.id} interview={i} />
+                        : showAds && <AdRow key={i.id} ad={i} />,
+                    )}
+                  </React.Fragment>
+                ))}
+                {runs?.length ? (
+                  canChangeRuns && (
+                    <LastSlotDropTarget elementType="tr" displayError={lastTargetError}>
+                      <td colSpan={colSpan} style={{ textAlign: 'center' }}>
+                        --The End--
+                      </td>
+                    </LastSlotDropTarget>
+                  )
+                ) : (
+                  <tr>
+                    <td colSpan={colSpan} data-testid="empty-event">
+                      This event doesn&apos;t have any runs yet. {canChangeRuns && 'Add some!'}
                     </td>
-                  </LastSlotDropTarget>
-                )
-              ) : (
-                <tr>
-                  <td colSpan={colSpan} data-testid="empty-event">
-                    This event doesn&apos;t have any runs yet. {canChangeRuns && 'Add some!'}
-                  </td>
-                </tr>
-              )}
-              {unorderedRuns.map(r => (
-                <RunRow key={r.id} run={r} refreshInterstitials={refreshInterstitials} />
-              ))}
-            </tbody>
-          </table>
+                  </tr>
+                )}
+                {unorderedRuns.map(r => (
+                  <RunRow key={r.id} run={r} refreshInterstitials={refreshInterstitials} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Spinner>
       </APIErrorList>
-    </>
+    </div>
   );
 }
