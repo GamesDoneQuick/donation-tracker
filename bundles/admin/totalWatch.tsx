@@ -3,6 +3,7 @@ import cn from 'classnames';
 import { DateTime, Duration, Interval } from 'luxon';
 
 import APIErrorList from '@public/APIErrorList';
+import { TreeBid } from '@public/apiv2/APITypes';
 import { BidFeed } from '@public/apiv2/Endpoints';
 import { parseTime, toInputTime } from '@public/apiv2/helpers/luxon';
 import {
@@ -239,12 +240,14 @@ export default React.memo(function TotalWatch() {
           Total in the last {k} minutes: ${format.format(v[1])} ({v[0]})
         </h4>
       ))}
-      {Object.entries(domainData).map(([domain, [total, pct, bidTotal]]) => (
-        <h4 key={domain}>
-          {domain}: ${format.format(total)} ({Math.floor(pct * 100)}%) (Allocated:{' '}
-          {Math.floor((bidTotal / total) * 100)}%)
-        </h4>
-      ))}
+      {[...Object.entries(domainData)]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([domain, [total, pct, bidTotal]]) => (
+          <h4 key={domain}>
+            {domain}: ${format.format(total)} ({Math.floor(pct * 100)}%) (Allocated:{' '}
+            {Math.floor((bidTotal / total) * 100)}%)
+          </h4>
+        ))}
       {event?.donation_total != null &&
         milestones?.map(milestone => {
           const ratio = (total - milestone.start) / (milestone.amount - milestone.start);
@@ -289,70 +292,30 @@ export default React.memo(function TotalWatch() {
             )
           );
         })}
-      {bids?.map(bid => {
-        const run = orderedRuns.find(r => bid.speedrun === r.id);
-        if (bid.chain && bid.goal != null && bid.chain_goal != null && bid.chain_remaining != null && bid.chain_steps) {
-          return (
-            <React.Fragment key={bid.id}>
-              <h3>
-                {run && `${run.name} (${starts(run.starttime, now)}) -- `}
-                {bid.name} ${format.format(bid.total)}
-                {`/$${format.format(bid.chain_goal + bid.chain_remaining)}`} ({bid.state})
-              </h3>
-              <div style={{ display: 'flex', width: '80%', height: 40, border: '1px solid black' }}>
-                <div style={{ backgroundColor: '#00aeef', flexGrow: Math.min(bid.goal, bid.total) }} />
-                <div
-                  style={{
-                    backgroundColor: 'gray',
-                    flexGrow: Math.max(0, bid.goal - bid.total),
-                    borderLeft: bid.goal > bid.total && bid.total > 0 ? '1px dotted black' : '',
-                  }}
-                />
-                {bid.chain_steps.map(step => (
-                  <React.Fragment key={step.id}>
-                    <div
-                      style={{
-                        backgroundColor: '#00aeef',
-                        flexGrow: Math.min(step.goal, step.total),
-                        borderLeft: '1px solid black',
-                      }}
-                    />
-                    <div
-                      style={{
-                        backgroundColor: 'gray',
-                        flexGrow: Math.max(0, step.goal - step.total),
-                        borderLeft: step.goal > step.total && step.total > 0 ? '1px dotted black' : '',
-                      }}
-                    />
-                  </React.Fragment>
-                ))}
-              </div>
-              <h4 key={bid.id}>
-                {bid.name} ${format.format(bid.total)}/${format.format(bid.goal)}
-              </h4>
-              {bid.chain_steps.map(c => (
-                <h4 key={c.id}>
-                  {c.name} ${format.format(c.total)}/${format.format(c.goal)}
-                </h4>
-              ))}
-            </React.Fragment>
-          );
-        } else {
-          return (
-            <React.Fragment key={bid.id}>
-              <h3>
-                {run && `${run.name} (${starts(run.starttime, now)}) -- `}
-                {bid.name} ${format.format(bid.total)}
-                {bid.goal ? `/$${format.format(bid.goal)}` : ''} ({bid.state})
-              </h3>
-              {bid.goal != null && (
-                <div
-                  style={{
-                    display: 'flex',
-                    width: '80%',
-                    height: 40,
-                    border: '1px solid black',
-                  }}>
+      {bids
+        ?.map((bid): [TreeBid, OrderedRun | undefined] => [bid, orderedRuns.find(r => bid.speedrun === r.id)])
+        .sort((a, b) => (a[1]?.order ?? 0) - (b[1]?.order ?? 0))
+        .map(([bid, run]) => {
+          const ratio = bid.goal && bid.total / bid.goal;
+          const display =
+            bid.goal &&
+            ratio &&
+            `$${format.format(bid.total)} — ${percentage(0, Math.min(bid.total, bid.goal), bid.goal)}`;
+          if (
+            bid.chain &&
+            bid.goal != null &&
+            bid.chain_goal != null &&
+            bid.chain_remaining != null &&
+            bid.chain_steps
+          ) {
+            return (
+              <React.Fragment key={bid.id}>
+                <h3>
+                  {run && `${run.name} (${starts(run.starttime, now)}) -- `}
+                  {bid.name} ${format.format(bid.total)}
+                  {`/$${format.format(bid.chain_goal + bid.chain_remaining)}`} ({bid.state})
+                </h3>
+                <div style={{ display: 'flex', width: '80%', height: 40, border: '1px solid black' }}>
                   <div style={{ backgroundColor: '#00aeef', flexGrow: Math.min(bid.goal, bid.total) }} />
                   <div
                     style={{
@@ -361,19 +324,83 @@ export default React.memo(function TotalWatch() {
                       borderLeft: bid.goal > bid.total && bid.total > 0 ? '1px dotted black' : '',
                     }}
                   />
+                  {bid.chain_steps.map(step => (
+                    <React.Fragment key={step.id}>
+                      <div
+                        style={{
+                          backgroundColor: '#00aeef',
+                          flexGrow: Math.min(step.goal, step.total),
+                          borderLeft: '1px solid black',
+                        }}
+                      />
+                      <div
+                        style={{
+                          backgroundColor: 'gray',
+                          flexGrow: Math.max(0, step.goal - step.total),
+                          borderLeft: step.goal > step.total && step.total > 0 ? '1px dotted black' : '',
+                        }}
+                      />
+                    </React.Fragment>
+                  ))}
                 </div>
-              )}
-              {bid.options
-                ?.toSorted((a, b) => b.total - a.total)
-                .map(o => (
-                  <h4 key={o.id}>
-                    {o.name} ${format.format(o.total)} {bid.allowuseroptions && `(${o.state})`}
+                <h4 key={bid.id}>
+                  {bid.name} ${format.format(bid.total)}/${format.format(bid.goal)}
+                </h4>
+                {bid.chain_steps.map(c => (
+                  <h4 key={c.id}>
+                    {c.name} ${format.format(c.total)}/${format.format(c.goal)}
                   </h4>
                 ))}
-            </React.Fragment>
-          );
-        }
-      })}
+              </React.Fragment>
+            );
+          } else {
+            return (
+              <React.Fragment key={bid.id}>
+                <h3>
+                  {run && `${run.name} (${starts(run.starttime, now)}) -- `}
+                  {bid.name} ${format.format(bid.total)}
+                  {bid.goal ? `/$${format.format(bid.goal)}` : ''} ({bid.state})
+                </h3>
+                {bid.goal != null && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      width: '80%',
+                      height: 40,
+                      border: '1px solid black',
+                    }}>
+                    <div
+                      style={{
+                        backgroundColor: '#00aeef',
+                        flexGrow: Math.min(bid.goal, bid.total),
+                        textAlign: 'right',
+                        alignContent: 'center',
+                      }}>
+                      {ratio != null && ratio <= 0.25 && <span style={{ paddingRight: 10 }}>{display}</span>}
+                    </div>
+                    <div
+                      style={{
+                        backgroundColor: 'gray',
+                        flexGrow: Math.max(0, bid.goal - bid.total),
+                        borderLeft: bid.goal > bid.total && bid.total > 0 ? '1px dotted black' : '',
+                        textAlign: 'left',
+                        alignContent: 'center',
+                      }}>
+                      {ratio != null && ratio > 0.25 && <span style={{ paddingLeft: 10 }}>{display}</span>}
+                    </div>
+                  </div>
+                )}
+                {bid.options
+                  ?.toSorted((a, b) => b.total - a.total)
+                  .map(o => (
+                    <h4 key={o.id}>
+                      {o.name} ${format.format(o.total)} {bid.allowuseroptions && `(${o.state})`}
+                    </h4>
+                  ))}
+              </React.Fragment>
+            );
+          }
+        })}
     </>
   );
 });
