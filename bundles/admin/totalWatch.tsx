@@ -381,6 +381,7 @@ export default React.memo(function TotalWatch() {
                     <div
                       style={{
                         backgroundColor: 'gray',
+                        color: 'white',
                         flexGrow: Math.max(0, bid.goal - bid.total),
                         borderLeft: bid.goal > bid.total && bid.total > 0 ? '1px dotted black' : '',
                         textAlign: 'left',
