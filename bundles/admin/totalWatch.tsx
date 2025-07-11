@@ -376,7 +376,7 @@ export default React.memo(function TotalWatch() {
                         textAlign: 'right',
                         alignContent: 'center',
                       }}>
-                      {ratio != null && ratio <= 0.25 && <span style={{ paddingRight: 10 }}>{display}</span>}
+                      {ratio != null && ratio > 0.5 && <span style={{ paddingRight: 10 }}>{display}</span>}
                     </div>
                     <div
                       style={{
@@ -386,7 +386,7 @@ export default React.memo(function TotalWatch() {
                         textAlign: 'left',
                         alignContent: 'center',
                       }}>
-                      {ratio != null && ratio > 0.25 && <span style={{ paddingLeft: 10 }}>{display}</span>}
+                      {ratio != null && ratio <= 0.5 && <span style={{ paddingLeft: 10 }}>{display}</span>}
                     </div>
                   </div>
                 )}
