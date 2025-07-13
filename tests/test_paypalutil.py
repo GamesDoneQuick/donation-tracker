@@ -163,6 +163,23 @@ class TestIPNProcessing(APITestCase):
                 task, 'doe@example.com', dict(flag=True), transactionstate='FLAGGED'
             )
 
+    def test_flagged_duplicate(self, task):
+        donor = models.Donor.objects.create(
+            email='doe@example.com', paypalemail='doe@example.com'
+        )
+
+        self.assertDonation(
+            task, donor.paypalemail, {}, transactionstate='COMPLETED', donor=donor
+        )
+
+        with self.assertTrackerLogs(0):
+            self.assertDonation(
+                task,
+                'doe@example.com',
+                dict(flag=True, flag_info='Duplicate txn_id.'),
+                transactionstate='COMPLETED',
+            )
+
     def test_invalid_signature(self, task):
         custom = self.donation.paypal_signature.split(':', maxsplit=2)
         custom[2] = util.transpose(custom[2])
