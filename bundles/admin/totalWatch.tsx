@@ -205,7 +205,8 @@ export default React.memo(function TotalWatch() {
           eventState.isLoading ||
           runState.isLoading ||
           milestoneState.isLoading ||
-          bidState.isLoading
+          bidState.isLoading ||
+          (donationsState.hasNextPage && !donationsState.isError)
         }
       />
       <APIErrorList
@@ -270,6 +271,7 @@ export default React.memo(function TotalWatch() {
                     style={{
                       backgroundColor: '#00aeef',
                       flexGrow: Math.max(0, Math.min(total - milestone.start, milestone.amount - milestone.start)),
+                      flexBasis: 0,
                       borderLeft: milestone.start === 0 ? '' : '1px solid black',
                       textAlign: 'right',
                       alignContent: 'center',
@@ -281,6 +283,7 @@ export default React.memo(function TotalWatch() {
                       backgroundColor: 'gray',
                       color: 'white',
                       flexGrow: Math.max(0, milestone.amount - total),
+                      flexBasis: 0,
                       borderLeft: milestone.amount > total ? '1px dotted black' : '',
                       textAlign: 'left',
                       alignContent: 'center',
@@ -330,6 +333,7 @@ export default React.memo(function TotalWatch() {
                         style={{
                           backgroundColor: '#00aeef',
                           flexGrow: Math.min(step.goal, step.total),
+                          flexBasis: 0,
                           borderLeft: '1px solid black',
                         }}
                       />
@@ -337,6 +341,7 @@ export default React.memo(function TotalWatch() {
                         style={{
                           backgroundColor: 'gray',
                           flexGrow: Math.max(0, step.goal - step.total),
+                          flexBasis: 0,
                           borderLeft: step.goal > step.total && step.total > 0 ? '1px dotted black' : '',
                         }}
                       />
@@ -373,6 +378,7 @@ export default React.memo(function TotalWatch() {
                       style={{
                         backgroundColor: '#00aeef',
                         flexGrow: Math.min(bid.goal, bid.total),
+                        flexBasis: 0,
                         textAlign: 'right',
                         alignContent: 'center',
                       }}>
@@ -383,6 +389,7 @@ export default React.memo(function TotalWatch() {
                         backgroundColor: 'gray',
                         color: 'white',
                         flexGrow: Math.max(0, bid.goal - bid.total),
+                        flexBasis: 0,
                         borderLeft: bid.goal > bid.total && bid.total > 0 ? '1px dotted black' : '',
                         textAlign: 'left',
                         alignContent: 'center',
