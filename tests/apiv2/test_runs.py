@@ -457,6 +457,9 @@ class TestRunMove(TestSpeedRunBase, APITestCase):
         self.interview = models.Interview.objects.create(
             event=self.event, topic='Test Interview', anchor=self.run3, suborder=1
         )
+        self.other_interview = models.Interview.objects.create(
+            event=self.event, topic='Other Test Interview', anchor=self.run5, suborder=1
+        )
         self.ad = models.Ad.objects.create(
             event=self.event, ad_name='Test Ad', order=1, suborder=1
         )
@@ -538,6 +541,14 @@ class TestRunMove(TestSpeedRunBase, APITestCase):
                     self.assertEqual(
                         self.interview.order,
                         self.interview.anchor.order,
+                        'Interview order mismatch',
+                    )
+                self.other_interview.refresh_from_db()
+                if self.other_interview.anchor:
+                    self.other_interview.anchor.refresh_from_db()
+                    self.assertEqual(
+                        self.other_interview.order,
+                        self.other_interview.anchor.order,
                         'Interview order mismatch',
                     )
                 # TODO
@@ -649,6 +660,8 @@ class TestRunMove(TestSpeedRunBase, APITestCase):
         )
 
     def test_remove_last_run(self):
+        self.other_interview.anchor = None
+        self.other_interview.save()
         self.assertResults(self.run5, order=None, expected_change_count=1)
         self.assertRunsInOrder(
             [self.run1, self.run2, self.run3], [self.run5, self.run4]

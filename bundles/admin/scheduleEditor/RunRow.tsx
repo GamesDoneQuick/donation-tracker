@@ -20,11 +20,13 @@ import styles from './styles.mod.css';
 
 function DragControls({
   drag,
+  canRemoveFromOrder,
   loading,
   run,
   moveRun,
 }: {
   drag: ConnectDragSource;
+  canRemoveFromOrder: boolean;
   loading: boolean;
   run: Run;
   moveRun: (order: number | null) => ReturnType<ReturnType<typeof useMoveRunMutation>[0]>;
@@ -58,8 +60,11 @@ function DragControls({
       {run.order != null && (
         <button
           data-testid="unorder-run"
-          style={{ cursor: 's-resize' }}
-          disabled={loading}
+          style={canRemoveFromOrder ? { cursor: 's-resize' } : {}}
+          disabled={loading || !canRemoveFromOrder}
+          title={
+            canRemoveFromOrder ? '' : 'Runs with prizes or interstitials attached cannot be removed from the schedule.'
+          }
           className={cn({ disabled: loading }, 'btn', 'btn-xs', 'fa', 'fa-times')}
           onClick={() => moveRun(null)}
         />
@@ -131,7 +136,17 @@ function StartTimeControls({
   );
 }
 
-export function RunRow({ run, prizeCount }: { run: Run; prizeCount?: { start: number; end: number } }) {
+export function RunRow({
+  run,
+  interstitials,
+  prizeCount,
+  refreshInterstitials,
+}: {
+  run: Run;
+  interstitials?: boolean;
+  prizeCount?: { start: number; end: number };
+  refreshInterstitials: () => void;
+}) {
   const { ADMIN_ROOT } = useConstants();
   const canViewRuns = usePermission('tracker.view_speedrun');
   const canChangeRuns = useArchivedPermission('tracker.change_speedrun');
@@ -178,7 +193,7 @@ export function RunRow({ run, prizeCount }: { run: Run; prizeCount?: { start: nu
         );
       },
       drop(item) {
-        moveRun({ id: item.id, before: run.id });
+        moveRun({ id: item.id, before: run.id }).then(refreshInterstitials);
       },
       collect: monitor => {
         return {
@@ -188,10 +203,17 @@ export function RunRow({ run, prizeCount }: { run: Run; prizeCount?: { start: nu
         };
       },
     }),
-    [moveRun, run],
+    [moveRun, run, refreshInterstitials],
   );
 
-  const moveRunTo = React.useCallback((order: number | null) => moveRun({ id: run.id, order }), [moveRun, run.id]);
+  const moveRunTo = React.useCallback(
+    (order: number | null) => {
+      const result = moveRun({ id: run.id, order });
+      result.then(refreshInterstitials);
+      return result;
+    },
+    [moveRun, run.id, refreshInterstitials],
+  );
 
   const patchField = React.useCallback(
     (field: keyof RunPatch) => (value: string | null) => patchRun({ id: run.id, [field]: value }).unwrap(),
@@ -226,7 +248,13 @@ export function RunRow({ run, prizeCount }: { run: Run; prizeCount?: { start: nu
         </td>
         <td>
           {canChangeRuns && canDrag ? (
-            <DragControls drag={drag} loading={moveResult.isLoading} run={run} moveRun={moveRunTo} />
+            <DragControls
+              drag={drag}
+              loading={moveResult.isLoading}
+              run={run}
+              moveRun={moveRunTo}
+              canRemoveFromOrder={!interstitials && !prizeCount?.start && !prizeCount?.end}
+            />
           ) : (
             <Spinner spinning={moveResult.isLoading}>{run.order || '-'}</Spinner>
           )}
