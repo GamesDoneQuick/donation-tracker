@@ -370,6 +370,11 @@ def initialize_paypal_donation(sender, **kwargs):
 @receiver(invalid_ipn_received)
 def handle_ipn_error(*, sender, **kwargs):
     ipn = sender
+
+    # this is harmless
+    if 'Duplicate txn_id.' in ipn.flag_info:
+        return
+
     donation = get_ipn_donation(ipn)
 
     if donation is None:
