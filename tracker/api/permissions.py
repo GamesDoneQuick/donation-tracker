@@ -5,6 +5,7 @@ from rest_framework.permissions import (
     SAFE_METHODS,
     BasePermission,
     DjangoModelPermissions,
+    DjangoModelPermissionsOrAnonReadOnly,
 )
 from rest_framework.request import Request
 
@@ -221,6 +222,11 @@ class CanSendToReader(BasePermission):
         return super().has_object_permission(
             request, view, obj
         ) and obj.user_can_send_to_reader(request.user)
+
+
+class DonationBidPermission(DjangoModelPermissionsOrAnonReadOnly):
+    def _queryset(self, view):
+        return models.DonationBid.objects.all()
 
 
 # noinspection PyPep8Naming
