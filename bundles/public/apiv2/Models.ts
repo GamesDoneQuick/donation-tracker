@@ -83,7 +83,7 @@ export interface Event extends ModelBase {
 }
 
 export type DonationTransactionState = 'COMPLETED' | 'PENDING' | 'CANCELLED' | 'FLAGGED';
-export type DonationDomain = 'PAYPAL' | 'LOCAL' | 'CHIPIN';
+export type DonationDomain = 'PAYPAL' | 'LOCAL' | 'CHIPIN' | 'TWITCH';
 export type DonationReadState = 'PENDING' | 'READY' | 'IGNORED' | 'READ' | 'FLAGGED';
 export type DonationCommentState = 'ABSENT' | 'PENDING' | 'DENIED' | 'APPROVED' | 'FLAGGED';
 
