@@ -685,7 +685,7 @@ class APITestCase(TransactionTestCase, AssertionHelpers, AssertionModelHelpers):
         /,
         *,
         model_name=None,
-        status_code=200,
+        status_code=201,
         data=None,
         kwargs=None,
         expected_error_codes=None,
