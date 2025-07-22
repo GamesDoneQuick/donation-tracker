@@ -54,7 +54,12 @@ DonorVisibilityChoices = (
     ('ANON', 'Anonymous'),
 )
 
-DonationDomainChoices = (('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'))
+DonationDomainChoices = (
+    ('LOCAL', 'Local'),
+    ('CHIPIN', 'ChipIn'),
+    ('PAYPAL', 'PayPal'),
+    ('TWITCH', 'Twitch'),
+)
 
 LanguageChoices = (
     ('un', 'Unknown'),
@@ -360,7 +365,7 @@ class Donation(models.Model):
         else:
             bids = []
 
-        bidtotal = reduce(lambda a, b: a + b, (b.amount for b in bids), Decimal(0))
+        bidtotal = sum((b.amount for b in bids), Decimal(0))
         if self.amount and bidtotal > self.amount:
             errors['amount'].append(
                 'Bid total is greater than donation amount: %s > %s'
@@ -393,6 +398,8 @@ class Donation(models.Model):
         if self.domain == 'LOCAL':  # local donations are always complete, duh
             self.cleared_at = self.timereceived
             self.transactionstate = 'COMPLETED'
+        if self.domain == 'TWITCH':
+            self.transactionstate = 'COMPLETED'
         # reminder that this does not run during migrations tests, so you have to provide the domainId yourself
         if not self.domainId:
             self.domainId = f'{int(time.time())}-{random.getrandbits(128)}'
@@ -406,7 +413,7 @@ class Donation(models.Model):
         # TODO: language detection again?
         self.commentlanguage = 'un'
 
-        post = self.id is None and self.domain == 'LOCAL'
+        post = self.id is None and self.domain in ['LOCAL', 'TWITCH']
 
         super(Donation, self).save(*args, **kwargs)
 
@@ -492,6 +499,13 @@ class Donor(models.Model):
             ('OPTIN', 'Opt In'),
         ),
         default='CURR',
+    )
+    twitch_id = models.IntegerField(
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name='Twitch User ID',
+        help_text='The unique, stable numeric ID returned by the Twitch API',
     )
 
     class Meta:
