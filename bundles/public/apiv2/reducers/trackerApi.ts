@@ -713,6 +713,7 @@ const socketEvents: TrackerQueryOnCacheEntryAdded<'events'> = async (args, api) 
         const event = events.find(e => e.id === data.donation.event);
         if (event) {
           event.donation_count = data.donation_count;
+          event.donation_total = data.event_total;
           event.amount = data.event_total;
         }
       });

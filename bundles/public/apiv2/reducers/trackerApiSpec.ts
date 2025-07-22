@@ -79,13 +79,14 @@ describe('trackerApi', () => {
         const message: ProcessingEvent = {
           type: 'donation_received',
           donation: getFixtureDonation({ id: 1, amount: 25 }),
-          event_total: oldData.amount! + 25,
+          event_total: oldData.donation_total! + 25,
           donation_count: oldData.donation_count! + 1,
           posted_at: DateTime.now().toISO()!,
         };
         server.emit('message', JSON.stringify(message));
         const newData = (await nextData('events', params))[0];
         expect(newData.amount).toBe(oldData.amount! + 25);
+        expect(newData.donation_total).toBe(oldData.donation_total! + 25);
         expect(newData.donation_count).toBe(oldData.donation_count! + 1);
       });
 
