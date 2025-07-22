@@ -665,6 +665,10 @@ class DonationBid(models.Model):
             raise ValidationError(
                 'Target bid and target donation must be part of the same event'
             )
+        if self.pk is None:
+            total = self.donation.bids.aggregate(total=Sum('amount'))['total'] or 0
+            if total + self.amount > self.donation.amount:
+                raise ValidationError('Attached bid amount exceeds donation total.')
 
     def save(self, *args, **kwargs):
         is_creating = self.pk is None
@@ -691,7 +695,7 @@ class DonationBid(models.Model):
                 },
             )
 
-            if self.donation.domain == 'LOCAL':
+            if self.donation.domain in ['LOCAL', 'TWITCH']:
                 from .. import settings, tasks
 
                 if settings.TRACKER_HAS_CELERY:
