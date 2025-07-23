@@ -79,7 +79,7 @@ describe('ScheduleEditor', () => {
     ads = getFixturePagedAds();
     adError = getFixtureError();
     adCode = 200;
-    prizes = getFixturePagedPrizes([{ startrun: runs.results[0].id, endrun: runs.results[0].id }]);
+    prizes = getFixturePagedPrizes([{ startrun: runs.results[2].id, endrun: runs.results[2].id }]);
     prizeError = getFixtureError();
     prizeCode = 200;
     mock.onGet('//testserver/' + Endpoints.ME).reply(() => [200, me]);
@@ -200,15 +200,22 @@ describe('ScheduleEditor', () => {
     expect(queryByChainedTestId(subject, 'run-5', 'drag-handle')).toBeNull();
   });
 
-  it('shows unordered buttons for ordered, unanchored runs', async () => {
+  it('shows unordered buttons for ordered, unanchored runs with no prizes or interstitials', async () => {
+    CONSTANTS.SWEEPSTAKES_URL = 'https://example.com/';
+    interviews.results[0].order = runs.results[0].order!;
+    interviews.results[0].anchor = runs.results[0].id;
     await renderComponent();
 
-    expect(getByChainedTestId(subject, 'run-1', 'unorder-run')).not.toBeNull();
+    let handle = getByChainedTestId<HTMLButtonElement>(subject, 'run-1', 'unorder-run');
+    expect(handle).not.toBeNull();
+    expect(handle.disabled).toBeTrue();
 
     // can't unorder anchored runs
     expect(queryByChainedTestId(subject, 'run-2', 'unorder-run')).toBeNull();
 
-    expect(getByChainedTestId(subject, 'run-3', 'unorder-run')).not.toBeNull();
+    handle = getByChainedTestId(subject, 'run-3', 'unorder-run');
+    expect(handle).not.toBeNull();
+    expect(handle.disabled).toBeTrue();
 
     // already unordered
     expect(queryByChainedTestId(subject, 'run-4', 'unorder-run')).toBeNull();
@@ -262,6 +269,7 @@ describe('ScheduleEditor', () => {
 
   describe('editing', () => {
     beforeEach(async () => {
+      me.permissions.push('tracker.view_ad');
       await renderComponent();
     });
 
@@ -346,6 +354,7 @@ describe('ScheduleEditor', () => {
     });
 
     it('can remove runs from order', async () => {
+      const count = mock.history.get.filter(c => /interviews|ads/.test(c.url || '')).length;
       act(() => {
         fireEvent.click(getByChainedTestId(subject, 'run-1', 'unorder-run'));
       });
@@ -356,12 +365,15 @@ describe('ScheduleEditor', () => {
       expect(result?.data).toEqual(JSON.stringify({ order: null }));
 
       await waitForAPIErrors(subject);
+
+      expect(mock.history.get.filter(c => /interviews|ads/.test(c.url || '')).length).toEqual(count + 2);
     });
   });
 
   describe('dragging', () => {
     let handle: HTMLElement;
     beforeEach(async () => {
+      me.permissions.push('tracker.view_ad');
       await renderComponent();
       handle = getByChainedTestId(subject, 'run-4', 'drag-handle');
       act(() => {
@@ -396,7 +408,9 @@ describe('ScheduleEditor', () => {
       });
 
       describe('when dropping on a valid target', () => {
+        let count: number;
         beforeEach(() => {
+          count = mock.history.get.filter(c => /interviews|ads/.test(c.url || '')).length;
           act(() => {
             fireEvent.drop(subject.getByTestId('run-1'));
             fireEvent.dragLeave(subject.getByTestId('run-1'));
@@ -404,13 +418,15 @@ describe('ScheduleEditor', () => {
           });
         });
 
-        it('triggers a mutation and shows the result', async () => {
+        it('triggers a mutation, shows the result, and refetches interviews and ads', async () => {
           const result = mock.history.patch.at(0);
           expect(result).toBeDefined();
           expect(result?.url).toEqual(Endpoints.MOVE_RUN(4));
           expect(result?.data).toEqual(JSON.stringify({ before: 1 }));
 
           await waitForAPIErrors(subject);
+
+          expect(mock.history.get.filter(c => /interviews|ads/.test(c.url || '')).length).toEqual(count + 2);
         });
       });
 

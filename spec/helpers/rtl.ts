@@ -24,7 +24,10 @@ export async function waitForAPIErrors(
   }
 }
 
-export function getByChainedTestId(subject: ReturnType<typeof render>, ...ids: string[]) {
+export function getByChainedTestId<T extends HTMLElement = HTMLElement>(
+  subject: ReturnType<typeof render>,
+  ...ids: string[]
+): T {
   let element: ReturnType<typeof subject.getByTestId> | null = null;
   if (ids.length === 0) {
     throw new Error('must provide at least one id');
@@ -33,7 +36,7 @@ export function getByChainedTestId(subject: ReturnType<typeof render>, ...ids: s
     element = (element ? within(element) : subject).getByTestId(ids[0]);
     ids = ids.slice(1);
   }
-  return element!;
+  return element as T;
 }
 
 export function queryByChainedTestId(subject: ReturnType<typeof render>, ...ids: string[]) {
