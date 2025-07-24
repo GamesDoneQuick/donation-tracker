@@ -102,8 +102,8 @@ def random_num_replace(s, replacements, max_length=None):
     return s
 
 
-def median(queryset, column):
-    count = queryset.count()
+def median(queryset, column, *, count=None):
+    count = count or queryset.count()
     if count == 0:
         return 0
     elif count % 2 == 0:
