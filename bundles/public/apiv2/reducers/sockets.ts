@@ -35,7 +35,7 @@ const sockets: Record<string, SocketCallbacks> = {};
 
 function newSocket(url: string) {
   const socket = new SturdyWebSocket(url, {
-    shouldReconnect: ev => !ev.wasClean,
+    shouldReconnect: ev => (ev.wasClean ? true : new Promise(resolve => setTimeout(() => resolve(true), 16000))),
   });
   socket.addEventListener('message', async ev => await Promise.allSettled(sockets[url].callbacks.map(cb => cb(ev))));
   return socket;
