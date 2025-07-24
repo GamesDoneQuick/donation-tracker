@@ -75,6 +75,7 @@ function ProcessingActions(props: ProcessingActionsProps) {
         variant="success"
         label={actionLabel}
         data-testid="action-send"
+        disabled={loading}
       />
       <MutationButton
         mutation={approve[0]}

@@ -609,16 +609,6 @@ class Bid(mptt.models.MPTTModel):
             self.total = options['total']
             self.count = options['count']
 
-    def full_label(self, addMoney=True):
-        result = [self.full_name]
-        if self.speedrun:
-            result = [self.speedrun.name_with_category, ' : '] + result
-        if addMoney:
-            result += [' $', '%0.2f' % self.total]
-            if self.goal:
-                result += [' / ', '%0.2f' % self.goal]
-        return ''.join(result)
-
     def __str__(self):
         parts = [f'{self.event} (Event)']
         if self.speedrun:
