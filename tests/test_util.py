@@ -63,6 +63,14 @@ class TestUtil(TestCase):
         self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 5)
         models.Donation.objects.create(event=event, amount=21)
         self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 6.5)
+        with self.assertNumQueries(2):
+            # tests both the skipped query and that it actually honors the argument
+            self.assertEqual(
+                util.median(models.Donation.objects.all(), 'amount', count=3), 3
+            )
+            self.assertEqual(
+                util.median(models.Donation.objects.all(), 'amount', count=4), 4
+            )
 
     def test_flatten(self):
         self.assertSequenceEqual(

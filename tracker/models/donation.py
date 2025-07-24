@@ -10,7 +10,17 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.signing import Signer
 from django.db import models
-from django.db.models import Avg, Count, FloatField, Max, Prefetch, Q, Sum, signals
+from django.db.models import (
+    Avg,
+    Count,
+    FloatField,
+    Index,
+    Max,
+    Prefetch,
+    Q,
+    Sum,
+    signals,
+)
 from django.db.models.functions import Cast, Coalesce
 from django.dispatch import receiver
 from django.urls import reverse
@@ -251,6 +261,31 @@ class Donation(models.Model):
         )
         get_latest_by = 'timereceived'
         ordering = ['-timereceived']
+        indexes = (
+            *(
+                Index(
+                    column,
+                    name=f'{column}_completed',
+                    condition=Q(testdonation=False, transactionstate='COMPLETED'),
+                )
+                for column in ('amount',)
+            ),
+            *(
+                Index(
+                    column,
+                    'event_id',
+                    name=f'{column}_event_completed',
+                    condition=Q(testdonation=False, transactionstate='COMPLETED'),
+                )
+                for column in (
+                    'donor_id',
+                    'amount',
+                    'commentstate',
+                    'readstate',
+                    'timereceived',
+                )
+            ),
+        )
 
     def user_can_send_to_reader(self, user):
         """returns True if
@@ -659,7 +694,7 @@ class DonorCache(models.Model):
         self.donation_count = aggregate['count']
         self.donation_max = aggregate['max']
         self.donation_avg = aggregate['avg']
-        self.donation_med = median(donations, 'amount')
+        self.donation_med = median(donations, 'amount', count=aggregate['count'])
         if self.donation_count:
             self.save()
         else:
