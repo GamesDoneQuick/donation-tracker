@@ -3,7 +3,7 @@ import datetime
 from django.contrib import admin, messages
 from django.contrib.auth.decorators import permission_required
 from django.db.models import Q
-from django.http import Http404, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -314,25 +314,52 @@ class DonationAdmin(EventArchivedMixin, CustomModelAdmin):
         return actions
 
     def process_donations_view(self, request):
-        event = models.Event.objects.current_or_next()
-        if event is None:
-            raise Http404
-        return HttpResponseRedirect(
-            reverse(
-                'admin:tracker_ui',
-                kwargs={'extra': f'v2/{event.pk}/processing/donations'},
+        events = models.Event.objects.filter(allow_donations=True)
+        if events.count() == 0:
+            return HttpResponse('No active events.', status=404)
+        elif events.count() == 1:
+            return HttpResponseRedirect(
+                reverse(
+                    'admin:tracker_ui',
+                    kwargs={'extra': f'v2/{events.first().pk}/processing/donations'},
+                )
             )
+        urls = ''.join(
+            format_html(
+                "<a href='{0}'>{1}</a><br/>",
+                reverse(
+                    'admin:tracker_ui',
+                    kwargs={'extra': f'v2/{e.pk}/processing/donations'},
+                ),
+                e.name,
+            )
+            for e in events
         )
+        return HttpResponse(f"<html><body>{urls}</body></html>")
 
     def read_donations_view(self, request):
-        event = models.Event.objects.current_or_next()
-        if event is None:
-            raise Http404
-        return HttpResponseRedirect(
-            reverse(
-                'admin:tracker_ui', kwargs={'extra': f'v2/{event.pk}/processing/read'}
+        events = models.Event.objects.filter(allow_donations=True)
+        if events.count() == 0:
+            return HttpResponse('No active events.', status=404)
+        elif events.count() == 1:
+            return HttpResponseRedirect(
+                reverse(
+                    'admin:tracker_ui',
+                    kwargs={'extra': f'v2/{events.first().pk}/processing/read'},
+                )
             )
+        urls = ''.join(
+            format_html(
+                "<a href='{0}'>{1}</a><br/>",
+                reverse(
+                    'admin:tracker_ui',
+                    kwargs={'extra': f'v2/{e.pk}/processing/read'},
+                ),
+                e.name,
+            )
+            for e in events
         )
+        return HttpResponse(f"<html><body>{urls}</body></html>")
 
     def get_urls(self):
         return super().get_urls() + [

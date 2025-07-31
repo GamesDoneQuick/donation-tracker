@@ -18,6 +18,7 @@ from .util import (
     AssertionHelpers,
     MigrationsTestCase,
     create_ipn,
+    long_ago_noon,
     today_noon,
     tomorrow_noon,
 )
@@ -326,14 +327,20 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
         self.event = models.Event.objects.create(
             short='ev1', name='Event 1', datetime=today_noon
         )
+        self.archived_event = models.Event.objects.create(
+            short='archived', name='Archived', datetime=long_ago_noon, archived=True
+        )
 
         self.donor = models.Donor.objects.create(firstname='John', lastname='Doe')
         self.donation = models.Donation.objects.create(
             donor=self.donor,
             amount=5,
             event=self.event,
-            transactionstate='COMPLETED',
-            domain='LOCAL',
+        )
+        self.archived_donation = models.Donation.objects.create(
+            donor=self.donor,
+            amount=5,
+            event=self.archived_event,
         )
 
     def test_donation_admin(self):
@@ -348,18 +355,21 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
             )
             self.assertEqual(response.status_code, 200)
         with self.subTest('archived event'):
-            self.event.archived = True
-            self.event.save()
             with self.subTest(
                 'should not be able to edit a donation on an archived event'
             ):
                 response = self.client.get(
-                    reverse('admin:tracker_donation_change', args=(self.donation.id,))
+                    reverse(
+                        'admin:tracker_donation_change',
+                        args=(self.archived_donation.id,),
+                    )
                 )
                 self.assertFalse(response.context['has_change_permission'])
                 self.assertFalse(response.context['has_delete_permission'])
                 response = self.client.post(
-                    reverse('admin:tracker_donation_change', args=(self.donation.id,))
+                    reverse(
+                        'admin:tracker_donation_change', args=(self.archived_event.id,)
+                    )
                 )
                 self.assertEqual(response.status_code, 403)
             with self.subTest(
@@ -369,7 +379,7 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
                     reverse('admin:tracker_donation_add'),
                     data=(
                         {
-                            'event': self.event.id,
+                            'event': self.archived_event.id,
                         }
                     ),
                 )
@@ -588,6 +598,86 @@ class TestDonationAdmin(TestCase, AssertionHelpers):
         self.assertRedirects(response, reverse('admin:tracker_donation_changelist'))
         self.assertIn(ipn, self.donation.ipns.all())
         self.assertIn(self.donation, ipn.donation.all())
+
+    def test_process_read_links(self):
+        self.client.force_login(self.super_user)
+        response = self.client.get(reverse('admin:process_donations'))
+        self.assertRedirects(
+            response,
+            reverse(
+                'admin:tracker_ui',
+                kwargs={'extra': f'v2/{self.event.pk}/processing/donations'},
+            ),
+        )
+        response = self.client.get(reverse('admin:read_donations'))
+        self.assertRedirects(
+            response,
+            reverse(
+                'admin:tracker_ui',
+                kwargs={'extra': f'v2/{self.event.pk}/processing/read'},
+            ),
+        )
+        self.event.archived = True
+        self.event.save()
+        response = self.client.get(reverse('admin:process_donations'))
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(reverse('admin:read_donations'))
+        self.assertEqual(response.status_code, 404)
+        self.event.archived = False
+        self.event.allow_donations = True
+        self.event.save()
+        self.archived_event.archived = False
+        self.archived_event.allow_donations = True
+        self.archived_event.save()
+        another_archived_event = models.Event.objects.create(
+            short='another', name='Another', datetime=long_ago_noon, archived=True
+        )
+        response = self.client.get(reverse('admin:process_donations'))
+        self.assertContainsUrl(
+            response,
+            reverse(
+                'admin:tracker_ui',
+                kwargs={'extra': f'v2/{self.event.pk}/processing/donations'},
+            ),
+        )
+        self.assertContainsUrl(
+            response,
+            reverse(
+                'admin:tracker_ui',
+                kwargs={'extra': f'v2/{self.archived_event.pk}/processing/donations'},
+            ),
+        )
+        self.assertNotContainsUrl(
+            response,
+            reverse(
+                'admin:tracker_ui',
+                kwargs={
+                    'extra': f'v2/{another_archived_event.pk}/processing/donations'
+                },
+            ),
+        )
+        response = self.client.get(reverse('admin:read_donations'))
+        self.assertContainsUrl(
+            response,
+            reverse(
+                'admin:tracker_ui',
+                kwargs={'extra': f'v2/{self.event.pk}/processing/read'},
+            ),
+        )
+        self.assertContainsUrl(
+            response,
+            reverse(
+                'admin:tracker_ui',
+                kwargs={'extra': f'v2/{self.archived_event.pk}/processing/read'},
+            ),
+        )
+        self.assertNotContainsUrl(
+            response,
+            reverse(
+                'admin:tracker_ui',
+                kwargs={'extra': f'v2/{another_archived_event.pk}/processing/read'},
+            ),
+        )
 
 
 class TestDonationViews(TestCase, AssertionHelpers):
