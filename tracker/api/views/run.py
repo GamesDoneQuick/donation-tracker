@@ -157,7 +157,9 @@ class SpeedRunViewSet(
         try:
             with transaction.atomic():
                 # pessimistic, but this endpoint should not get hit very often, so it's probably ok
-                queryset.select_for_update()
+                # need to actually evaluate it, or it won't lock the rows
+                if not queryset.select_for_update().count():
+                    raise ValidationError('nonsense')
 
                 # - every run within the range will have its order field changed
                 # - if we cross an anchor boundary, every run between the new position and the next anchor
