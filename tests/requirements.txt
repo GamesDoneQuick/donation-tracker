@@ -9,7 +9,7 @@ django-paypal==1.1.2
 django-mptt==0.17.0
 django-post-office==3.10.0
 django-timezone-field==7.1
-djangorestframework==3.16.0
+djangorestframework==3.16.1
 pre-commit==4.2.0
 python-dateutil==2.8.2 ; python_version<"3.11"
 babel==2.17.0
