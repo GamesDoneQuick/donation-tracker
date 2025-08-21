@@ -171,9 +171,10 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
     bids = NewDonationBidSerializer(many=True)
     comment = CharField(allow_blank=True, max_length=5000)
     domain = CharField(required=False)
-    domainId = CharField(read_only=True)
+    domain_id = CharField(required=False)
     donor_id = IntegerField(required=False)
     donor_email = EmailField(required=False)
+    donor_twitch_id = IntegerField(required=False)
     email_optin = BooleanField()
     event = IntegerField()
     requested_alias = CharField(
@@ -210,7 +211,7 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                         code='invalid',
                     )
                 )
-            if attrs['amount'] < event.minimumdonation:
+            if attrs['domain'] != 'TWITCH' and attrs['amount'] < event.minimumdonation:
                 errors['amount'].append(
                     ErrorDetail(
                         'Donation amount is below event minimum.', code='invalid'
@@ -271,14 +272,14 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                         ErrorDetail('Specified donor does not exist.', code='invalid')
                     )
             elif 'donor_email' in attrs:
-                if not Donor.objects.filter(
-                    email__iexact=attrs['donor_email']
-                ).exists():
+                donor = Donor.objects.filter(email__iexact=attrs['donor_email']).first()
+                if not donor:
                     errors['donor_email'].append(
                         ErrorDetail(
                             'Specified donor email could not be found.', code='invalid'
                         )
                     )
+                attrs['donor_id'] = donor.id
             else:
                 errors['domain'].append(
                     ErrorDetail(
@@ -288,6 +289,33 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                 )
         elif domain == 'PAYPAL':
             pass
+        elif domain == 'TWITCH':
+            if 'donor_twitch_id' in attrs:
+                attrs['donor_id'] = Donor.objects.get_or_create(
+                    twitch_id=attrs['donor_twitch_id'],
+                    defaults={
+                        'email': attrs.get(
+                            'donor_email',
+                            f'{attrs["donor_twitch_id"]}@users.twitch.tv.fake',
+                        ),
+                        'alias': attrs['requested_alias'],
+                        'visibility': 'ALIAS',
+                    },
+                )[0].id
+            else:
+                errors['donor_twitch_id'].append(
+                    ErrorDetail(
+                        'Twitch donations require `donor_twitch_id` field.',
+                        code='invalid',
+                    )
+                )
+            if 'domain_id' not in attrs:
+                errors['domain_id'].append(
+                    ErrorDetail(
+                        'Twitch donations require `domain_id` field.',
+                        code='invalid',
+                    )
+                )
         else:
             errors['domain'].append(
                 ErrorDetail(
@@ -305,7 +333,7 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
         if errors:
             raise ValidationError(errors)
 
-        attrs['domainId'] = f'{int(time.time())}-{secrets.token_hex(16)}'
+        attrs.setdefault('domain_id', f'{int(time.time())}-{secrets.token_hex(16)}')
 
         return attrs
 
@@ -327,8 +355,9 @@ class DonateViewSet(GenericViewSet):
             event = Event.objects.get(id=data['event'])
             query = dict(
                 event=event,
-                domain='PAYPAL',
-                domainId=data['domainId'],
+                donor_id=data.get('donor_id', None),
+                domain=data['domain'],
+                domainId=data['domain_id'],
                 currency=event.paypalcurrency,
                 amount=_trim(data['amount']),
                 comment=data['comment'],
@@ -343,29 +372,49 @@ class DonateViewSet(GenericViewSet):
                 donation = Donation(**query)
                 donation.full_clean()
                 donation.save()
-                # get_or_create isn't usable in transactions, so for new suggestions we lock the parents instead to assure atomicity
-                Bid.objects.filter(
-                    id__in=(b['parent'] for b in data['bids'] if 'parent' in b)
-                ).select_for_update()
+                # get_or_create isn't usable in transactions, so for new suggestions we lock the parents instead to
+                #  assure atomicity
+                # this gracefully handles the case where two people input the same option at the same time (unlikely,
+                #  but it's happened! or maybe it was somebody hitting back/refresh) as well as somebody putting an
+                #  existing name in as a "new" suggestion, either from not paying attention or because the option is
+                #  pending/denied and thus not visible
+
+                parents = (
+                    Bid.objects.filter(
+                        id__in=(b['parent'] for b in data['bids'] if 'parent' in b)
+                    )
+                    .select_for_update()
+                    .prefetch_related('options')
+                )
                 for bid_data in data['bids']:
                     if 'id' in bid_data:
-                        bid = Bid.objects.get(id=bid_data['id'])
+                        option = Bid.objects.get(id=bid_data['id'])
                     else:
-                        try:
-                            bid = Bid.objects.get(
-                                parent_id=bid_data['parent'],
-                                name__iexact=bid_data['name'],
+                        if not (
+                            parent := next(
+                                (p for p in parents if p.id == bid_data['parent']), None
                             )
-                        except Bid.DoesNotExist:
-                            bid = Bid.objects.create(
+                        ):
+                            raise Bid.DoesNotExist
+                        if not (
+                            option := next(
+                                (
+                                    o
+                                    for o in parent.options.all()
+                                    if o.name == bid_data['name']
+                                ),
+                                None,
+                            )
+                        ):
+                            option = Bid.objects.create(
                                 parent_id=bid_data['parent'],
                                 name=bid_data['name'],
                                 state='PENDING',
                                 istarget=True,
                             )
-                            bid.full_clean()
+                            option.full_clean()
                     donation.bids.create(
-                        bid=bid,
+                        bid=option,
                         amount=_trim(bid_data['amount']),
                     )
                 donation.full_clean()

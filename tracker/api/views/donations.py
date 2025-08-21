@@ -11,6 +11,7 @@ from tracker.api.filters import DonationFilter
 from tracker.api.pagination import TrackerPagination
 from tracker.api.permissions import (
     CanSendToReader,
+    DonationBidPermission,
     DonationQueryPermission,
     tracker_permission,
 )
@@ -429,8 +430,17 @@ class DonationViewSet(
 
         return Response([g.name for g in donation.groups.all()])
 
-    @action(detail=True, methods=['get'])
+    @action(
+        detail=True,
+        methods=['get', 'post'],
+        permission_classes=[DonationBidPermission],
+        include_tracker_permissions=False,
+    )
     def bids(self, request, *args, **kwargs):
         viewset = DonationBidViewSet(request=request, donation=self.get_object())
         viewset.initial(request, *args, **kwargs)
-        return viewset.list(request, *args, **kwargs)
+        if request.method.upper() == 'GET':
+            return viewset.list(request, *args, **kwargs)
+        elif request.method.upper() == 'POST':
+            return viewset.create(request, *args, **kwargs)
+        assert False, 'what'
