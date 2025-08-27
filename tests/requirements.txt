@@ -6,7 +6,7 @@ wheel
 # django explicitly not listed here because azure installs a particular series immediately after
 django-ical==1.9.2
 django-paypal==1.1.2
-django-mptt==0.17.0
+django-mptt==0.18.0
 django-post-office==3.10.1
 django-timezone-field==7.1
 djangorestframework==3.16.1
