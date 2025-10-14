@@ -28,14 +28,14 @@ from rest_framework.fields import (
 )
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
-from rest_framework.serializers import Serializer, as_serializer_error
+from rest_framework.serializers import ModelSerializer, Serializer, as_serializer_error
 from rest_framework.viewsets import GenericViewSet
 
 from tracker import settings
 from tracker.api.serializers import DonationSerializer, EnsureSerializableMixin
 from tracker.compat import reverse
 from tracker.models import Bid, Donation, Event
-from tracker.models.donation import Donor
+from tracker.models.donation import Donor, TwitchDonation
 
 logger = logging.getLogger(__file__)
 
@@ -161,6 +161,26 @@ class NewDonationBidSerializer(EnsureSerializableMixin, Serializer):
         return ret
 
 
+class TwitchDonationSerializer(EnsureSerializableMixin, ModelSerializer):
+    class Meta:
+        model = TwitchDonation
+        exclude = ('donation',)
+
+    def to_internal_value(self, data):
+        if 'id' in data:
+            data['twitch_id'] = data.pop('id')
+        if 'amount' in data:
+            amount = data.pop('amount', {})
+            data['amount_value'] = amount.get('value', None)
+            data['amount_decimal_places'] = amount.get('decimal_places', None)
+            data['amount_currency'] = amount.get('currency', None)
+        return super().to_internal_value(data)
+
+    def validate(self, attrs):
+        attrs['twitch_id'] = attrs.get('id', None)
+        return super().validate(attrs)
+
+
 class NewDonationSerializer(EnsureSerializableMixin, Serializer):
     amount = DecimalField(
         max_digits=20,
@@ -184,10 +204,27 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
         allow_blank=True,
         max_length=Donation._meta.get_field('requestedemail').max_length,
     )
+    twitch = TwitchDonationSerializer(required=False)
 
     def to_internal_value(self, data):
         if isinstance(data.get('amount'), float):
             data['amount'] = _trim(data['amount'])
+        if 'twitch' in data:
+            data['twitch'] = TwitchDonationSerializer().to_internal_value(
+                data['twitch']
+            )
+            data['domain'] = 'TWITCH'
+            data['domain_id'] = data['twitch']['twitch_id']
+            data['donor_twitch_id'] = data['twitch']['user_id']
+            data['requested_alias'] = data['twitch']['user_name']
+            data['amount'] = _trim(
+                data['twitch']['amount_value']
+                / 10.0 ** data['twitch']['amount_decimal_places']
+            )
+            data['bids'] = []
+            data['comment'] = ''
+            data['email_optin'] = False
+            data['requested_email'] = f"{data['donor_twitch_id']}@fake.users.twitch.tv"
         return super().to_internal_value(data)
 
     def validate(self, attrs):
