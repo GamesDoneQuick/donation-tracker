@@ -8,6 +8,7 @@ from tracker.models.donation import (
     Donor,
     DonorCache,
     Milestone,
+    TwitchDonation,
 )
 from tracker.models.event import (
     Event,
@@ -37,6 +38,7 @@ __all__ = [
     'Donor',
     'DonorCache',
     'Milestone',
+    'TwitchDonation',
     'Prize',
     'PrizeKey',
     'PrizeClaim',
