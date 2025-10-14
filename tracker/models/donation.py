@@ -836,3 +836,42 @@ class Milestone(models.Model):
         app_label = 'tracker'
         ordering = ('event', 'amount')
         unique_together = ('event', 'amount')
+
+
+class TwitchDonation(models.Model):
+    class Meta:
+        app_label = 'tracker'
+        ordering = ('created_at',)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    donation = models.OneToOneField('tracker.Donation', on_delete=models.PROTECT)
+    twitch_id = models.CharField(
+        max_length=256, unique=True, help_text='Unique id for this donation'
+    )
+    campaign_id = models.CharField(
+        max_length=128, help_text='id for the charity campaign'
+    )
+    broadcaster_user_id = models.IntegerField(help_text='Broadcaster id')
+    broadcaster_user_name = models.CharField(
+        max_length=128, help_text='Broadcaster\'s login name'
+    )
+    broadcaster_user_login = models.CharField(
+        max_length=128, help_text='Broadcaster\'s display name'
+    )
+    user_id = models.IntegerField(help_text='Donor\'s id')
+    user_login = models.CharField(max_length=128, help_text='Donor\'s login name')
+    user_name = models.CharField(max_length=128, help_text='Donor\'s display name')
+    charity_name = models.CharField(max_length=128)
+    charity_description = models.CharField(
+        max_length=256
+    )  # TODO: what's the actual size limit here?
+    charity_logo = models.URLField(max_length=128)
+    charity_website = models.URLField(max_length=128)
+    amount_value = models.IntegerField(help_text='Value in smallest monetary units')
+    amount_decimal_places = models.IntegerField(
+        help_text='actual value = value / 10^decimal_places'
+    )
+    amount_currency = models.CharField(max_length=3, help_text='ISO-4217 code')
+
+    def __str__(self):
+        return f'Twitch Donation: f{self.twitch_id}'
