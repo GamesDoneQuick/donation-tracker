@@ -5806,7 +5806,7 @@ __metadata:
     swc-loader: ^0.2.3
     typescript: ^5.8.3
     util: ^0.12.5
-    validator: ^13.9.0
+    validator: ^13.15.20
     webpack: ^5.94.0
     webpack-bundle-analyzer: ^4.8.0
     webpack-cli: ^4.10.0
@@ -13191,10 +13191,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"validator@npm:^13.9.0":
-  version: 13.15.0
-  resolution: "validator@npm:13.15.0"
-  checksum: 0d1faacb802336e69fafde33723b6de8e1833d1a3ec2b5202ffc69b95c8140db6d4728760026d738243d706cd324ea84808deea2ed647f571a3171d03ade8031
+"validator@npm:^13.15.20":
+  version: 13.15.20
+  resolution: "validator@npm:13.15.20"
+  checksum: e8e50470acbc65206fad8ac937cc692278201bb09558176a4100b90cbc7981c475eda69f49b91aee3ae04cff474c8478f672f9c641e4e0a38a9f47371e0fdfb2
   languageName: node
   linkType: hard
 
