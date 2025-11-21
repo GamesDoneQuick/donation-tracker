@@ -6,9 +6,6 @@ Specifically, do not include anything django or tracker specific in the top leve
 can use it in migrations, or inside the `model` files
 """
 
-# TODO: remove when 3.10 is lowest supported version
-from __future__ import annotations
-
 import collections.abc
 import datetime
 import itertools

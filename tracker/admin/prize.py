@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import datetime
 from itertools import groupby
 from typing import Any, Collection, Iterable, Mapping, Optional, Sequence
