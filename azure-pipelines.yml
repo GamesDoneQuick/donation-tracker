@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         Oldest:
-          PYTHON_VERSION: '3.9'
+          PYTHON_VERSION: '3.10'
           DJANGO_VERSION: '4.2'
         Django42:
           PYTHON_VERSION: '3.12'
@@ -20,17 +20,17 @@ jobs:
         Django51:
           PYTHON_VERSION: '3.13'
           DJANGO_VERSION: '5.1'
-        Python3A:
-          PYTHON_VERSION: '3.10'
-          DJANGO_VERSION: '5.2'
         Python3B:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '5.2'
         Python3C:
           PYTHON_VERSION: '3.12'
           DJANGO_VERSION: '5.2'
-        Latest:
+        Python3D:
           PYTHON_VERSION: '3.13'
+          DJANGO_VERSION: '5.2'
+        Latest:
+          PYTHON_VERSION: '3.14'
           DJANGO_VERSION: '5.2'
 
     steps:
@@ -165,12 +165,12 @@ jobs:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
     strategy:
       matrix:
-        Node18:
-          NODE_VERSION: 18
         Node20:
           NODE_VERSION: 20
         Node22:
           NODE_VERSION: 22
+        Node24:
+          NODE_VERSION: 24
 
     steps:
       - task: NodeTool@0
