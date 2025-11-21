@@ -2598,6 +2598,7 @@ class TestPrizeSubmission(TestCase, AssertionHelpers):
                 'extrainfo': 'I made this with pink Himalayan sea salt.',
                 'estimatedvalue': '5.00',
                 'imageurl': 'https://example.com/deadbeef.jpg',
+                'provider': 'Alex Doe',
                 'creatorname': 'Jesse Doe',
                 'creatoremail': 'jesse@example.com',
                 'creatorwebsite': 'https://example.com/jesse',
@@ -2606,6 +2607,7 @@ class TestPrizeSubmission(TestCase, AssertionHelpers):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.context['form'].is_valid())
+        self.assertEqual(resp.context['form'].initial['provider'], self.user.username)
         prize = models.Prize.objects.get(name='Test Prize')
         self.assertDictContainsSubset(
             dict(
@@ -2615,9 +2617,12 @@ class TestPrizeSubmission(TestCase, AssertionHelpers):
                 extrainfo='I made this with pink Himalayan sea salt.',
                 estimatedvalue=Decimal('5.00'),
                 image='https://example.com/deadbeef.jpg',
+                provider='Alex Doe',
                 creator='Jesse Doe',
                 creatoremail='jesse@example.com',
                 creatorwebsite='https://example.com/jesse',
             ),
             prize.__dict__,
         )
+
+        # TODO: validation failures and duplicates

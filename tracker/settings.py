@@ -102,6 +102,14 @@ class TrackerSettings(object):
         else:
             return None
 
+    @property
+    def TRACKER_PRIZE_PROVIDER_TEXT(self):
+        return getattr(
+            settings,
+            'TRACKER_PRIZE_PROVIDER_TEXT',
+            'The prize will be credited to this entity on the event stream and the website. This can be one or more individuals. If you wish to remain anonymous, please write "Anonymous" here.',
+        )
+
     # pass everything else through for convenience
     def __getattr__(self, item):
         return getattr(settings, item)
