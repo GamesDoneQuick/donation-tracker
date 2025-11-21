@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         Oldest:
-          PYTHON_VERSION: '3.9'
+          PYTHON_VERSION: '3.10'
           DJANGO_VERSION: '4.2'
         Django42:
           PYTHON_VERSION: '3.12'
@@ -20,17 +20,17 @@ jobs:
         Django51:
           PYTHON_VERSION: '3.13'
           DJANGO_VERSION: '5.1'
-        Python3A:
-          PYTHON_VERSION: '3.10'
-          DJANGO_VERSION: '5.2'
         Python3B:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '5.2'
         Python3C:
           PYTHON_VERSION: '3.12'
           DJANGO_VERSION: '5.2'
-        Latest:
+        Python3D:
           PYTHON_VERSION: '3.13'
+          DJANGO_VERSION: '5.2'
+        Latest:
+          PYTHON_VERSION: '3.14'
           DJANGO_VERSION: '5.2'
 
     steps:
@@ -75,8 +75,16 @@ jobs:
           python runtests.py --no-input --parallel 8
         env:
           TRACKER_DISABLE_TQDM: 1
+          TRACKER_SKIP_SELENIUM: 1
         displayName: 'Run Django tests'
         retryCountOnTaskFailure: 3
+
+      - script: |
+          python runtests.py --no-input --no-bundle --skip-ts-check tests.test_admin.ProcessDonationsAndBidsBrowserTest
+        env:
+          TRACKER_DISABLE_TQDM: 1
+        displayName: 'Run Django Selenium tests'
+        retryCountOnTaskFailure: 5
 
       - task: PublishTestResults@2
         inputs:
@@ -165,12 +173,12 @@ jobs:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
     strategy:
       matrix:
-        Node18:
-          NODE_VERSION: 18
         Node20:
           NODE_VERSION: 20
         Node22:
           NODE_VERSION: 22
+        Node24:
+          NODE_VERSION: 24
 
     steps:
       - task: NodeTool@0

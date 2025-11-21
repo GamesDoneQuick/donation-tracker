@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import contextlib
 import logging
 import secrets
@@ -7,6 +5,7 @@ import time
 from collections import defaultdict
 from decimal import Decimal
 from functools import reduce
+from itertools import pairwise
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -34,7 +33,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from tracker import settings
 from tracker.api.serializers import DonationSerializer, EnsureSerializableMixin
-from tracker.compat import pairwise, reverse
+from tracker.compat import reverse
 from tracker.models import Bid, Donation, Event
 from tracker.models.donation import Donor
 
