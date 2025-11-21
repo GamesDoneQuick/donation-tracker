@@ -210,11 +210,16 @@ class PrizeSubmissionForm(forms.Form):
             'Enter the URL of an image of the prize. Please see our notes regarding prize images at the bottom of the form. Images are now required for prize submissions.'
         ),
     )
+    provider = forms.CharField(
+        max_length=64,
+        label='Prize Provider',
+        help_text=settings.TRACKER_PRIZE_PROVIDER_TEXT,
+    )
     creatorname = forms.CharField(
         max_length=64,
         required=False,
         label='Prize Creator',
-        help_text='Name of the creator of the prize. This is for crediting/promoting the people who created this prize (please fill this in even if you are the creator).',
+        help_text='The entity that created the prize, and can be totally different from the Provider. This can also be left blank.',
     )
     creatoremail = forms.EmailField(
         max_length=128,
@@ -267,9 +272,6 @@ class PrizeSubmissionForm(forms.Form):
         return self.cleaned_data
 
     def save(self, event, handler=None):
-        provider = ''
-        if handler and handler.username != handler.email:
-            provider = handler.username
         prize = models.Prize.objects.create(
             event=event,
             name=self.cleaned_data['name'],
@@ -280,7 +282,7 @@ class PrizeSubmissionForm(forms.Form):
             minimumbid=5,
             image=self.cleaned_data['imageurl'],
             handler=handler,
-            provider=provider,
+            provider=self.cleaned_data['provider'],
             creator=self.cleaned_data['creatorname'],
             creatoremail=self.cleaned_data['creatoremail'],
             creatorwebsite=self.cleaned_data['creatorwebsite'],
