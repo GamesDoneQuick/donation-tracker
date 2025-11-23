@@ -1,10 +1,11 @@
 import datetime
+from itertools import pairwise
 from typing import Iterable, List, Optional, Union
 
 from django.db.models import F
 
 import tracker.models.tag
-from tracker import compat, models
+from tracker import models
 from tracker.api import messages
 from tracker.api.serializers import (
     EventSerializer,
@@ -582,12 +583,12 @@ class TestRunMove(TestSpeedRunBase, APITestCase):
         for r in all_runs:
             r.refresh_from_db()
 
-        for a, b in compat.pairwise(all_runs):
+        for a, b in pairwise(all_runs):
             self.assertEqual(
                 a.event_id, b.event_id, msg='Runs are from different events'
             )
 
-        for n, (a, b) in enumerate(compat.pairwise(ordered), start=1):
+        for n, (a, b) in enumerate(pairwise(ordered), start=1):
             with self.subTest(f'ordered {n}: {a}, {b}'):
                 self.assertEqual(
                     a.order, n, msg=f'Order was wrong {n},{a.order},{b.order}'

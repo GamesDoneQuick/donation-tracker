@@ -2,12 +2,12 @@
 
 ## Requirements
 
-- Python 3.9 to 3.13
+- Python 3.10 to 3.14
 - Django 4.2, 5.1, or 5.2
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
-- Node (only LTS versions are officially supported, currently 18, 20, and 22)
+- Node (only LTS versions are officially supported, currently 20, 22, and 24)
 - `yarn` (`npm i -g yarn`)
 - `pre-commit` (`pip install pre-commit`)
 

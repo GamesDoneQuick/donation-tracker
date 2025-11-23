@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+import multiprocessing
 import os
 import subprocess
 import sys
@@ -17,6 +18,10 @@ from django.test.utils import get_runner
 
 if __name__ == '__main__':
     os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.test_settings'
+    # 3.14 defaults to forkserver on Linux, which breaks sqlite3 tests running in parallel
+    #  spawn is slower, but the majority of runtime is in the tests themselves anyway so
+    #  hopefully this is fine
+    multiprocessing.set_start_method('spawn')
     django.setup()
     app = Celery()
     app.config_from_object(
@@ -55,7 +60,7 @@ if __name__ == '__main__':
         action='store_false',
         dest='bundle',
         default=True,
-        help='Skips building the js bundles.',
+        help='Skips building the js bundles. This will cause tests to fail if the bundle is missing, out of date, or if webpack is not currently serving the dev bundles.',
     )
     parser.add_argument(
         '--skip-ts-check',

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import urllib.parse
 from decimal import Decimal
 
