@@ -668,7 +668,7 @@ class PrizeAdmin(EventArchivedMixin, RelatedUserMixin, CustomModelAdmin):
     @method_decorator(
         permission_required(
             (
-                'tracker.change_prizewinner',
+                'tracker.change_prizeclaim',
                 'tracker.view_donor',
                 'tracker.change_prize',
             ),
@@ -767,7 +767,7 @@ class PrizeAdmin(EventArchivedMixin, RelatedUserMixin, CustomModelAdmin):
     @method_decorator(
         permission_required(
             (
-                'tracker.change_prizewinner',
+                'tracker.change_prizeclaim',
                 'tracker.view_donor',
                 'tracker.change_prize',
             ),
@@ -835,7 +835,7 @@ class PrizeAdmin(EventArchivedMixin, RelatedUserMixin, CustomModelAdmin):
 
     @method_decorator(
         permission_required(
-            ('tracker.change_prizewinner', 'tracker.change_prize'), raise_exception=True
+            ('tracker.change_prizeclaim', 'tracker.change_prize'), raise_exception=True
         )
     )
     def automail_prize_accept_notifications(self, request, event=None):
@@ -922,7 +922,7 @@ class PrizeAdmin(EventArchivedMixin, RelatedUserMixin, CustomModelAdmin):
 
     @method_decorator(
         permission_required(
-            ('tracker.change_prizewinner', 'tracker.change_prize'), raise_exception=True
+            ('tracker.change_prizeclaim', 'tracker.change_prize'), raise_exception=True
         )
     )
     def preview_prize_accept_mail(self, request, claim, template):
@@ -993,7 +993,7 @@ class PrizeAdmin(EventArchivedMixin, RelatedUserMixin, CustomModelAdmin):
     @method_decorator(
         permission_required(
             (
-                'tracker.change_prizewinner',
+                'tracker.change_prizeclaim',
                 'tracker.view_donor',
                 'tracker.change_prize',
             ),
@@ -1073,7 +1073,7 @@ class PrizeAdmin(EventArchivedMixin, RelatedUserMixin, CustomModelAdmin):
     @method_decorator(
         permission_required(
             (
-                'tracker.change_prizewinner',
+                'tracker.change_prizeclaim',
                 'tracker.view_donor',
                 'tracker.change_prize',
             ),
