@@ -189,8 +189,17 @@ export interface DonationPost {
   bids: DonationPostBid[];
   domain?: DonationDomain; // defaults to 'LOCAL'
   // only with creation permission
+  domain_id?: string; // required for 'TWITCH' donations
   donor_email?: string;
   donor_id?: number;
+  donor_twitch_id?: number;
+}
+
+export interface DonationBidPost {
+  bid?: number;
+  amount: number;
+  parent?: number;
+  name?: string;
 }
 
 export interface APIRun

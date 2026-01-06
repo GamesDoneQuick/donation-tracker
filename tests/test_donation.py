@@ -307,6 +307,44 @@ class TestDonation(TestCase):
             bid.save()
             task.assert_not_called()
 
+    @patch('tracker.tasks.post_donation_to_postbacks')
+    def test_twitch_donation_broadcast(self, task):
+        with override_settings(TRACKER_HAS_CELERY=True):
+            donation = models.Donation.objects.create(amount=50, domain='TWITCH')
+            task.delay.assert_called_with(donation.id)
+            task.assert_not_called()
+            task.reset_mock()
+
+            donation.save()
+            task.delay.assert_not_called()
+
+            # test here for convenience
+            bid = donation.bids.create(bid=self.bid, amount=donation.amount)
+            task.delay.assert_called_with(donation.id)
+            task.assert_not_called()
+            task.reset_mock()
+
+            bid.save()
+            task.delay.assert_not_called()
+
+        with override_settings(TRACKER_HAS_CELERY=False):
+            donation = models.Donation.objects.create(amount=50, domain='TWITCH')
+            task.assert_called_with(donation.id)
+            task.delay.assert_not_called()
+            task.reset_mock()
+
+            donation.save()
+            task.assert_not_called()
+
+            # test here for convenience
+            bid = donation.bids.create(bid=self.bid, amount=donation.amount)
+            task.assert_called_with(donation.id)
+            task.delay.assert_not_called()
+            task.reset_mock()
+
+            bid.save()
+            task.assert_not_called()
+
 
 class TestDonationAdmin(TestCase, AssertionHelpers):
     def setUp(self):
