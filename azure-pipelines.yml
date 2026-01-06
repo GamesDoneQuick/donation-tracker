@@ -17,21 +17,24 @@ jobs:
         Django42:
           PYTHON_VERSION: '3.12'
           DJANGO_VERSION: '4.2'
-        Django51:
-          PYTHON_VERSION: '3.13'
-          DJANGO_VERSION: '5.1'
+        Django52:
+          PYTHON_VERSION: '3.14'
+          DJANGO_VERSION: '5.2'
+        Python3A:
+          PYTHON_VERSION: '3.10'
+          DJANGO_VERSION: '5.2'
         Python3B:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '5.2'
         Python3C:
           PYTHON_VERSION: '3.12'
-          DJANGO_VERSION: '5.2'
+          DJANGO_VERSION: '6.0'
         Python3D:
           PYTHON_VERSION: '3.13'
-          DJANGO_VERSION: '5.2'
+          DJANGO_VERSION: '6.0'
         Latest:
           PYTHON_VERSION: '3.14'
-          DJANGO_VERSION: '5.2'
+          DJANGO_VERSION: '6.0'
 
     steps:
       - task: UsePythonVersion@0
@@ -41,7 +44,7 @@ jobs:
 
       - task: NodeTool@0
         inputs:
-          versionSpec: '22'
+          versionSpec: '24'
 
       - task: Cache@2
         inputs:
@@ -105,7 +108,7 @@ jobs:
     steps:
       - task: NodeTool@0
         inputs:
-          versionSpec: '22'
+          versionSpec: '24'
 
       - task: Cache@2
         inputs:

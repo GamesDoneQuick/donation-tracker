@@ -3,7 +3,9 @@
 ## Requirements
 
 - Python 3.10 to 3.14
-- Django 4.2, 5.1, or 5.2
+- Django 4.2, 5.2, or 6.0.1+ (6.0 has a migration bug)
+
+Unless otherwise specified, only the latest patch version of each branch is officially supported.
 
 Additionally, if you are planning on developing, and/or building the JS bundles yourself:
 
