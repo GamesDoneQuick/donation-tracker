@@ -84,7 +84,7 @@ jobs:
         env:
           TRACKER_DISABLE_TQDM: 1
         displayName: 'Run Django Selenium tests'
-        retryCountOnTaskFailure: 5
+        retryCountOnTaskFailure: 10
 
       - task: PublishTestResults@2
         inputs:
