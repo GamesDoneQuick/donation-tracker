@@ -84,6 +84,10 @@ class TimestampField(models.Field):
                 return value
         if isinstance(value, datetime.timedelta):
             value = int(value.total_seconds()) * 1000 + value.microseconds // 1000
+        if not isinstance(value, int):
+            raise ValidationError(
+                f'expected None, str, timedelta, or int, got {type(value)}'
+            )
         if not value:
             return '0'
         h, m, s, ms = (

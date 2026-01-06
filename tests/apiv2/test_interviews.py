@@ -161,6 +161,14 @@ class TestInterviews(InterstitialTestCase):
                 expected_error_codes={'interviewers': {'non_field_errors': 'empty'}},
             )
 
+        # a little generic, but it should be tested -somewhere-
+        with self.subTest('parse error'):
+            self.post_new(
+                data={'length': [50]},
+                status_code=400,
+                expected_error_codes={'length': 'invalid'},
+            )
+
     def test_patch(self):
         with self.subTest('happy path'), self.saveSnapshot(), self.assertLogsChanges(2):
             data = self.patch_detail(
