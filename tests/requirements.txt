@@ -7,7 +7,7 @@ wheel
 django-ical==1.9.2
 django-paypal==1.1.2
 django-mptt==0.18.0
-django-post-office==3.10.1
+django-post-office==3.11.0
 django-timezone-field==7.2.1
 djangorestframework==3.16.1
 pre-commit==4.5.0
