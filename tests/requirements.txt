@@ -20,4 +20,4 @@ responses~=0.25.8
 selenium==4.39.0
 tblib==3.2.2
 tqdm==4.67.1
-unittest-xml-reporting==3.2.0
+unittest-xml-reporting==4.0.0
