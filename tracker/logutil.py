@@ -12,20 +12,24 @@ def get_change_message(fields):
     return _('Changed %s.') % get_text_list(fields, _('and'))
 
 
-def addition(request, object):
+def addition(request, obj):
     """
     Log that an object has been successfully added.
     """
-    models.LogEntry.objects.log_action(
-        user_id=request.user.pk,
-        content_type_id=ContentType.objects.get_for_model(object).pk,
-        object_id=object.pk,
-        object_repr=force_str(object),
-        action_flag=models.ADDITION,
-    )
+    if hasattr(models.LogEntry.objects, 'log_actions'):
+        models.LogEntry.objects.log_actions(request.user.id, [obj], models.ADDITION)
+    else:
+        # TODO: Django 4.2 compat
+        models.LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(obj).pk,
+            object_id=obj.pk,
+            object_repr=force_str(obj),
+            action_flag=models.ADDITION,
+        )
 
 
-def change(request, object, message_or_fields):
+def change(request, obj, message_or_fields):
     """
     Log that an object has been successfully changed.
 
@@ -36,27 +40,37 @@ def change(request, object, message_or_fields):
         message = message_or_fields
     else:
         message = get_change_message(message_or_fields)
-    models.LogEntry.objects.log_action(
-        user_id=request.user.pk,
-        content_type_id=ContentType.objects.get_for_model(object).pk,
-        object_id=object.pk,
-        object_repr=force_str(object),
-        action_flag=models.CHANGE,
-        change_message=message,
-    )
+    if hasattr(models.LogEntry.objects, 'log_actions'):
+        models.LogEntry.objects.log_actions(
+            request.user.id, [obj], models.CHANGE, message
+        )
+    else:
+        # TODO: Django 4.2 compat
+        models.LogEntry.objects.log_action(
+            user_id=request.user.pk,
+            content_type_id=ContentType.objects.get_for_model(obj).pk,
+            object_id=obj.pk,
+            object_repr=force_str(obj),
+            action_flag=models.CHANGE,
+            change_message=message,
+        )
 
 
-def deletion(request, object, object_repr=None):
+def deletion(request, obj, object_repr=None):
     """
     Log that an object will be deleted.
     """
-    models.LogEntry.objects.log_action(
-        user_id=request.user.id,
-        content_type_id=ContentType.objects.get_for_model(object).pk,
-        object_id=object.pk,
-        object_repr=object_repr or force_str(object),
-        action_flag=models.DELETION,
-    )
+    if hasattr(models.LogEntry.objects, 'log_actions'):
+        models.LogEntry.objects.log_actions(request.user.id, [obj], models.DELETION)
+    else:
+        # TODO: Django 4.2 compatibility
+        models.LogEntry.objects.log_action(
+            user_id=request.user.id,
+            content_type_id=ContentType.objects.get_for_model(obj).pk,
+            object_id=obj.pk,
+            object_repr=object_repr or force_str(obj),
+            action_flag=models.DELETION,
+        )
 
 
 def in_bulk(request, added, changed, deleted):
