@@ -49,6 +49,14 @@ class InterstitialTestCase(APITestCase):
                 expected_error_codes={'anchor': messages.INVALID_ANCHOR_CODE},
             )
 
+            self.post_new(
+                data={
+                    'anchor': str(self.run.pk),
+                },
+                status_code=400,
+                expected_error_codes={'anchor': messages.INVALID_ANCHOR_CODE},
+            )
+
             # doesn't blow up if missing/nonsense
 
             self.post_new(
@@ -56,6 +64,7 @@ class InterstitialTestCase(APITestCase):
                     'anchor': {'what': 'is this'},
                 },
                 status_code=400,
+                expected_error_codes={'anchor': 'incorrect_type'},
             )
 
             self.post_new(

@@ -1,8 +1,8 @@
 """Define serialization of the Django models into the REST framework."""
 
-import contextlib
 import datetime
 import logging
+import re
 from collections import defaultdict
 from contextlib import contextmanager
 from decimal import Decimal
@@ -16,7 +16,7 @@ from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
-from rest_framework.fields import DateTimeField, DecimalField
+from rest_framework.fields import DateTimeField, DecimalField, get_error_detail
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ListSerializer, as_serializer_error
 from rest_framework.utils import model_meta
@@ -327,7 +327,9 @@ class PrimaryOrNaturalKeyLookup:
     def to_internal_value(self, data):
         if isinstance(data, dict):
             return super().to_internal_value(data)
-        elif isinstance(data, int):
+        elif isinstance(data, int) or (
+            isinstance(data, str) and re.match(r'\d+', data)
+        ):
             try:
                 return self.queryset.get(pk=data)
             except ObjectDoesNotExist:
@@ -1180,8 +1182,15 @@ class InterstitialSerializer(EventNestedSerializerMixin, TrackerModelSerializer)
                     ErrorDetail(messages.ANCHOR_FIELD, code=messages.ANCHOR_FIELD_CODE)
                 )
 
-            with contextlib.suppress(ValidationError):
-                if anchor := SpeedRunSerializer().to_internal_value(anchor):
+            try:
+                # TODO: figure out a way to re-use "no nesting"
+                if not isinstance(anchor, (int, str, list)):
+                    errors['anchor'].append(
+                        ErrorDetail('Incorrect type.', code='incorrect_type')
+                    )
+                elif anchor := SpeedRunSerializer(
+                    context=self.context
+                ).to_internal_value(anchor):
                     data['anchor'] = anchor.id
                     data['event'] = anchor.event_id
                     if anchor.order:
@@ -1193,6 +1202,10 @@ class InterstitialSerializer(EventNestedSerializerMixin, TrackerModelSerializer)
                                 code=messages.INVALID_ANCHOR_CODE,
                             )
                         )
+            except ValidationError as exc:
+                errors['anchor'].append(exc.detail)
+            except DjangoValidationError as exc:
+                errors['anchor'].append(get_error_detail(exc))
         if last := data.get('suborder', None) == 'last':
             data['suborder'] = 10000  # TODO: horrible lie to silence the validation
         with _coalesce_validation_errors(errors):
