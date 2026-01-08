@@ -58,7 +58,10 @@ export default React.memo(function TotalWatch() {
   const eventId = useEventParam();
   const { data: event, ...eventState } = useEventFromRoute({ queryParams: { totals: '' }, listen: true });
   const { data: runs, ...runState } = useRunsQuery({ urlParams: eventId }, { pollingInterval: 60000 });
-  const { data: bids, ...bidState } = useBidTreeQuery({ urlParams: { eventId, feed }, listen: true });
+  const { data: bids, ...bidState } = useBidTreeQuery({
+    urlParams: { eventId, feed: feed === 'public' ? undefined : feed },
+    listen: true,
+  });
   const { data: milestones, ...milestoneState } = useMilestonesQuery(
     { urlParams: eventId },
     { pollingInterval: 300000 },
