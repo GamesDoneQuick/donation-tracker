@@ -100,7 +100,6 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "eslint-plugin-unused-imports": "^4.1.4",
-    "esno": "^0.17.0",
     "events": "^3.3.0",
     "immer": "^10.1.1",
     "jasmine-core": "^3.5.0",
