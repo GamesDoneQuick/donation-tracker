@@ -26,7 +26,7 @@ classifiers = [
   'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 dependencies = [
-  'babel~=2.17.0',
+  'babel~=2.18.0',
   'celery~=5.0',
   'channels>=4.0',
   'Django>=4.2,!=6.0,<6.1',

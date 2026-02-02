@@ -12,7 +12,7 @@ django-timezone-field==7.2.1
 djangorestframework==3.16.1
 pre-commit==4.5.1
 python-dateutil==2.8.2 ; python_version<"3.11"
-babel==2.17.0
+babel==2.18.0
 # only for testing
 daphne==4.2.1
 msgpack==1.1.2
