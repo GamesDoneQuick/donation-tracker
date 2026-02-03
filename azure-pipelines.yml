@@ -163,6 +163,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel pre-commit
           ss=0
           yarn --immutable || ss=1
+          yarn dedupe --check || ss=1
           pre-commit run --all || ss=1
           pre-commit run --hook-stage push --all || ss=1
           exit $ss
