@@ -17,7 +17,7 @@ babel==2.17.0
 daphne==4.2.1
 msgpack==1.1.2
 responses~=0.26.0
-selenium==4.40.0
+selenium==4.41.0
 tblib==3.2.2
 tqdm==4.67.1
 unittest-xml-reporting==4.0.0
