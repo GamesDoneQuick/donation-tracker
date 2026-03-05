@@ -253,6 +253,7 @@ class TestSpeedRunAdmin(TransactionTestCase, AssertionModelHelpers):
 
         self.client.login(username='admin', password='password')
         with self.subTest('normal run'), self.assertLogsChanges(1):
+            original_estimate = self.run1.run_time
             cf = f'event__id__exact={self.event1.pk}'
             resp = self.client.post(
                 reverse('admin:start_run', args=(self.run2.id,)),
@@ -269,8 +270,32 @@ class TestSpeedRunAdmin(TransactionTestCase, AssertionModelHelpers):
                 reverse('admin:tracker_speedrun_changelist') + '?' + cf,
             )
             self.run1.refresh_from_db()
+            self.assertEqual(self.run1.original_estimate, original_estimate)
             self.assertEqual(self.run1.run_time, '0:41:20')
             self.assertEqual(self.run1.setup_time, '0:09:40')
+        with (
+            self.subTest('corrected time does not change original_estimate'),
+            self.assertLogsChanges(1),
+        ):
+            cf = f'event__id__exact={self.event1.pk}'
+            resp = self.client.post(
+                reverse('admin:start_run', args=(self.run2.id,)),
+                data={
+                    'run_time': '0:39:20',
+                    'start_time': '%s 12:52:00' % self.event1.date,
+                    'run_id': self.run2.id,
+                    '_changelist_filters': cf,
+                },
+            )
+            self.assertEqual(resp.status_code, 302)
+            self.assertEqual(
+                resp['Location'],
+                reverse('admin:tracker_speedrun_changelist') + '?' + cf,
+            )
+            self.run1.refresh_from_db()
+            self.assertEqual(self.run1.original_estimate, original_estimate)
+            self.assertEqual(self.run1.run_time, '0:39:20')
+            self.assertEqual(self.run1.setup_time, '0:12:40')
         with self.subTest('drift failure'):
             resp = self.client.post(
                 reverse('admin:start_run', args=(self.run2.id,)),
@@ -287,6 +312,7 @@ class TestSpeedRunAdmin(TransactionTestCase, AssertionModelHelpers):
                 StartRunForm.Errors.anchor_time_drift,
             )
         with self.subTest('anchored run'), self.assertLogsChanges(2):
+            original_estimate = self.run2.run_time
             resp = self.client.post(
                 reverse('admin:start_run', args=(self.run3.id,)),
                 data={
@@ -297,8 +323,9 @@ class TestSpeedRunAdmin(TransactionTestCase, AssertionModelHelpers):
             )
             self.assertEqual(resp.status_code, 302)
             self.run2.refresh_from_db()
+            self.assertEqual(self.run2.original_estimate, original_estimate)
             self.assertEqual(self.run2.run_time, '0:13:20')
-            self.assertEqual(self.run2.setup_time, '0:30:40')
+            self.assertEqual(self.run2.setup_time, '0:29:40')
             self.run3.refresh_from_db()
             expected_start = datetime.datetime.combine(
                 self.event1.date, datetime.time(13, 35), tzinfo=self.event1.timezone

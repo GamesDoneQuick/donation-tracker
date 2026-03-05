@@ -25,13 +25,14 @@ function parseEvent(e: number | undefined, event: APIEvent | number | undefined)
 }
 
 export function processRun(r: APIRun, _i?: number, _a?: APIRun[], e?: number): Run {
-  const { event, starttime, endtime, run_time, setup_time, anchor_time, ...rest } = r;
+  const { event, starttime, endtime, run_time, setup_time, anchor_time, original_estimate, ...rest } = r;
   return {
     event: parseEvent(e, event),
     starttime: starttime ? DateTime.fromISO(starttime) : null,
     endtime: endtime ? DateTime.fromISO(endtime) : null,
     run_time: parseDuration(run_time),
     setup_time: parseDuration(setup_time),
+    original_estimate: parseDuration(original_estimate),
     anchor_time: anchor_time ? DateTime.fromISO(anchor_time) : null,
     ...rest,
   };

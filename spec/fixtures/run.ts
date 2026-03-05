@@ -13,6 +13,7 @@ export function getFixtureRun(overrides?: Partial<APIRun>): APIRun {
     endtime: '2024-01-01T13:00:00-05:00',
     run_time: '0:50:00',
     setup_time: '0:10:00',
+    original_estimate: null,
     anchor_time: null,
     name: 'Start Run',
     display_name: '',

@@ -1047,6 +1047,7 @@ class SpeedRunAdmin(EventArchivedMixin, CustomModelAdmin):
                     'anchor_time',
                     'run_time',
                     'setup_time',
+                    'original_estimate',
                     'runners',
                     'hosts',
                     'commentators',
@@ -1061,7 +1062,7 @@ class SpeedRunAdmin(EventArchivedMixin, CustomModelAdmin):
         ),
         ('Bids', {'fields': ('bids',)}),
     ]
-    readonly_fields = ('start_time', 'bids')
+    readonly_fields = ('start_time', 'bids', 'original_estimate')
     actions = ['start_run']
     inlines = (inlines.VideoLinkInline,)
 
