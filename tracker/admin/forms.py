@@ -85,6 +85,8 @@ class StartRunForm(djforms.Form):
             if cleaned_data['start_time'] < endtime:
                 errors['start_time'].append(self.Errors.invalid_start_time)
             else:
+                if self._prev.original_estimate is None:
+                    self._prev.original_estimate = self._prev.run_time
                 self._prev.run_time = cleaned_data['run_time']
                 if self._run.anchor_time is not None:
                     self._run.anchor_time = cleaned_data['start_time']

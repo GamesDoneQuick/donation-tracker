@@ -497,6 +497,9 @@ class SpeedRun(models.Model):
     )
     run_time = TimestampField(always_show_h=True)
     setup_time = TimestampField(always_show_h=True)
+    original_estimate = TimestampField(
+        always_show_h=True, editable=False, null=True, blank=True
+    )
     runners = models.ManyToManyField('tracker.Talent', related_name='runs')
     hosts = models.ManyToManyField('tracker.Talent', related_name='hosting', blank=True)
     commentators = models.ManyToManyField(

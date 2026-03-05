@@ -195,12 +195,16 @@ export interface DonationPost {
 }
 
 export interface APIRun
-  extends Omit<Run, 'event' | 'starttime' | 'endtime' | 'run_time' | 'setup_time' | 'anchor_time'> {
+  extends Omit<
+    Run,
+    'event' | 'starttime' | 'endtime' | 'run_time' | 'setup_time' | 'original_estimate' | 'anchor_time'
+  > {
   event?: APIEvent;
   starttime: null | string;
   endtime: null | string;
   run_time: string;
   setup_time: string;
+  original_estimate: string | null;
   anchor_time: null | string;
 }
 

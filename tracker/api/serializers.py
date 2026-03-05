@@ -1101,6 +1101,7 @@ class SpeedRunSerializer(
             'order',
             'run_time',
             'setup_time',
+            'original_estimate',
             'anchor_time',
             'tech_notes',
             'layout',

@@ -407,6 +407,7 @@ class TestRunSerializer(TestSpeedRunBase, APITestCase):
             'starttime': run.starttime,
             'anchor_time': run.anchor_time,
             'setup_time': run.setup_time,
+            'original_estimate': run.original_estimate,
             'video_links': VideoLinkSerializer(run.video_links, many=True).data,
             'priority_tag': run.priority_tag and run.priority_tag.name,
             'tags': [t.name for t in run.tags.all()],
