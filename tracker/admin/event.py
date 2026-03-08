@@ -279,12 +279,6 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     # donation groups
                     'add_donationgroup',
                     'delete_donationgroup',
-                    # donors
-                    'add_donor',
-                    'change_donor',
-                    'view_donor',
-                    'view_emails',
-                    'view_full_names',
                     # needed for 'Start Run'
                     'change_speedrun',
                     'view_speedrun',
