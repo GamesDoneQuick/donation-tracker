@@ -238,6 +238,10 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'view_bid',
                     'view_donation',
                     'view_comments',
+                    'change_donationgroup',
+                    'add_donationgroup',
+                    'delete_donationgroup',
+                    'view_donationgroup',
                     # bid assignment
                     'add_donationbid',
                     'change_donationbid',
@@ -273,12 +277,10 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     'view_comments',
                     'view_pending_donation',
                     'send_to_reader',
-                    # donors
-                    'add_donor',
-                    'change_donor',
-                    'view_donor',
-                    'view_emails',
-                    'view_full_names',
+                    'change_donationgroup',
+                    'add_donationgroup',
+                    'delete_donationgroup',
+                    'view_donationgroup',
                     # needed for 'Start Run'
                     'change_speedrun',
                     'view_speedrun',
