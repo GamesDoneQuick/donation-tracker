@@ -37,7 +37,7 @@ dependencies = [
   'django-timezone-field>=7.0,<8.0',
   'djangorestframework~=3.9',
   'python-dateutil~=2.8.1;python_version<"3.11"',
-  'requests>=2.27.1,<2.33.0',
+  'requests>=2.27.1,<2.34.0',
 ]
 description = 'A Django app to assist in tracking donations for live broadcast events.'
 dynamic = ['version']
