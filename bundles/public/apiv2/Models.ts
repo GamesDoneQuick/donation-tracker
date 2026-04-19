@@ -143,6 +143,7 @@ export interface BidBase extends ModelBase {
   allowuseroptions: boolean;
   option_max_length?: null | number;
   readonly revealedtime: null | string;
+  tags: string[];
 }
 
 export interface Bid extends BidBase {

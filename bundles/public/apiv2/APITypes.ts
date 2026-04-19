@@ -151,6 +151,7 @@ export interface BidPost {
   parent?: number;
   goal?: number;
   state?: BidState;
+  tags?: string[];
 }
 
 export type BidPatch = Omit<Partial<BidPost>, 'event'>;
