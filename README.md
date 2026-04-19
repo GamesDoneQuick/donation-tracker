@@ -21,7 +21,7 @@ very helpful.
 This app shouldn't require any special treatment to deploy, though depending on which feature set you are using, extra
 steps will be required. You should be able to install it with pip, either from GitHub, or locally. e.g.
 
-`pip install git+https://github.com/GamesDoneQuick/donation-tracker.git@master`
+`pip install git+https://github.com/GamesDoneQuick/donation-tracker.git@main`
 
 Or after downloading or checking out locally:
 

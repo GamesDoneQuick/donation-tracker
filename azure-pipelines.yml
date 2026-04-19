@@ -1,6 +1,6 @@
 trigger:
-  - master
-  - gh-readonly-queue/master/*
+  - main
+  - gh-readonly-queue/main/*
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -100,7 +100,7 @@ jobs:
     condition: >
       not(
         or(
-          eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+          eq(variables['Build.SourceBranch'], 'refs/heads/main'),
           startsWith(variables['Build.SourceBranchName'], 'spike'),
           eq(variables['System.PullRequest.IsFork'], 'True')
         )
