@@ -4,7 +4,6 @@ import random
 import time
 from unittest import skipIf
 
-import django
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.auth import get_user_model
@@ -430,25 +429,6 @@ class TestEventArchivedMixin(TestCase, AssertionHelpers):
         self.archived_run = randgen.generate_run(self.rand, self.archived_event)
         self.archived_run.save()
 
-    @skipIf(
-        django.VERSION >= (5, 1, 0),
-        'delete_selected is broken for certain models on 4.2',
-    )
-    def test_delete_selected_disabled(self):
-        self.client.force_login(self.super_user)
-        response = self.client.get(
-            reverse('admin:tracker_speedrun_changelist'),
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn(
-            'delete_selected',
-            (c[0] for c in response.context['action_form'].fields['action'].choices),
-        )
-
-    @skipIf(
-        django.VERSION < (5, 1, 0),
-        'delete_selected is broken for certain models on 4.2',
-    )
     def test_delete_selected(self):
         self.client.force_login(self.super_user)
         response = self.client.post(

@@ -2,7 +2,6 @@ import contextlib
 import re
 import urllib.parse
 
-import django
 from django.apps import apps
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
@@ -33,13 +32,6 @@ def current_or_next_event_id():
 
 
 class CustomModelAdmin(admin.ModelAdmin):
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        if django.VERSION < (5, 1, 0):
-            # TODO: remove when Django 4.2 is no longer supported
-            actions.pop('delete_selected', None)
-        return actions
-
     def get_parent_view(self, request):
         """
         tries to determine which view/object we're looking at based on the referer for autocomplete widgets

@@ -1,6 +1,4 @@
 from django.contrib.admin import models
-from django.contrib.contenttypes.models import ContentType
-from django.utils.encoding import force_str
 from django.utils.text import get_text_list
 from django.utils.translation import gettext as _
 
@@ -16,17 +14,7 @@ def addition(request, obj):
     """
     Log that an object has been successfully added.
     """
-    if hasattr(models.LogEntry.objects, 'log_actions'):
-        models.LogEntry.objects.log_actions(request.user.id, [obj], models.ADDITION)
-    else:
-        # TODO: Django 4.2 compat
-        models.LogEntry.objects.log_action(
-            user_id=request.user.pk,
-            content_type_id=ContentType.objects.get_for_model(obj).pk,
-            object_id=obj.pk,
-            object_repr=force_str(obj),
-            action_flag=models.ADDITION,
-        )
+    models.LogEntry.objects.log_actions(request.user.id, [obj], models.ADDITION)
 
 
 def change(request, obj, message_or_fields):
@@ -40,37 +28,14 @@ def change(request, obj, message_or_fields):
         message = message_or_fields
     else:
         message = get_change_message(message_or_fields)
-    if hasattr(models.LogEntry.objects, 'log_actions'):
-        models.LogEntry.objects.log_actions(
-            request.user.id, [obj], models.CHANGE, message
-        )
-    else:
-        # TODO: Django 4.2 compat
-        models.LogEntry.objects.log_action(
-            user_id=request.user.pk,
-            content_type_id=ContentType.objects.get_for_model(obj).pk,
-            object_id=obj.pk,
-            object_repr=force_str(obj),
-            action_flag=models.CHANGE,
-            change_message=message,
-        )
+    models.LogEntry.objects.log_actions(request.user.id, [obj], models.CHANGE, message)
 
 
 def deletion(request, obj, object_repr=None):
     """
     Log that an object will be deleted.
     """
-    if hasattr(models.LogEntry.objects, 'log_actions'):
-        models.LogEntry.objects.log_actions(request.user.id, [obj], models.DELETION)
-    else:
-        # TODO: Django 4.2 compatibility
-        models.LogEntry.objects.log_action(
-            user_id=request.user.id,
-            content_type_id=ContentType.objects.get_for_model(obj).pk,
-            object_id=obj.pk,
-            object_repr=object_repr or force_str(obj),
-            action_flag=models.DELETION,
-        )
+    models.LogEntry.objects.log_actions(request.user.id, [obj], models.DELETION)
 
 
 def in_bulk(request, added, changed, deleted):

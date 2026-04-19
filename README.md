@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.10 to 3.14
-- Django 4.2, 5.2, or 6.0.1+ (6.0 has a migration bug)
+- Django 5.2, or 6.0.1+ (6.0 has a migration bug)
 
 Unless otherwise specified, only the latest patch version of each branch is officially supported.
 
