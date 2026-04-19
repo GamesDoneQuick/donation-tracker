@@ -176,6 +176,7 @@ export interface Run extends ModelBase {
   layout: string;
   run_time: Duration;
   setup_time: Duration;
+  original_estimate: Duration | null;
   anchor_time: DateTime | null;
   video_links: object[];
   priority_tag: null | string;
