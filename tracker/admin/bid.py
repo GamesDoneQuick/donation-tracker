@@ -19,12 +19,14 @@ class BidAdmin(EventArchivedMixin, CustomModelAdmin):
         'speedrun',
         'event',
         'biddependency',
+        'tags',
     )
     list_display = (
         'name',
         'parent_name',
         'speedrun_name',
         'event',
+        'tags_',
         'istarget',
         'chain',
         'goal',
@@ -105,9 +107,15 @@ class BidAdmin(EventArchivedMixin, CustomModelAdmin):
 
     def get_queryset(self, request):
         params = {'feed': 'all'}
-        return search_filters.run_model_query(
-            'allbids', params, user=request.user
-        ).select_related('parent', 'speedrun', 'event')
+        return (
+            search_filters.run_model_query('allbids', params, user=request.user)
+            .select_related('parent', 'speedrun', 'event')
+            .prefetch_related('tags')
+        )
+
+    @display(description='Tags')
+    def tags_(self, instance):
+        return ', '.join(str(t) for t in instance.tags.all()) or None
 
     def get_inlines(self, request, obj):
         inlines = []
@@ -163,6 +171,7 @@ class BidAdmin(EventArchivedMixin, CustomModelAdmin):
                         'state',
                         'description',
                         'shortdescription',
+                        'tags',
                         'estimate',
                         'close_at',
                         'post_run',

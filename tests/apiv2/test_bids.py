@@ -11,7 +11,7 @@ from ..util import APITestCase
 
 class TestBidViewSet(TestBidBase, APITestCase):
     model_name = 'bid'
-    add_user_permissions = ['top_level_bid']
+    add_user_permissions = ['top_level_bid', 'add_tag']
     serializer_class = BidSerializer
 
     def setUp(self):
@@ -260,7 +260,7 @@ class TestBidViewSet(TestBidBase, APITestCase):
                     )
 
     def test_create(self):
-        with self.saveSnapshot(), self.assertLogsChanges(7):
+        with self.saveSnapshot(), self.assertLogsChanges(8):
             # TODO: natural key tests
             with self.subTest('attach to event'):
                 data = self.post_new(
@@ -296,6 +296,19 @@ class TestBidViewSet(TestBidBase, APITestCase):
                         'parent': self.chain_bottom.pk,
                         'goal': 50,
                     },
+                )
+                serialized = self._serialize_models(
+                    models.Bid.objects.get(pk=data['id'])
+                )
+                self.assertEqual(data, serialized)
+
+            with self.subTest('attach tags'):
+                data = self.post_new(
+                    data={
+                        'name': 'New Tagged Bid',
+                        'event': self.event.pk,
+                        'tags': ['foo', 'baz'],  # one existing, one new
+                    }
                 )
                 serialized = self._serialize_models(
                     models.Bid.objects.get(pk=data['id'])
@@ -404,9 +417,18 @@ class TestBidViewSet(TestBidBase, APITestCase):
                 )
 
     def test_patch(self):
-        with self.saveSnapshot(), self.assertLogsChanges(1):
-            data = self.patch_detail(self.challenge, data={'name': 'Challenge Updated'})
-            self.assertV2ModelPresent(self.challenge, data)
+        with self.saveSnapshot(), self.assertLogsChanges(2):
+            with self.subTest('basic change'):
+                data = self.patch_detail(
+                    self.challenge, data={'name': 'Challenge Updated'}
+                )
+                self.assertV2ModelPresent(self.challenge, data)
+
+            with self.subTest('change tags'):
+                data = self.patch_detail(
+                    self.challenge, data={'tags': ['bar', 'quux']}
+                )  # one existing, one new
+                self.assertV2ModelPresent(self.challenge, data)
 
         with self.assertLogsChanges(3), self.subTest('changing to hidden states'):
             data = self.patch_detail(self.challenge, data={'state': 'HIDDEN'})
@@ -561,6 +583,7 @@ class TestBidSerializer(TestBidBase, APITestCase):
             'revealedtime': bid.revealedtime,
             'close_at': bid.close_at,
             'post_run': bid.post_run,
+            'tags': [t.name for t in bid.tags.all()],
         }
         if not child:
             data = {

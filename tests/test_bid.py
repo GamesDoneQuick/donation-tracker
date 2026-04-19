@@ -24,6 +24,8 @@ class TestBidBase(TestCase, AssertionHelpers):
     def setUp(self):
         super().setUp()
         self.rand = random.Random(None)
+        self.tag1 = models.tag.Tag.objects.create(name='foo')
+        self.tag2 = models.tag.Tag.objects.create(name='bar')
         self.event = models.Event.objects.get_or_create(
             short='test',
             defaults=dict(datetime=today_noon),
@@ -131,6 +133,7 @@ class TestBidBase(TestCase, AssertionHelpers):
             goal=15,
             speedrun=self.run,
         )
+        self.challenge.tags.add(models.Tag.objects.get(name='foo'))
         self.archived_challenge = models.Bid.objects.create(
             name='Challenge on Archived Event',
             istarget=True,

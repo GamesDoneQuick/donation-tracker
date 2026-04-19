@@ -519,6 +519,7 @@ class BidSerializer(
     bid_type = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
     event_move = True
+    tags = AbstractTagField(model=Tag, many=True, required=False, allow_create=True)
 
     def __init__(
         self,
@@ -565,6 +566,7 @@ class BidSerializer(
             'option_max_length',
             'revealedtime',
             'level',
+            'tags',
         )
 
     def get_bid_type(self, instance):

@@ -246,6 +246,7 @@ class Bid(mptt.models.MPTTModel):
         default=False,
         help_text='this incentive takes place after the run (part of setup time)',
     )
+    tags = models.ManyToManyField('tracker.Tag', blank=True, related_name='bids')
 
     class Meta:
         app_label = 'tracker'
@@ -694,7 +695,7 @@ class DonationBid(models.Model):
         bidsTree = (
             viewutil.get_tree_queryset_all(Bid, [self.bid])
             .select_related('parent')
-            .prefetch_related('options')
+            .prefetch_related('options', 'tags')
         )
         for bid in bidsTree:
             if bid.state == 'OPENED' and bid.goal is not None and bid.goal <= bid.total:
