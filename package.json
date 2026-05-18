@@ -118,7 +118,7 @@
     "typescript": "^5.8.3",
     "util": "^0.12.5",
     "webpack-bundle-analyzer": "^4.8.0",
-    "webpack-dev-server": "^4.13.2"
+    "webpack-dev-server": "^5.2.4"
   },
   "resolutions": {
     "@types/react": "^18.0.11"
