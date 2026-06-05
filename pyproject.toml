@@ -50,5 +50,5 @@ development = [
   'daphne~=4.0',
 ]
 tqdm = [
-  'tqdm~=4.67.1',
+  'tqdm>=4.67.1,<4.69.0',
 ]
