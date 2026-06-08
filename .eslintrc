@@ -41,6 +41,7 @@
       }
     ],
     "no-constant-condition": 2,
+    "no-duplicate-imports": 2,
     "no-eval": 2,
     "no-implied-eval": 2,
     "no-lonely-if": 2,

@@ -1,6 +1,6 @@
 import React from 'react';
 import cn from 'classnames';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 
 import { useEventFromRoute, useRunsQuery, useSplitRuns } from '@public/apiv2/hooks';
 import { Prize } from '@public/apiv2/Models';

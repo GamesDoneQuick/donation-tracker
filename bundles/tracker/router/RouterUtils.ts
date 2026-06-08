@@ -1,5 +1,5 @@
 import queryString from 'query-string';
-import { NavigateOptions as NavOptions, useNavigate } from 'react-router';
+import { NavigateOptions as NavOptions, useNavigate } from 'react-router-dom';
 
 export const Routes = {
   EVENT_BASE: (eventId: string | number) => `/events/${eventId}`,

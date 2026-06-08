@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { Button, Header, openModal, Stack } from '@faulty/gdq-design';
 
 import {

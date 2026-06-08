@@ -1,7 +1,7 @@
 import React from 'react';
 import { produce } from 'immer';
 import { ReactReduxContext, shallowEqual } from 'react-redux';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useConstants } from '@common/Constants';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';

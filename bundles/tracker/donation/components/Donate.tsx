@@ -1,6 +1,6 @@
 import React from 'react';
 import { shallowEqual } from 'react-redux';
-import { useLocation } from 'react-router';
+import { useLocation } from 'react-router-dom';
 
 import { useConstants } from '@common/Constants';
 import APIErrorList from '@public/APIErrorList';

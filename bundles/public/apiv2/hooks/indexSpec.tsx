@@ -1,7 +1,7 @@
 import React from 'react';
 import MockAdapter from 'axios-mock-adapter';
 import { Provider } from 'react-redux';
-import { Route, Routes } from 'react-router';
+import { Route, Routes } from 'react-router-dom';
 import { StaticRouter } from 'react-router-dom/server';
 import { act, render } from '@testing-library/react';
 

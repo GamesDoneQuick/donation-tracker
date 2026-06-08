@@ -5584,7 +5584,6 @@ __metadata:
     react-numeric: ^1.0.0
     react-redux: ^9.1.2
     react-refresh: ^0.14.0
-    react-router: ^6.27.0
     react-router-dom: ^6.27.0
     react-transition-group: ^4.4.5
     redux: ^4.2.1
@@ -10813,7 +10812,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-router@npm:6.27.0, react-router@npm:^6.27.0":
+"react-router@npm:6.27.0":
   version: 6.27.0
   resolution: "react-router@npm:6.27.0"
   dependencies:

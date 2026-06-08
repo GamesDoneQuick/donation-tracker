@@ -1,6 +1,5 @@
 import React from 'react';
-import { Outlet, Route, Routes } from 'react-router';
-import { BrowserRouter, Link } from 'react-router-dom';
+import { BrowserRouter, Link, Outlet, Route, Routes } from 'react-router-dom';
 
 import { useConstants } from '@common/Constants';
 import Loading from '@common/Loading';

@@ -1,6 +1,5 @@
 import React from 'react';
-import { useParams } from 'react-router';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useParams } from 'react-router-dom';
 
 import { useConstants } from '@common/Constants';
 import { useTrackerInit } from '@public/apiv2/hooks';

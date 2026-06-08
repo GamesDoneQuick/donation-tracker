@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Provider } from 'react-redux';
-import { Route, Routes } from 'react-router';
+import { Route, Routes } from 'react-router-dom';
 import { StaticRouter } from 'react-router-dom/server';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 
