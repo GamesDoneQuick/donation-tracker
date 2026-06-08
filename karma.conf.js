@@ -1,9 +1,10 @@
 const webpack = require('webpack');
 const webpackConfig = require('./webpack.config.js');
-process.env.CHROME_BIN = require('puppeteer').executablePath();
 
-module.exports = function (config) {
+module.exports = async function (config) {
   const mode = 'development';
+
+  process.env.CHROME_BIN = await require('puppeteer').executablePath();
 
   const { filename: _f, ...strippedOutput } = webpackConfig.output;
   const { entry: _e, output, ...strippedConfig } = webpackConfig;
