@@ -15,7 +15,7 @@ python-dateutil==2.8.2 ; python_version<"3.11"
 babel==2.17.0
 # only for testing
 daphne==4.2.2
-msgpack==1.1.2
+msgpack==1.2.1
 responses~=0.26.1
 selenium==4.44.0
 tblib==3.2.2
