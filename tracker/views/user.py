@@ -81,6 +81,13 @@ def user_prize(request, prize):
     )
 
 
+def logout_form(request):
+    return views_common.tracker_response(
+        request,
+        'tracker/logout_form.html',
+    )
+
+
 def prize_winner(request, prize_win):
     auth_code = request.GET.get('auth_code', None)
     try:

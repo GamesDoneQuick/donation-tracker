@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+
+{% block title %}
+  Tracker User Logout
+{% endblock %}
+
+{% block nav %}
+{% endblock %}
+
+{% block content %}
+  <noscript>
+    <form action="{% url 'tracker:logout' %}" method="post">
+      {% csrf_token %}
+      <input type="submit">
+    </form>
+  </noscript>
+  <form id="logout" style="display: none" action="{% url 'tracker:logout' %}" method="post">
+    {% csrf_token %}
+    <input type="submit">
+  </form>
+  <script type='text/javascript'>
+    <!--
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelector("#logout")?.submit();
+    });
+    -->
+  </script>
+{% endblock %}
