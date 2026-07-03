@@ -684,7 +684,8 @@ class Prize(models.Model):
 
     def start_draw_time(self):
         if self.startrun_id:
-            if self.prev_run:
+            # TODO: move this calculation to the API
+            if self.prev_run and self.prev_run.endtime:
                 # allow some slop into the previous run's setup time in case the run starts 'late'
                 return self.prev_run.endtime - datetime.timedelta(
                     milliseconds=self.prev_run.setup_time_ms

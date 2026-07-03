@@ -877,6 +877,27 @@ class TestRunMove(TestSpeedRunBase, APITestCase):
             expected_error_codes={'interstitial': 'invalid'},
         )
 
+    def test_prize_restrictions_and_signals(self):
+        prize = models.Prize.objects.create(
+            event=self.event, startrun=self.run2, endrun=self.run3
+        )
+        self.other_interview.anchor = None  # anchored to 5 but we need to remove it
+        self.other_interview.save()
+        self.assertEqual(prize.prev_run, self.run1)
+        self.assertEqual(prize.next_run, self.run5)
+        self.assertResults(
+            self.run2,
+            order=None,
+            expected_status_code=400,
+            expected_error_codes={'order': 'invalid'},
+        )
+        self.assertResults(self.run1, order=None, expected_change_count=4)
+        prize.refresh_from_db()
+        self.assertIsNone(prize.prev_run)
+        self.assertResults(self.run5, order=None, expected_change_count=1)
+        prize.refresh_from_db()
+        self.assertIsNone(prize.next_run)
+
     def test_suborder_collision(self):
         # interview is anchored to 3, ad is order 1, both have suborder 1
         self.assertResults(

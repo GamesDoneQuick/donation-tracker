@@ -176,7 +176,8 @@ class SpeedRunViewSet(
                 # - if we cross an anchor boundary going backwards, every run between the old end point
                 #   and the next anchor (or the end of the event) will also adjust its time
                 # - edge case: moving a flex block needs to ensure the new flex blocks get adjusted
-                checkpoints = set()
+                # - the run being moved needs to be saved as well to send prize save signals
+                needs_save = {moving}
 
                 time_diff = datetime.timedelta(milliseconds=moving.total_time_ms)
 
@@ -189,7 +190,7 @@ class SpeedRunViewSet(
                         forward_runs = queryset.filter(
                             order__gte=order, order__lt=first_anchor.order
                         )
-                        checkpoints.add(forward_runs.last())
+                        needs_save.add(forward_runs.last())
                     if slot := reordered_runs.first():
                         moving.starttime = slot.starttime
                     elif slot := queryset.last():  # end of the event
@@ -207,14 +208,14 @@ class SpeedRunViewSet(
                     ):
                         # see edge case comment above
                         if first_anchor.order == moving.order + 1:
-                            checkpoints.add(
+                            needs_save.add(
                                 queryset.filter(order=moving.order - 1).first()
                             )
                         else:
                             backward_runs = queryset.filter(
                                 order__gt=moving.order, order__lt=first_anchor.order
                             )
-                            checkpoints.add(backward_runs.last())
+                            needs_save.add(backward_runs.last())
                     forward_runs = queryset.none()
                 elif moving.order < order:  # moving a run forward
                     reordered_runs = queryset.filter(
@@ -227,14 +228,14 @@ class SpeedRunViewSet(
                         # see edge case comment above
                         if first_anchor.order == moving.order + 1:
                             backward_runs = queryset.none()
-                            checkpoints.add(
+                            needs_save.add(
                                 queryset.filter(order=moving.order - 1).first()
                             )
                         else:
                             backward_runs = queryset.filter(
                                 order__gt=moving.order, order__lt=first_anchor.order
                             )
-                            checkpoints.add(backward_runs.last())
+                            needs_save.add(backward_runs.last())
                         forward_runs = queryset.filter(order__gt=order)
                         if next_anchor := forward_runs.exclude(
                             anchor_time=None
@@ -242,7 +243,7 @@ class SpeedRunViewSet(
                             forward_runs = forward_runs.filter(
                                 order__lt=next_anchor.order
                             )
-                            checkpoints.add(forward_runs.last())
+                            needs_save.add(forward_runs.last())
                     else:
                         backward_runs = reordered_runs
                         forward_runs = queryset.none()
@@ -264,14 +265,14 @@ class SpeedRunViewSet(
                         .exclude(anchor_time=None)
                         .exists()
                     ):
-                        checkpoints.add(forward_runs.last())
+                        needs_save.add(forward_runs.last())
                     if first_anchor := next(
                         (r for r in reordered_runs if r.anchor_time is not None), None
                     ):
                         forward_runs = reordered_runs.filter(
                             order__lt=first_anchor.order, anchor_time=None
                         )
-                        checkpoints.add(forward_runs.last())
+                        needs_save.add(forward_runs.last())
                         backward_runs = queryset.filter(order__gt=moving.order)
                         if next_anchor := backward_runs.exclude(
                             anchor_time=None
@@ -279,7 +280,7 @@ class SpeedRunViewSet(
                             backward_runs = backward_runs.filter(
                                 order__lt=next_anchor.order
                             )
-                            checkpoints.add(backward_runs.last())
+                            needs_save.add(backward_runs.last())
                     else:
                         backward_runs = queryset.none()
                     moving.starttime = reordered_runs.first().starttime
@@ -287,7 +288,7 @@ class SpeedRunViewSet(
                     set(reordered_runs)
                     | set(forward_runs)
                     | set(backward_runs)
-                    | set((c for c in checkpoints if c is not None))
+                    | set((c for c in needs_save if c is not None))
                 )
                 changed.add(moving)
                 # ensure we're working with the object from the set and not a copy
@@ -295,7 +296,7 @@ class SpeedRunViewSet(
                 reordered_runs = {r for r in changed if r in reordered_runs}
                 forward_runs = {r for r in changed if r in forward_runs}
                 backward_runs = {r for r in changed if r in backward_runs}
-                checkpoints = {r for r in changed if r in checkpoints}
+                needs_save = {r for r in changed if r in needs_save}
 
                 for run in reordered_runs:
                     run.order += order_diff
@@ -321,8 +322,8 @@ class SpeedRunViewSet(
                 queryset.filter(id__in=(c.id for c in changed)).update(order=None)
                 queryset.bulk_update(changed, ['order', 'starttime', 'endtime'])
 
-                for run in checkpoints:
-                    # update setup time
+                for run in needs_save:
+                    # update setup time and prize boundaries
                     run.full_clean()
                     run.save()
 
