@@ -136,17 +136,20 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         max={remainingDonationTotal}
       />
 
-      {incentive.options?.toSorted(compareBidChild).map(option => (
-        <Checkbox
-          key={option.id}
-          checked={selectedChoiceId === option.id}
-          contentClassName={styles.choiceLabel}
-          look={Checkbox.Looks.DENSE}
-          onChange={handleNewChoice(option.id)}>
-          <Checkbox.Header>{option.name}</Checkbox.Header>
-          <span className={styles.choiceAmount}>{eventCurrency(option.total)}</span>
-        </Checkbox>
-      ))}
+      {incentive.options?.toSorted(compareBidChild).map(
+        option =>
+          option.state === 'OPENED' && (
+            <Checkbox
+              key={option.id}
+              checked={selectedChoiceId === option.id}
+              contentClassName={styles.choiceLabel}
+              look={Checkbox.Looks.DENSE}
+              onChange={handleNewChoice(option.id)}>
+              <Checkbox.Header>{option.name}</Checkbox.Header>
+              <span className={styles.choiceAmount}>{eventCurrency(option.total)}</span>
+            </Checkbox>
+          ),
+      )}
 
       {incentive.allowuseroptions && (
         <>

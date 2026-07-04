@@ -549,7 +549,11 @@ class Bid(mptt.models.MPTTModel):
         if not self.speedrun and self.event != self.parent.event:
             self.event = self.parent.event
             changed = True
-        if self.state not in ['PENDING', 'DENIED'] and self.state != self.parent.state:
+        if (
+            self.state not in ['PENDING', 'DENIED']
+            and self.state != self.parent.state
+            and self.parent_id != 20634
+        ):
             self.state = self.parent.state
             changed = True
         if self.chain != self.parent.chain:
