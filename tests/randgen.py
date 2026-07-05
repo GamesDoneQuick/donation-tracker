@@ -546,11 +546,12 @@ def generate_donation_for_prize(
     if min_amount or min_time or max_time:
         warnings.warn('ignored parameter passed to generate_donation_for_prize')
     event = kwargs.pop('event', prize.event)
+    runs = event.speedrun_set.exclude(order=None)
     return generate_donation(
         rand,
         min_amount=prize.minimumbid,
-        min_time=prize.start_draw_time(),
-        max_time=prize.end_draw_time(),
+        min_time=prize.start_draw_time(runs),
+        max_time=prize.end_draw_time(runs),
         event=event,
         **kwargs,
     )

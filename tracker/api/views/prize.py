@@ -22,9 +22,7 @@ class PrizeViewSet(
     EventNestedMixin,
     TrackerFullViewSet,
 ):
-    queryset = Prize.objects.select_related(
-        'event', 'startrun', 'endrun', 'prev_run', 'next_run'
-    )
+    queryset = Prize.objects.select_related('event', 'startrun', 'endrun')
     serializer_class = PrizeSerializer
     permission_classes = [
         PrizeFeedPermission,

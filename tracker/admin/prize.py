@@ -205,8 +205,8 @@ class PrizeAdmin(EventArchivedMixin, RelatedUserMixin, CustomModelAdmin):
         'tags_',
         'minimumbid',
         'games',
-        'start_draw_time',
-        'end_draw_time',
+        '_start_draw_time',
+        '_end_draw_time',
         'sumdonations',
         'randomdraw',
         'event',
@@ -289,18 +289,26 @@ class PrizeAdmin(EventArchivedMixin, RelatedUserMixin, CustomModelAdmin):
 
         if request.user.has_perm('tracker.view_prizeclaim'):
             queryset = queryset.time_annotation().claim_annotations()
-        return queryset.prefetch_related('tags', 'claims__winner').select_related(
+        return queryset.prefetch_related(
+            'tags', 'claims__winner', 'event__speedrun_set'
+        ).select_related(
             'event',
             'startrun',
             'endrun',
             'handler',
-            'prev_run',
-            'next_run',
         )
 
     @admin.display(description='Tags')
     def tags_(self, obj):
         return ', '.join(t.name for t in obj.tags.all()) or None
+
+    @admin.display(description='Start Draw Time')
+    def _start_draw_time(self, obj):
+        return obj.start_draw_time(obj.event.speedrun_set.all())
+
+    @admin.display(description='End Draw Time')
+    def _end_draw_time(self, obj):
+        return obj.end_draw_time(obj.event.speedrun_set.all())
 
     def handler_email(self, obj):
         return obj.handler.email

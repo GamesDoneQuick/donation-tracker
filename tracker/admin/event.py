@@ -728,6 +728,7 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                 'End Time',
             ]
         )
+        runs = tracker.models.SpeedRun.objects.filter(event=event).exclude(order=None)
         prizes = tracker.models.Prize.objects.filter(
             state='ACCEPTED', event=event
         ).iterator()
@@ -739,8 +740,8 @@ class EventAdmin(RelatedUserMixin, CustomModelAdmin):
                     p.name,
                     len(eligible),
                     len([d for d, a in eligible.items() if a == p.minimumbid]),
-                    p.start_draw_time(),
-                    p.end_draw_time(),
+                    p.start_draw_time(runs),
+                    p.end_draw_time(runs),
                 ]
             )
         return response

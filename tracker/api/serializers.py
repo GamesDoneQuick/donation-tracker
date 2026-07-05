@@ -1,6 +1,7 @@
 """Define serialization of the Django models into the REST framework."""
 
 import datetime
+import functools
 import logging
 import re
 from collections import defaultdict
@@ -13,7 +14,7 @@ from typing import Iterable
 from django.core.exceptions import NON_FIELD_ERRORS, ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from django.db.models import QuerySet, Sum
+from django.db.models import Q, QuerySet, Sum
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
@@ -1442,6 +1443,8 @@ class PrizeSerializer(
     # TODO: when I figure out a better way to be selective about nested fields
     # startrun = SpeedRunSerializer()
     # endrun = SpeedRunSerializer()
+    start_draw_time = serializers.SerializerMethodField()
+    end_draw_time = serializers.SerializerMethodField()
 
     def __init__(self, *args, lifecycle=False, **kwargs):
         self.lifecycle = lifecycle
@@ -1491,3 +1494,26 @@ class PrizeSerializer(
         ):
             data['handler'] = self.context['request'].user
         return super().validate(data)
+
+    @cached_property
+    def _extra_runs(self):
+        prizes = self.instance
+        if not isinstance(prizes, list):
+            prizes = [prizes]
+        args = set()
+        for p in prizes:
+            if p.startrun:
+                args.add((p.event_id, p.startrun.order - 1))
+                args.add((p.event_id, p.endrun.order + 1))
+        if args:
+            return SpeedRun.objects.filter(
+                functools.reduce(lambda a, b: a | Q(event=b[0], order=b[1]), args, Q())
+            )
+        else:
+            return SpeedRun.objects.none()
+
+    def get_start_draw_time(self, instance):
+        return instance.start_draw_time(self._extra_runs)
+
+    def get_end_draw_time(self, instance):
+        return instance.end_draw_time(self._extra_runs)
