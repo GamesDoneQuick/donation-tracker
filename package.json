@@ -40,7 +40,7 @@
     "lodash": "^4.17.23",
     "luxon": "^3.3.0",
     "mini-css-extract-plugin": "^2.7.5",
-    "postcss": "^8.4.31",
+    "postcss": "^8.5.18",
     "postcss-loader": "^7.2.4",
     "postcss-nesting": "^11.2.2",
     "postcss-preset-env": "^8.3.0",
