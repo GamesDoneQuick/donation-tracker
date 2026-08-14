@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.signing import BadSignature, TimestampSigner
 from django.db import transaction
 from django.http import HttpResponse
+from django.http.response import HttpResponseNotFound
 from django.template.response import SimpleTemplateResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -35,7 +36,7 @@ from tracker import settings
 from tracker.api.serializers import DonationSerializer, EnsureSerializableMixin
 from tracker.compat import reverse
 from tracker.models import Bid, Donation, Event
-from tracker.models.donation import Donor, TwitchDonation
+from tracker.models.donation import BcauseDonation, Donor, TwitchDonation
 
 logger = logging.getLogger(__file__)
 
@@ -374,6 +375,11 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
         return attrs
 
 
+class BcauseSerializer(EnsureSerializableMixin, Serializer):
+    class Meta:
+        model = BcauseDonation
+
+
 class DonateViewSet(GenericViewSet):
     serializer_class = NewDonationSerializer
 
@@ -516,6 +522,21 @@ class DonateViewSet(GenericViewSet):
             return self.get_exception_handler()(
                 exc, self.get_exception_handler_context()
             )
+
+    @action(
+        url_name='bcause-confirm',
+        detail=False,
+        methods=['post'],
+        authentication_classes=[],
+        renderer_classes=[JSONRenderer],
+    )
+    def bcause_confirm(self, request, *args, **kwargs):
+        data = request.data.get('data', {})
+        print(data)
+        serializer = BcauseSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        print(serializer.data)
+        return HttpResponseNotFound()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

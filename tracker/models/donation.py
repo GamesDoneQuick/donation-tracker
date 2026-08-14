@@ -875,3 +875,18 @@ class TwitchDonation(models.Model):
 
     def __str__(self):
         return f'Twitch Donation: f{self.twitch_id}'
+
+
+class BcauseDonation(models.Model):
+    amount_cents = models.IntegerField()
+    beneficiary_id = models.CharField(max_length=64)
+    currency_code = models.CharField(max_length=8)
+    date_valuta_utc = models.DateTimeField()
+    donor_name = models.CharField(max_length=64, blank=True, null=True)
+    email = models.EmailField(max_length=64, blank=True, null=True)
+    fee_cents = models.IntegerField(default=0)
+    metadata = models.JSONField(blank=True)
+    sandbox = models.BooleanField()
+    status = models.CharField(max_length=64)
+    transaction_id = models.CharField(max_length=64, unique=True)
+    user_id = models.CharField(max_length=64, blank=True, null=True)
