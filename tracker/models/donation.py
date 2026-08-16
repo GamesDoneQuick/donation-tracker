@@ -894,8 +894,8 @@ class BcauseDonation(models.Model):
     beneficiary_id = models.CharField(max_length=64, blank=True)
     currency_code = models.CharField(max_length=8, blank=True)
     date_valuta_utc = models.DateTimeField(blank=True, null=True)
-    donation = models.ForeignKey(
-        'tracker.Donation', null=True, unique=True, on_delete=models.SET_NULL
+    donation = models.OneToOneField(
+        'tracker.Donation', null=True, on_delete=models.SET_NULL
     )
     donor_name = models.CharField(max_length=64, blank=True, null=True)
     email = models.EmailField(max_length=64, blank=True, null=True)

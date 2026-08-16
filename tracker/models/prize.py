@@ -592,7 +592,7 @@ class Prize(models.Model):
 
     def eligible_donors(self, runs=None) -> dict[models.Model, Decimal]:
         donations = Donation.objects.filter(
-            event=self.event, transactionstate='COMPLETED'
+            event=self.event, transactionstate='COMPLETED', donor__ineligible=False
         ).select_related('donor')
         runs = runs or self._runs
 

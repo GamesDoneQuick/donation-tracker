@@ -61,11 +61,10 @@ class Migration(migrations.Migration):
                 ('user_id', models.CharField(blank=True, max_length=64, null=True)),
                 (
                     'donation',
-                    models.ForeignKey(
+                    models.OneToOneField(
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         to='tracker.donation',
-                        unique=True,
                     ),
                 ),
             ],

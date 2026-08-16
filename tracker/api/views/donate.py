@@ -180,6 +180,19 @@ class NewDonationBidSerializer(EnsureSerializableMixin, Serializer):
 class TwitchDonationSerializer(EnsureSerializableMixin, ModelSerializer):
     class Meta:
         model = TwitchDonation
+        fields = (
+            'campaign_id',
+            'broadcaster_user_id',
+            'broadcaster_user_name',
+            'broadcaster_user_login',
+            'user_id',
+            'user_login',
+            'user_name',
+            'charity_name',
+            'charity_description',
+            'charity_logo',
+            'charity_website',
+        )
 
     def to_internal_value(self, data):
         if 'id' in data:
