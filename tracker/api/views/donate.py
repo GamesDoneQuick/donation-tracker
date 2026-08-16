@@ -1,4 +1,6 @@
 import contextlib
+import hmac
+import io
 import logging
 import secrets
 import time
@@ -11,15 +13,19 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.signing import BadSignature, TimestampSigner
 from django.db import transaction
-from django.http import HttpResponse
-from django.http.response import HttpResponseNotFound
+from django.http import Http404, HttpResponse
 from django.template.response import SimpleTemplateResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from paypal.standard.forms import PayPalPaymentsForm
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ErrorDetail, PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    ErrorDetail,
+    ParseError,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.fields import (
     BooleanField,
     CharField,
@@ -27,6 +33,7 @@ from rest_framework.fields import (
     EmailField,
     IntegerField,
 )
+from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer, Serializer, as_serializer_error
@@ -35,8 +42,16 @@ from rest_framework.viewsets import GenericViewSet
 from tracker import settings
 from tracker.api.serializers import DonationSerializer, EnsureSerializableMixin
 from tracker.compat import reverse
-from tracker.models import Bid, Donation, Event
-from tracker.models.donation import BcauseDonation, Donor, TwitchDonation
+from tracker.models import (
+    BcauseDonation,
+    Bid,
+    Donation,
+    DonationBid,
+    Donor,
+    Event,
+    TwitchDonation,
+)
+from tracker.viewutil import tracker_log
 
 logger = logging.getLogger(__file__)
 
@@ -165,7 +180,6 @@ class NewDonationBidSerializer(EnsureSerializableMixin, Serializer):
 class TwitchDonationSerializer(EnsureSerializableMixin, ModelSerializer):
     class Meta:
         model = TwitchDonation
-        exclude = ('donation',)
 
     def to_internal_value(self, data):
         if 'id' in data:
@@ -375,9 +389,35 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
         return attrs
 
 
-class BcauseSerializer(EnsureSerializableMixin, Serializer):
+class BcauseSerializer(EnsureSerializableMixin, ModelSerializer):
     class Meta:
         model = BcauseDonation
+        fields = (
+            'amount_cents',
+            'beneficiary_id',
+            'currency_code',
+            'date_valuta_utc',
+            'donor_name',
+            'email',
+            'fee_cents',
+            'metadata',
+            'sandbox',
+            'status',
+            'transaction_id',
+            'user_id',
+        )
+
+
+class SaveRawBodyJSONParser(JSONParser):
+    def parse(self, stream, media_type=None, parser_context=None):
+        parser_context = parser_context or {}
+        request = parser_context.get('request')
+
+        if request is not None:
+            request.raw = stream.read()
+            stream = io.BytesIO(request.raw)
+
+        return super().parse(stream, media_type, parser_context)
 
 
 class DonateViewSet(GenericViewSet):
@@ -528,15 +568,124 @@ class DonateViewSet(GenericViewSet):
         detail=False,
         methods=['post'],
         authentication_classes=[],
+        serializer_class=BcauseSerializer,
+        parser_classes=[
+            SaveRawBodyJSONParser
+        ],  # needed for signature verification for Bcause payloads
         renderer_classes=[JSONRenderer],
     )
     def bcause_confirm(self, request, *args, **kwargs):
-        data = request.data.get('data', {})
-        print(data)
-        serializer = BcauseSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        print(serializer.data)
-        return HttpResponseNotFound()
+        try:
+            secret = getattr(settings, 'TRACKER_BCAUSE_SIGNING_SECRET', b'')
+            event = getattr(settings, 'TRACKER_BCAUSE_EVENT_ID', 0)
+
+            if not secret or not (event := Event.objects.filter(id=event).first()):
+                tracker_log(
+                    'bcause',
+                    'Received a Bcause payload but Bcause settings are not set properly.',
+                )
+                raise Http404
+
+            sig = request.META.get('HTTP_X_BCAUSE_SIGNATURE', '')
+
+            if not sig.startswith('sha256='):
+                raise ParseError('invalid signature')
+
+            data = request.data.get('data', {})
+
+            h = hmac.new(secret, request.raw, 'sha-256').hexdigest()
+
+            if not hmac.compare_digest(sig[7:].lower(), h.lower()):
+                raise ParseError('invalid signature')
+
+            bd = BcauseDonation.objects.filter(
+                transaction_id=data.get('transaction_id', '')
+            ).first()
+
+            serializer = self.get_serializer(data=data, instance=bd)
+            serializer.is_valid(raise_exception=True)
+            if serializer.validated_data['transaction_id'] == 'txn-test':
+                return HttpResponse(status=204)
+            bd = serializer.save()
+            d = Donation.objects.get_or_create(
+                domain='BCAUSE',
+                domainId=bd.transaction_id,
+                defaults={
+                    'amount': bd.amount_cents / Decimal('100.00'),
+                    'currency': bd.currency_code.upper(),
+                    'event': event,
+                    'transactionstate': bd.status.upper(),
+                },
+            )[0]
+            d.amount = bd.amount_cents / Decimal('100.00')
+            d.currency = bd.currency_code.upper()
+
+            if bd.user_id:
+                donor = Donor.objects.get_or_create(bcause_id=bd.user_id)[0]
+                donor.email = bd.email or 'bcause-anonymous@not-a-real-email.nope'
+            else:
+                donor = Donor.objects.get_or_create(
+                    email=bd.email or 'bcause-anonymous@not-a-real-email.nope'
+                )[0]
+            donor.ineligible = not bd.email
+            donor.save()
+            d.donor = donor
+            d.event = event
+            d.transactionstate = bd.status.upper()
+            d.comment = bd.metadata.get('Your comment', '')
+            d.clean()
+            d.save()
+            incentive = bd.metadata.get('Incentive', '')
+            if incentive:
+                if isinstance(incentive, list):
+                    incentive = incentive[0]
+                if '-' in incentive:
+                    parent = Bid.objects.filter(
+                        event=event,
+                        name__iexact=incentive.split('-')[0].strip(),
+                        istarget=False,
+                    ).first()
+                    if parent:
+                        bid = Bid.objects.filter(
+                            event=event,
+                            name__iexact=incentive.split('-')[1].strip(),
+                            istarget=True,
+                            parent=parent,
+                        ).first()
+                else:
+                    bid = Bid.objects.filter(
+                        event=event, name__iexact=incentive, istarget=True
+                    ).first()
+                if bid:
+                    DonationBid.objects.get_or_create(
+                        bid=bid, donation=d, defaults={'amount': d.amount}
+                    )
+                else:
+                    tracker_log(
+                        'bcause',
+                        f'Could not find incentive with name `{incentive}`, not attaching bid',
+                    )
+            bd.donation = d
+            bd.raw = request.raw.decode('utf-8')
+            bd.save()
+            return HttpResponse(str(bd.id))
+        except Exception as e:
+            try:
+                bd = BcauseDonation.objects.create(
+                    error=True,
+                    raw=request.raw.decode('utf-8'),
+                )
+                tracker_log(
+                    'bcause',
+                    f"Error processing BcauseDonation: {e}, raw payload saved with id {bd.id}",
+                )
+            except Exception as e2:
+                print(e2)
+                tracker_log(
+                    'bcause',
+                    f"Couldn't create BcauseDonation with payload {request.raw.decode('utf-8')}: {e2}, {e}",
+                )
+            raise
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

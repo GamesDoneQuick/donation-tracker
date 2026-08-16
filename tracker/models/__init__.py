@@ -3,6 +3,7 @@ from django.db.models import Model  # convenience
 from tracker.models.bid import Bid, BidSuggestion, DonationBid
 from tracker.models.country import Country, CountryRegion
 from tracker.models.donation import (
+    BcauseDonation,
     Donation,
     DonationGroup,
     Donor,
@@ -39,6 +40,7 @@ __all__ = [
     'DonorCache',
     'Milestone',
     'TwitchDonation',
+    'BcauseDonation',
     'Prize',
     'PrizeKey',
     'PrizeClaim',

@@ -110,6 +110,14 @@ class TrackerSettings(object):
             'The prize will be credited to this entity on the event stream and the website. This can be one or more individuals. If you wish to remain anonymous, please write "Anonymous" here.',
         )
 
+    @property
+    def TRACKER_BCAUSE_SIGNING_SECRET(self):
+        return getattr(settings, 'TRACKER_BCAUSE_SIGNING_SECRET', b'')
+
+    @property
+    def TRACKER_BCAUSE_EVENT_ID(self):
+        return getattr(settings, 'TRACKER_BCAUSE_EVENT_ID', 0)
+
     # pass everything else through for convenience
     def __getattr__(self, item):
         return getattr(settings, item)
@@ -316,5 +324,13 @@ def tracker_settings_checks(app_configs, **kwargs):
                 'STORAGES does not have a valid `prizes` configuration, default storage will be used instead.',
                 id='tracker.I118',
             )
+        )
+    if not isinstance(TrackerSettings().TRACKER_BCAUSE_SIGNING_SECRET, bytes):
+        messages.append(
+            Error('TRACKER_BCAUSE_SIGNING_SECRET should be a bytes.', id='tracker.E119')
+        )
+    if not isinstance(TrackerSettings().TRACKER_BCAUSE_EVENT_ID, int):
+        messages.append(
+            Error('TRACKER_BCAUSE_EVENT_ID should be an int.', id='tracker.E120')
         )
     return messages

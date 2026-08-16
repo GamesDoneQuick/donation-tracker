@@ -59,6 +59,7 @@ DonationDomainChoices = (
     ('CHIPIN', 'ChipIn'),
     ('PAYPAL', 'PayPal'),
     ('TWITCH', 'Twitch'),
+    ('BCAUSE', 'bcause'),
 )
 
 LanguageChoices = (
@@ -513,6 +514,17 @@ class Donor(models.Model):
         verbose_name='Twitch User ID',
         help_text='The unique, stable numeric ID returned by the Twitch API',
     )
+    ineligible = models.BooleanField(
+        default=False,
+        help_text='Whether this donor is ineligible for prizes',
+    )
+    bcause_id = models.CharField(
+        max_length=64,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text='The unique user_id returned by the Bcause API for non-anonymous donors',
+    )
 
     class Meta:
         app_label = 'tracker'
@@ -878,15 +890,25 @@ class TwitchDonation(models.Model):
 
 
 class BcauseDonation(models.Model):
-    amount_cents = models.IntegerField()
-    beneficiary_id = models.CharField(max_length=64)
-    currency_code = models.CharField(max_length=8)
-    date_valuta_utc = models.DateTimeField()
+    amount_cents = models.IntegerField(default=0)
+    beneficiary_id = models.CharField(max_length=64, blank=True)
+    currency_code = models.CharField(max_length=8, blank=True)
+    date_valuta_utc = models.DateTimeField(blank=True, null=True)
+    donation = models.ForeignKey(
+        'tracker.Donation', null=True, unique=True, on_delete=models.SET_NULL
+    )
     donor_name = models.CharField(max_length=64, blank=True, null=True)
     email = models.EmailField(max_length=64, blank=True, null=True)
+    error = models.BooleanField(default=False)
     fee_cents = models.IntegerField(default=0)
-    metadata = models.JSONField(blank=True)
-    sandbox = models.BooleanField()
-    status = models.CharField(max_length=64)
-    transaction_id = models.CharField(max_length=64, unique=True)
+    metadata = models.JSONField(blank=True, null=True)
+    raw = models.TextField()
+    sandbox = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=64, choices=(('completed', 'Completed'),), null=True
+    )
+    transaction_id = models.CharField(max_length=64, unique=True, null=True)
     user_id = models.CharField(max_length=64, blank=True, null=True)
+
+    def __str__(self):
+        return 'Error' if self.error else self.transaction_id or 'Unknown'
