@@ -652,6 +652,7 @@ class DonateViewSet(GenericViewSet):
             if incentive:
                 if isinstance(incentive, list):
                     incentive = incentive[0]
+                bid = None
                 if '-' in incentive:
                     parent = Bid.objects.filter(
                         event=event,
