@@ -640,6 +640,10 @@ class DonateViewSet(GenericViewSet):
                 donor = Donor.objects.get_or_create(
                     email=bd.email or 'bcause-anonymous@not-a-real-email.nope'
                 )[0]
+            if bd.donor_name:
+                d.requestedalias = bd.donor_name
+                donor.alias = bd.donor_name
+                donor.visibility = 'ALIAS'
             donor.ineligible = not bd.email
             donor.save()
             d.donor = donor
