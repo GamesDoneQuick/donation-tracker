@@ -12,6 +12,8 @@ from tracker.api.serializers import DonationSerializer
 class TestDonate(APITestCase):
     def setUp(self):
         super().setUp()
+        self.event.minimumdonation = 5
+        self.event.save()
         self.opened_challenge = models.Bid.objects.create(
             event=self.event, name='Challenge', goal=1000, istarget=True, state='OPENED'
         )
@@ -134,6 +136,14 @@ class TestDonate(APITestCase):
                     status_code=400,
                     model_name='donate',
                     expected_error_codes={'domain': 'invalid'},
+                )
+
+            with self.subTest('twitch without uuid'):
+                self.post_new(
+                    data={**valid, 'domain': 'TWITCH'},
+                    status_code=400,
+                    model_name='donate',
+                    expected_error_codes={'domain_id': 'invalid'},
                 )
 
             with self.subTest('other domain'):
@@ -371,6 +381,7 @@ class TestDonate(APITestCase):
             )
             donation = models.Donation.objects.get(id=response['id'])
             self.assertV2ModelPresent(DonationSerializer(donation).data, response)
+            self.assertEqual(donation.donor, self.donor)
 
             response = self.post_new(
                 data={
@@ -386,3 +397,74 @@ class TestDonate(APITestCase):
             )
             donation = models.Donation.objects.get(id=response['id'])
             self.assertV2ModelPresent(DonationSerializer(donation).data, response)
+            self.assertEqual(donation.donor, self.donor)
+
+        with self.subTest('create twitch'), self.saveSnapshot():
+            with self.subTest('without payload'):
+                response = self.post_new(
+                    data={
+                        **valid,
+                        'amount': 1,  # twitch donations can be as small as a dollar
+                        # FIXME: what to do about hidden bids?
+                        'bids': [],
+                        'domain': 'TWITCH',
+                        'domain_id': 'some-twitch-uuid',
+                        'requested_alias': 'Kappa',
+                        'donor_twitch_id': 12345678,
+                    },
+                    model_name='donate',
+                    status_code=201,
+                    user=self.add_user,
+                )
+                donation = models.Donation.objects.get(id=response['id'])
+                self.assertV2ModelPresent(DonationSerializer(donation).data, response)
+                self.assertEqual(donation.donor.twitch_id, 12345678)
+                self.assertEqual(donation.donor.email, '12345678@users.twitch.tv.fake')
+                self.assertEqual(donation.donor.alias, 'Kappa')
+                self.assertEqual(donation.donor.visibility, 'ALIAS')
+                self.assertEqual(donation.domainId, 'some-twitch-uuid'),
+                self.assertEqual(donation.requestedalias, 'Kappa')
+                self.assertEqual(donation.requestedvisibility, 'ALIAS')
+                self.assertEqual(donation.transactionstate, 'COMPLETED')
+
+            with self.subTest('with payload'):
+                twitch_payload = dict(
+                    id='a1b2c3-aabb-4455-d1e2f3',
+                    campaign_id='123-abc-456-def',
+                    broadcaster_user_id='123456',
+                    broadcaster_user_name='SunnySideUp',
+                    broadcaster_user_login='sunnysideup',
+                    user_id='654321',
+                    user_login='generoususer1',
+                    user_name='GenerousUser1',
+                    charity_name='Example name',
+                    charity_description='Example description',
+                    charity_logo='https://abc.cloudfront.net/ppgf/1000/100.png',
+                    charity_website='https://www.example.com',
+                    amount=dict(value=10000, decimal_places=2, currency='USD'),
+                )
+                response = self.post_new(
+                    data=dict(
+                        event=valid['event'],
+                        twitch=twitch_payload,
+                    ),
+                    model_name='donate',
+                    status_code=201,
+                    user=self.add_user,
+                )
+                donation = models.Donation.objects.get(id=response['id'])
+                self.assertV2ModelPresent(DonationSerializer(donation).data, response)
+                self.assertEqual(
+                    donation.donor.twitch_id, int(twitch_payload['user_id'])
+                )
+                self.assertEqual(
+                    donation.donor.email,
+                    f"{int(twitch_payload['user_id'])}@users.twitch.tv.fake",
+                )
+                self.assertEqual(donation.donor.alias, twitch_payload['user_name'])
+                self.assertEqual(donation.donor.visibility, 'ALIAS')
+                self.assertEqual(donation.domainId, twitch_payload['id'])
+                self.assertEqual(donation.requestedalias, twitch_payload['user_name'])
+                self.assertEqual(donation.requestedvisibility, 'ALIAS')
+                self.assertEqual(donation.transactionstate, 'COMPLETED')
+                self.assertEqual(donation.amount, 100)

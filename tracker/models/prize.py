@@ -3,7 +3,7 @@ import logging
 import operator
 from collections import defaultdict
 from decimal import Decimal
-from functools import reduce
+from functools import cached_property, reduce
 
 from django.contrib.auth.models import User
 from django.core.exceptions import (
@@ -14,7 +14,7 @@ from django.core.exceptions import (
 from django.db import models
 from django.db.models import Case, Count, F, Q, Sum, When
 from django.db.models.functions import Coalesce
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.urls import reverse
 
@@ -590,10 +590,11 @@ class Prize(models.Model):
             self.claims.update(acceptemailsentcount=F('acceptcount'))
         super(Prize, self).save(*args, **kwargs)
 
-    def eligible_donors(self) -> dict[models.Model, Decimal]:
+    def eligible_donors(self, runs=None) -> dict[models.Model, Decimal]:
         donations = Donation.objects.filter(
-            event=self.event, transactionstate='COMPLETED'
+            event=self.event, transactionstate='COMPLETED', donor__ineligible=False
         ).select_related('donor')
+        runs = runs or self._runs
 
         # Apply the country/region filter to the drawing
         if self.custom_country_filter:
@@ -617,10 +618,10 @@ class Prize(models.Model):
             )
 
         donations = donations.exclude(donor__in=[w.winner for w in self.claims.all()])
-        if self.has_draw_time():
+        if self._has_draw_time():
             donations = donations.filter(
-                timereceived__gte=self.start_draw_time(),
-                timereceived__lte=self.end_draw_time(),
+                timereceived__gte=self.start_draw_time(runs),
+                timereceived__lte=self.end_draw_time(runs),
             )
         donors = defaultdict(lambda: Decimal('0.0'))
         for donation in donations:
@@ -679,15 +680,22 @@ class Prize(models.Model):
                     return True
         return False
 
-    def has_draw_time(self):
-        return self.start_draw_time() and self.end_draw_time()
+    def _has_draw_time(self):
+        return self.startrun_id or self.starttime
 
-    def start_draw_time(self):
-        if self.startrun_id:
-            if self.prev_run:
+    @cached_property
+    def _runs(self):
+        return SpeedRun.objects.filter(event=self.event_id)
+
+    def start_draw_time(self, runs):
+        if self.startrun:
+            prev_run = next(
+                (r for r in runs if r.order == self.startrun.order - 1), None
+            )
+            if prev_run:
                 # allow some slop into the previous run's setup time in case the run starts 'late'
-                return self.prev_run.endtime - datetime.timedelta(
-                    milliseconds=self.prev_run.setup_time_ms
+                return prev_run.endtime - datetime.timedelta(
+                    milliseconds=prev_run.setup_time_ms
                 )
             return self.startrun.start_time_utc
         elif self.starttime:
@@ -695,9 +703,10 @@ class Prize(models.Model):
         else:
             return None
 
-    def end_draw_time(self):
-        if self.endrun_id:
-            if not self.next_run:
+    def end_draw_time(self, runs):
+        if self.endrun:
+            next_run = next((r for r in runs if r.order == self.endrun.order + 1), None)
+            if not next_run:
                 # covers finale speeches
                 return self.endrun.end_time_utc + datetime.timedelta(hours=1)
             return self.endrun.end_time_utc
@@ -705,11 +714,6 @@ class Prize(models.Model):
             return self.end_time_utc
         else:
             return None
-
-    def contains_draw_time(self, time):
-        return not self.has_draw_time() or (
-            self.start_draw_time() <= time <= self.end_draw_time()
-        )
 
     def current_win_count(self):
         return sum(
@@ -749,45 +753,6 @@ class Prize(models.Model):
     def get_winners(self):
         """accepted, or pending-but-not-expired winners"""
         return [w.winner for w in self.get_prize_claims()]
-
-
-@receiver(post_save, sender=SpeedRun)
-def fix_prev_and_next_run_save(sender, instance, created, raw, using, **kwargs):
-    if raw:
-        return
-    fix_prev_and_next_run(instance, using)
-
-
-@receiver(post_delete, sender=SpeedRun)
-def fix_prev_and_next_run_delete(sender, instance, using, **kwargs):
-    fix_prev_and_next_run(instance, using)
-
-
-def fix_prev_and_next_run(instance, using):
-    prev_run = instance.order and (
-        SpeedRun.objects.filter(event=instance.event_id, order__lt=instance.order)
-        .using(using)
-        .order_by('order')
-        .last()
-    )
-    next_run = instance.order and (
-        SpeedRun.objects.filter(event=instance.event_id, order__gt=instance.order)
-        .using(using)
-        .order_by('order')
-        .first()
-    )
-    prizes = Prize.objects.using(using).filter(
-        Q(prev_run=instance)
-        | Q(next_run=instance)
-        | Q(startrun=instance)
-        | Q(endrun=instance)
-    )
-    if prev_run:
-        prizes = prizes | Prize.objects.using(using).filter(
-            Q(startrun=next_run) | Q(endrun=prev_run)
-        )
-    for prize in prizes:
-        prize.save(using=using)
 
 
 class PrizeKey(models.Model):

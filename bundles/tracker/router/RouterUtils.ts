@@ -6,9 +6,9 @@ export const Routes = {
   // TODO: This URL is currently inverted as other parts of the tracker have
   // expect it to be in this format. Once those dependencies can be updated,
   // this can change to match normal REST structure.
-  EVENT_DONATE: (eventId: string | number) => `/donate/${eventId}`,
-  EVENT_PRIZES: (eventId: string | number) => Routes.EVENT_BASE(eventId) + '/prizes',
-  EVENT_PRIZE: (eventId: string | number, prizeId: number) => Routes.EVENT_BASE(eventId) + `/prizes/${prizeId}`,
+  EVENT_DONATE: (eventId: string | number) => `${Routes.EVENT_BASE(eventId)}/donate`,
+  EVENT_PRIZES: (eventId: string | number) => `${Routes.EVENT_BASE(eventId)}/prizes`,
+  EVENT_PRIZE: (eventId: string | number, prizeId: number) => `${Routes.EVENT_BASE(eventId)}/prizes/${prizeId}`,
 };
 
 type NavigateOptions = {

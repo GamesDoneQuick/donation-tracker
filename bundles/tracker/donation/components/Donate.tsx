@@ -98,6 +98,13 @@ function Internal({ event }: { event: Event }) {
     }
   }, [confirmUrl]);
 
+  const [error, setError] = React.useState<string | null>(null);
+
+  if (error) {
+    // thrown here so that it tears down the entire tree to make it obvious something is very wrong
+    throw new Error(error);
+  }
+
   const handleSubmit = React.useCallback(async () => {
     if (errors == null && donation.amount) {
       const { data } = await donate({ ...donation, amount: donation.amount, event: event.id });
@@ -107,8 +114,8 @@ function Internal({ event }: { event: Event }) {
           setConfirmUrl(url.toString());
         } else {
           // this is a serious misconfiguration issue
-          throw new Error(
-            `confirmation url and window url origin did not match: ${url.origin} !== ${window.location.origin}`,
+          setError(
+            `confirmation url and window url origin did not match, server configuration is incorrect\nExpected: ${window.location.origin}\nActual: ${url.origin}`,
           );
         }
       } else {

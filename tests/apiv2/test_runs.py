@@ -877,6 +877,17 @@ class TestRunMove(TestSpeedRunBase, APITestCase):
             expected_error_codes={'interstitial': 'invalid'},
         )
 
+    def test_prize_restrictions_and_signals(self):
+        models.Prize.objects.create(
+            event=self.event, startrun=self.run2, endrun=self.run3
+        )
+        self.assertResults(
+            self.run2,
+            order=None,
+            expected_status_code=400,
+            expected_error_codes={'order': 'invalid'},
+        )
+
     def test_suborder_collision(self):
         # interview is anchored to 3, ad is order 1, both have suborder 1
         self.assertResults(

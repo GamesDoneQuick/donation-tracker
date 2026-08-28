@@ -1,6 +1,7 @@
 """Define serialization of the Django models into the REST framework."""
 
 import datetime
+import functools
 import logging
 import re
 from collections import defaultdict
@@ -12,7 +13,8 @@ from typing import Iterable
 
 from django.core.exceptions import NON_FIELD_ERRORS, ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import QuerySet
+from django.db import transaction
+from django.db.models import Q, QuerySet, Sum
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
@@ -743,6 +745,8 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
     bid_state = serializers.SerializerMethodField()
     bid_count = serializers.SerializerMethodField()
     bid_total = serializers.SerializerMethodField()
+    parent = serializers.IntegerField(required=True)  # only for creating new options
+    name = serializers.CharField(required=True)  # only for creating new options
 
     class Meta:
         model = DonationBid
@@ -756,6 +760,8 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
             'bid_count',
             'bid_total',
             'amount',
+            'parent',
+            'name',
         )
 
     def __init__(self, *args, **kwargs):
@@ -810,11 +816,106 @@ class DonationBidSerializer(SerializerWithPermissionsMixin, TrackerModelSerializ
             self._bids = [donation_bids.bid]
             self._bid_serializer = BidSerializer(self._bids)
 
+    def get_fields(self):
+        fields = super().get_fields()
+        if (
+            (request := self.context.get('request', None))
+            and request.method.upper() == 'POST'
+            and 'parent' in self.initial_data
+        ):
+            fields['bid'].required = False
+            fields['bid'].null = True
+        else:
+            fields.pop('parent', None)
+            fields.pop('name', None)
+        return fields
+
+    def to_internal_value(self, data):
+        if (
+            (request := self.context.get('request', None))
+            and request.method.upper() == 'POST'
+            and (view := self.context.get('view', None))
+        ):
+            if 'donation' not in data and (donation := view.donation):
+                data['donation'] = donation.id
+            if 'parent' in data and 'name' in data:
+                with transaction.atomic():
+                    parent = (
+                        Bid.objects.filter(parent=data['parent'])
+                        .select_for_update()
+                        .first()
+                    )
+                    if parent:
+                        bid = Bid.objects.filter(
+                            parent=data['parent'], name__iexact=data['name'].strip()
+                        ).first()
+                        if bid:
+                            data['bid'] = bid.pk
+                            data.pop('parent')
+                            data.pop('name')
+            if 'bid' not in data and (bid := view.bid):
+                data['bid'] = bid.id
+        return super().to_internal_value(data)
+
+    def validate(self, attrs):
+        if 'parent' in attrs:
+            errors = defaultdict(list)
+            if 'name' in attrs:
+                parent = Bid.objects.filter(
+                    id=attrs['parent'], allowuseroptions=True
+                ).first()
+                if parent is None:
+                    errors['parent'].append(
+                        ErrorDetail(
+                            'Specified bid does not exist or does not accept user options.',
+                            code='invalid',
+                        )
+                    )
+                else:
+                    try:
+                        Bid(parent=parent, name=attrs['name'].strip()).full_clean()
+                    except DjangoValidationError as exc:
+                        errors['name'].append(ErrorDetail(str(exc), code='invalid'))
+                    existing = (
+                        DonationBid.objects.filter(
+                            donation=attrs['donation']
+                        ).aggregate(amount=Sum('amount'))['amount']
+                        or 0
+                    )
+                    if existing + attrs['amount'] > attrs['donation'].amount:
+                        errors['donation'].append(
+                            ErrorDetail('Total amount is too high.', code='invalid')
+                        )
+            else:
+                errors['name'].append(
+                    ErrorDetail(
+                        '`name` is required when `parent` is supplied.', code='required'
+                    )
+                )
+            with _coalesce_validation_errors(errors):
+                return attrs
+        else:
+            return super().validate(attrs)
+
+    def create(self, validated_data):
+        if 'parent' in validated_data:
+            validated_data['bid'] = Bid.objects.create(
+                parent_id=validated_data['parent'],
+                name=validated_data['name'],
+                state='PENDING',
+                istarget=True,
+            )
+            validated_data.pop('parent')
+            validated_data.pop('name')
+        return super().create(validated_data)
+
     def to_representation(self, instance):
         # final check
         assert self._has_permission(
             instance
         ), f'tried to serialize a hidden donation bid without permission {self.root_permissions}'
+        self.fields.pop('parent', None)
+        self.fields.pop('name', None)
         return super().to_representation(instance)
 
 
@@ -1342,6 +1443,8 @@ class PrizeSerializer(
     # TODO: when I figure out a better way to be selective about nested fields
     # startrun = SpeedRunSerializer()
     # endrun = SpeedRunSerializer()
+    start_draw_time = serializers.SerializerMethodField()
+    end_draw_time = serializers.SerializerMethodField()
 
     def __init__(self, *args, lifecycle=False, **kwargs):
         self.lifecycle = lifecycle
@@ -1391,3 +1494,26 @@ class PrizeSerializer(
         ):
             data['handler'] = self.context['request'].user
         return super().validate(data)
+
+    @cached_property
+    def _extra_runs(self):
+        prizes = self.instance
+        if not isinstance(prizes, list):
+            prizes = [prizes]
+        args = set()
+        for p in prizes:
+            if p.startrun:
+                args.add((p.event_id, p.startrun.order - 1))
+                args.add((p.event_id, p.endrun.order + 1))
+        if args:
+            return SpeedRun.objects.filter(
+                functools.reduce(lambda a, b: a | Q(event=b[0], order=b[1]), args, Q())
+            )
+        else:
+            return SpeedRun.objects.none()
+
+    def get_start_draw_time(self, instance):
+        return instance.start_draw_time(self._extra_runs)
+
+    def get_end_draw_time(self, instance):
+        return instance.end_draw_time(self._extra_runs)

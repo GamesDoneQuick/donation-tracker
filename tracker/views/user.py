@@ -81,6 +81,13 @@ def user_prize(request, prize):
     )
 
 
+def logout_form(request):
+    return views_common.tracker_response(
+        request,
+        'tracker/logout_form.html',
+    )
+
+
 def prize_winner(request, prize_win):
     auth_code = request.GET.get('auth_code', None)
     try:
@@ -134,8 +141,14 @@ def submit_prize(request, event):
     if event.archived:
         raise Http404
 
+    initial = {'event': event.id}
+    if request.user.username != getattr(
+        request.user, request.user.get_email_field_name(), ''
+    ):
+        initial['provider'] = request.user.username
+
     form = forms.PrizeSubmissionForm(
-        initial={'event': event.id},
+        initial=initial,
         data=request.POST if request.method == 'POST' else None,
     )
 

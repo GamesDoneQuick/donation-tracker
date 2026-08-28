@@ -1,3 +1,5 @@
+from functools import partial
+
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 
@@ -54,7 +56,7 @@ class BidInline(CustomStackedInline):
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = super().get_readonly_fields(request, obj)
-        if obj and not obj.allowuseroptions:
+        if obj and not obj.allowuseroptions and obj.id != 20634:
             readonly_fields = readonly_fields + ('state',)
         return readonly_fields
 
@@ -65,14 +67,27 @@ class BidOptionInline(BidInline):
     fk_name = 'parent'
 
     def get_formset(self, request, obj=None, **kwargs):
-        formset = super().get_formset(request, obj, **kwargs)
-        if obj and obj.allowuseroptions:
-            formset.form.base_fields['state'].choices = [
-                (obj.state, 'Inherit Parent State'),
-                ('PENDING', 'Pending'),
-                ('DENIED', 'Denied'),
-            ]
-        return formset
+        kwargs['formfield_callback'] = partial(
+            self.formfield_for_dbfield, request=request, obj=obj
+        )
+        return super().get_formset(request, obj, **kwargs)
+
+    def formfield_for_dbfield(self, db_field, request, obj=None, **kwargs):
+        field = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if db_field.name == 'state' and obj:
+            if obj.allowuseroptions:
+                field.choices = [
+                    (obj.state, 'Inherit Parent State'),
+                    ('PENDING', 'Pending'),
+                    ('DENIED', 'Denied'),
+                ]
+            elif obj.id == 20634:
+                field.choices = [
+                    ('OPENED', 'Opened'),
+                    ('CLOSED', 'Closed'),
+                    ('HIDDEN', 'Hidden'),
+                ]
+        return field
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = super().get_fieldsets(request, obj)
@@ -87,7 +102,7 @@ class BidOptionInline(BidInline):
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = super().get_readonly_fields(request, obj)
-        if not (obj and obj.allowuseroptions):
+        if not (obj and obj.allowuseroptions) and obj.id != 20634:
             readonly_fields += ('state',)
         return readonly_fields
 
