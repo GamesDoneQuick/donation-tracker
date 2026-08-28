@@ -42,6 +42,7 @@ from rest_framework.viewsets import GenericViewSet
 from tracker import settings
 from tracker.api.serializers import DonationSerializer, EnsureSerializableMixin
 from tracker.compat import reverse
+from tracker.eventutil import post_donation_to_postbacks
 from tracker.models import (
     BcauseDonation,
     Bid,
@@ -49,6 +50,7 @@ from tracker.models import (
     DonationBid,
     Donor,
     Event,
+    SpeedRun,
     TwitchDonation,
 )
 from tracker.viewutil import tracker_log
@@ -630,7 +632,7 @@ class DonateViewSet(GenericViewSet):
                     'transactionstate': bd.status.upper(),
                 },
             )[0]
-            d.amount = bd.amount_cents / Decimal('100.00')
+            d.amount = (bd.amount_cents + bd.fee_cents) / Decimal('100.00')
             d.currency = bd.currency_code.upper()
 
             if bd.user_id:
@@ -657,22 +659,50 @@ class DonateViewSet(GenericViewSet):
                 if isinstance(incentive, list):
                     incentive = incentive[0]
                 bid = None
-                if '-' in incentive:
+                parts = incentive.split('-')
+                if len(parts) == 3:
+                    run = SpeedRun.objects.filter(
+                        event=event,
+                        name__iexact=parts[0].strip(),
+                    ).first()
+                    if run:
+                        parent = Bid.objects.filter(
+                            speedrun=run,
+                            name__iexact=parts[1].strip(),
+                            istarget=False,
+                        ).first()
+                        if parent:
+                            bid = Bid.objects.filter(
+                                name__iexact=parts[2].strip(),
+                                istarget=True,
+                                parent=parent,
+                            ).first()
+                elif len(parts) == 2:
                     parent = Bid.objects.filter(
                         event=event,
-                        name__iexact=incentive.split('-')[0].strip(),
+                        name__iexact=parts[0].strip(),
                         istarget=False,
                     ).first()
                     if parent:
                         bid = Bid.objects.filter(
-                            event=event,
-                            name__iexact=incentive.split('-')[1].strip(),
+                            name__iexact=parts[1].strip(),
                             istarget=True,
                             parent=parent,
                         ).first()
-                else:
+                    else:
+                        run = SpeedRun.objects.filter(
+                            event=event,
+                            name__iexact=parts[0].strip(),
+                        ).first()
+                        if run:
+                            bid = Bid.objects.filter(
+                                speedrun=run,
+                                name__iexact=parts[1].strip(),
+                                istarget=True,
+                            ).first()
+                elif len(parts) == 1:
                     bid = Bid.objects.filter(
-                        event=event, name__iexact=incentive, istarget=True
+                        event=event, name__iexact=parts[0].strip(), istarget=True
                     ).first()
                 if bid:
                     DonationBid.objects.get_or_create(
@@ -686,6 +716,7 @@ class DonateViewSet(GenericViewSet):
             bd.donation = d
             bd.raw = request.raw.decode('utf-8')
             bd.save()
+            post_donation_to_postbacks(d)
             return HttpResponse(str(bd.id))
         except Exception as e:
             try:
