@@ -7,7 +7,7 @@ pool:
 
 jobs:
   - job: tracker_backend_tests
-    dependsOn: []
+    dependsOn: [ ]
     displayName: Tracker Backend
     strategy:
       matrix:
@@ -17,18 +17,21 @@ jobs:
         Django52:
           PYTHON_VERSION: '3.14'
           DJANGO_VERSION: '5.2'
+        Django60:
+          PYTHON_VERSION: '3.14'
+          DJANGO_VERSION: '6.0'
         Python3B:
           PYTHON_VERSION: '3.11'
           DJANGO_VERSION: '5.2'
         Python3C:
           PYTHON_VERSION: '3.12'
-          DJANGO_VERSION: '6.0'
+          DJANGO_VERSION: '6.1'
         Python3D:
           PYTHON_VERSION: '3.13'
-          DJANGO_VERSION: '6.0'
+          DJANGO_VERSION: '6.1'
         Latest:
           PYTHON_VERSION: '3.14'
-          DJANGO_VERSION: '6.0'
+          DJANGO_VERSION: '6.1'
 
     steps:
       - task: UsePythonVersion@0
@@ -164,7 +167,7 @@ jobs:
         displayName: 'Run pre-commit hooks'
 
   - job: tracker_frontend_tests
-    dependsOn: []
+    dependsOn: [ ]
     displayName: Tracker Frontend
     continueOnError: true
     variables:
