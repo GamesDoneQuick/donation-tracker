@@ -670,13 +670,16 @@ class SpeedRun(models.Model):
                         else:
                             self.starttime = self.anchor_time
                 if self.id and (
-                    self.prize_start.exclude(endrun=self)
-                    .filter(endrun__order__lt=self.order)
-                    .exists()
-                    or self.prize_end.exclude(startrun=self)
-                    .filter(startrun__order__gt=self.order)
-                    .exists()
+                    (
+                        self.prize_start.exclude(endrun=self).filter(
+                            endrun__order__lt=self.order
+                        )
+                        | self.prize_end.exclude(startrun=self).filter(
+                            startrun__order__gt=self.order
+                        )
+                    ).exists()
                 ):
+
                     errors['order'].append(
                         'Desired order would invert at least one prize span'
                     )

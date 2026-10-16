@@ -1,4 +1,6 @@
 import contextlib
+import hmac
+import io
 import logging
 import secrets
 import time
@@ -11,14 +13,19 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.signing import BadSignature, TimestampSigner
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.template.response import SimpleTemplateResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from paypal.standard.forms import PayPalPaymentsForm
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ErrorDetail, PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    ErrorDetail,
+    ParseError,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.fields import (
     BooleanField,
     CharField,
@@ -26,16 +33,27 @@ from rest_framework.fields import (
     EmailField,
     IntegerField,
 )
+from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
-from rest_framework.serializers import Serializer, as_serializer_error
+from rest_framework.serializers import ModelSerializer, Serializer, as_serializer_error
 from rest_framework.viewsets import GenericViewSet
 
 from tracker import settings
 from tracker.api.serializers import DonationSerializer, EnsureSerializableMixin
 from tracker.compat import reverse
-from tracker.models import Bid, Donation, Event
-from tracker.models.donation import Donor
+from tracker.eventutil import post_donation_to_postbacks
+from tracker.models import (
+    BcauseDonation,
+    Bid,
+    Donation,
+    DonationBid,
+    Donor,
+    Event,
+    SpeedRun,
+    TwitchDonation,
+)
+from tracker.viewutil import tracker_log
 
 logger = logging.getLogger(__file__)
 
@@ -161,6 +179,38 @@ class NewDonationBidSerializer(EnsureSerializableMixin, Serializer):
         return ret
 
 
+class TwitchDonationSerializer(EnsureSerializableMixin, ModelSerializer):
+    class Meta:
+        model = TwitchDonation
+        fields = (
+            'campaign_id',
+            'broadcaster_user_id',
+            'broadcaster_user_name',
+            'broadcaster_user_login',
+            'user_id',
+            'user_login',
+            'user_name',
+            'charity_name',
+            'charity_description',
+            'charity_logo',
+            'charity_website',
+        )
+
+    def to_internal_value(self, data):
+        if 'id' in data:
+            data['twitch_id'] = data.pop('id')
+        if 'amount' in data:
+            amount = data.pop('amount', {})
+            data['amount_value'] = amount.get('value', None)
+            data['amount_decimal_places'] = amount.get('decimal_places', None)
+            data['amount_currency'] = amount.get('currency', None)
+        return super().to_internal_value(data)
+
+    def validate(self, attrs):
+        attrs['twitch_id'] = attrs.get('id', None)
+        return super().validate(attrs)
+
+
 class NewDonationSerializer(EnsureSerializableMixin, Serializer):
     amount = DecimalField(
         max_digits=20,
@@ -170,9 +220,10 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
     bids = NewDonationBidSerializer(many=True)
     comment = CharField(allow_blank=True, max_length=5000)
     domain = CharField(required=False)
-    domainId = CharField(read_only=True)
+    domain_id = CharField(required=False)
     donor_id = IntegerField(required=False)
     donor_email = EmailField(required=False)
+    donor_twitch_id = IntegerField(required=False)
     email_optin = BooleanField()
     event = IntegerField()
     requested_alias = CharField(
@@ -183,10 +234,27 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
         allow_blank=True,
         max_length=Donation._meta.get_field('requestedemail').max_length,
     )
+    twitch = TwitchDonationSerializer(required=False)
 
     def to_internal_value(self, data):
         if isinstance(data.get('amount'), float):
             data['amount'] = _trim(data['amount'])
+        if 'twitch' in data:
+            data['twitch'] = TwitchDonationSerializer().to_internal_value(
+                data['twitch']
+            )
+            data['domain'] = 'TWITCH'
+            data['domain_id'] = data['twitch']['twitch_id']
+            data['donor_twitch_id'] = data['twitch']['user_id']
+            data['requested_alias'] = data['twitch']['user_name']
+            data['amount'] = _trim(
+                data['twitch']['amount_value']
+                / 10.0 ** data['twitch']['amount_decimal_places']
+            )
+            data['bids'] = []
+            data['comment'] = ''
+            data['email_optin'] = False
+            data['requested_email'] = f"{data['donor_twitch_id']}@fake.users.twitch.tv"
         return super().to_internal_value(data)
 
     def validate(self, attrs):
@@ -209,7 +277,7 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                         code='invalid',
                     )
                 )
-            if attrs['amount'] < event.minimumdonation:
+            if attrs['domain'] != 'TWITCH' and attrs['amount'] < event.minimumdonation:
                 errors['amount'].append(
                     ErrorDetail(
                         'Donation amount is below event minimum.', code='invalid'
@@ -270,14 +338,14 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                         ErrorDetail('Specified donor does not exist.', code='invalid')
                     )
             elif 'donor_email' in attrs:
-                if not Donor.objects.filter(
-                    email__iexact=attrs['donor_email']
-                ).exists():
+                donor = Donor.objects.filter(email__iexact=attrs['donor_email']).first()
+                if not donor:
                     errors['donor_email'].append(
                         ErrorDetail(
                             'Specified donor email could not be found.', code='invalid'
                         )
                     )
+                attrs['donor_id'] = donor.id
             else:
                 errors['domain'].append(
                     ErrorDetail(
@@ -287,6 +355,33 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
                 )
         elif domain == 'PAYPAL':
             pass
+        elif domain == 'TWITCH':
+            if 'donor_twitch_id' in attrs:
+                attrs['donor_id'] = Donor.objects.get_or_create(
+                    twitch_id=attrs['donor_twitch_id'],
+                    defaults={
+                        'email': attrs.get(
+                            'donor_email',
+                            f'{attrs["donor_twitch_id"]}@users.twitch.tv.fake',
+                        ),
+                        'alias': attrs['requested_alias'],
+                        'visibility': 'ALIAS',
+                    },
+                )[0].id
+            else:
+                errors['donor_twitch_id'].append(
+                    ErrorDetail(
+                        'Twitch donations require `donor_twitch_id` field.',
+                        code='invalid',
+                    )
+                )
+            if 'domain_id' not in attrs:
+                errors['domain_id'].append(
+                    ErrorDetail(
+                        'Twitch donations require `domain_id` field.',
+                        code='invalid',
+                    )
+                )
         else:
             errors['domain'].append(
                 ErrorDetail(
@@ -304,9 +399,40 @@ class NewDonationSerializer(EnsureSerializableMixin, Serializer):
         if errors:
             raise ValidationError(errors)
 
-        attrs['domainId'] = f'{int(time.time())}-{secrets.token_hex(16)}'
+        attrs.setdefault('domain_id', f'{int(time.time())}-{secrets.token_hex(16)}')
 
         return attrs
+
+
+class BcauseSerializer(EnsureSerializableMixin, ModelSerializer):
+    class Meta:
+        model = BcauseDonation
+        fields = (
+            'amount_cents',
+            'beneficiary_id',
+            'currency_code',
+            'date_valuta_utc',
+            'donor_name',
+            'email',
+            'fee_cents',
+            'metadata',
+            'sandbox',
+            'status',
+            'transaction_id',
+            'user_id',
+        )
+
+
+class SaveRawBodyJSONParser(JSONParser):
+    def parse(self, stream, media_type=None, parser_context=None):
+        parser_context = parser_context or {}
+        request = parser_context.get('request')
+
+        if request is not None:
+            request.raw = stream.read()
+            stream = io.BytesIO(request.raw)
+
+        return super().parse(stream, media_type, parser_context)
 
 
 class DonateViewSet(GenericViewSet):
@@ -326,8 +452,9 @@ class DonateViewSet(GenericViewSet):
             event = Event.objects.get(id=data['event'])
             query = dict(
                 event=event,
-                domain='PAYPAL',
-                domainId=data['domainId'],
+                donor_id=data.get('donor_id', None),
+                domain=data['domain'],
+                domainId=data['domain_id'],
                 currency=event.paypalcurrency,
                 amount=_trim(data['amount']),
                 comment=data['comment'],
@@ -342,29 +469,49 @@ class DonateViewSet(GenericViewSet):
                 donation = Donation(**query)
                 donation.full_clean()
                 donation.save()
-                # get_or_create isn't usable in transactions, so for new suggestions we lock the parents instead to assure atomicity
-                Bid.objects.filter(
-                    id__in=(b['parent'] for b in data['bids'] if 'parent' in b)
-                ).select_for_update()
+                # get_or_create isn't usable in transactions, so for new suggestions we lock the parents instead to
+                #  assure atomicity
+                # this gracefully handles the case where two people input the same option at the same time (unlikely,
+                #  but it's happened! or maybe it was somebody hitting back/refresh) as well as somebody putting an
+                #  existing name in as a "new" suggestion, either from not paying attention or because the option is
+                #  pending/denied and thus not visible
+
+                parents = (
+                    Bid.objects.filter(
+                        id__in=(b['parent'] for b in data['bids'] if 'parent' in b)
+                    )
+                    .select_for_update()
+                    .prefetch_related('options')
+                )
                 for bid_data in data['bids']:
                     if 'id' in bid_data:
-                        bid = Bid.objects.get(id=bid_data['id'])
+                        option = Bid.objects.get(id=bid_data['id'])
                     else:
-                        try:
-                            bid = Bid.objects.get(
-                                parent_id=bid_data['parent'],
-                                name__iexact=bid_data['name'],
+                        if not (
+                            parent := next(
+                                (p for p in parents if p.id == bid_data['parent']), None
                             )
-                        except Bid.DoesNotExist:
-                            bid = Bid.objects.create(
+                        ):
+                            raise Bid.DoesNotExist
+                        if not (
+                            option := next(
+                                (
+                                    o
+                                    for o in parent.options.all()
+                                    if o.name == bid_data['name']
+                                ),
+                                None,
+                            )
+                        ):
+                            option = Bid.objects.create(
                                 parent_id=bid_data['parent'],
                                 name=bid_data['name'],
                                 state='PENDING',
                                 istarget=True,
                             )
-                            bid.full_clean()
+                            option.full_clean()
                     donation.bids.create(
-                        bid=bid,
+                        bid=option,
                         amount=_trim(bid_data['amount']),
                     )
                 donation.full_clean()
@@ -430,6 +577,164 @@ class DonateViewSet(GenericViewSet):
             return self.get_exception_handler()(
                 exc, self.get_exception_handler_context()
             )
+
+    @action(
+        url_name='bcause-confirm',
+        detail=False,
+        methods=['post'],
+        authentication_classes=[],
+        serializer_class=BcauseSerializer,
+        parser_classes=[
+            SaveRawBodyJSONParser
+        ],  # needed for signature verification for Bcause payloads
+        renderer_classes=[JSONRenderer],
+    )
+    def bcause_confirm(self, request, *args, **kwargs):
+        try:
+            secret = getattr(settings, 'TRACKER_BCAUSE_SIGNING_SECRET', b'')
+            event = getattr(settings, 'TRACKER_BCAUSE_EVENT_ID', 0)
+
+            if not secret or not (event := Event.objects.filter(id=event).first()):
+                tracker_log(
+                    'bcause',
+                    'Received a Bcause payload but Bcause settings are not set properly.',
+                )
+                raise Http404
+
+            sig = request.META.get('HTTP_X_BCAUSE_SIGNATURE', '')
+
+            if not sig.startswith('sha256='):
+                raise ParseError('invalid signature')
+
+            data = request.data.get('data', {})
+
+            h = hmac.new(secret, request.raw, 'sha-256').hexdigest()
+
+            if not hmac.compare_digest(sig[7:].lower(), h.lower()):
+                raise ParseError('invalid signature')
+
+            bd = BcauseDonation.objects.filter(
+                transaction_id=data.get('transaction_id', '')
+            ).first()
+
+            serializer = self.get_serializer(data=data, instance=bd)
+            serializer.is_valid(raise_exception=True)
+            if serializer.validated_data['transaction_id'] == 'txn-test':
+                return HttpResponse(status=204)
+            bd = serializer.save()
+            d = Donation.objects.get_or_create(
+                domain='BCAUSE',
+                domainId=bd.transaction_id,
+                defaults={
+                    'amount': bd.amount_cents / Decimal('100.00'),
+                    'currency': bd.currency_code.upper(),
+                    'event': event,
+                    'transactionstate': bd.status.upper(),
+                },
+            )[0]
+            d.amount = (bd.amount_cents + bd.fee_cents) / Decimal('100.00')
+            d.currency = bd.currency_code.upper()
+
+            if bd.user_id:
+                donor = Donor.objects.get_or_create(bcause_id=bd.user_id)[0]
+                donor.email = bd.email or 'bcause-anonymous@not-a-real-email.nope'
+            else:
+                donor = Donor.objects.get_or_create(
+                    email=bd.email or 'bcause-anonymous@not-a-real-email.nope'
+                )[0]
+            if bd.donor_name:
+                d.requestedalias = bd.donor_name
+                donor.alias = bd.donor_name
+                donor.visibility = 'ALIAS'
+            donor.ineligible = not bd.email
+            donor.save()
+            d.donor = donor
+            d.event = event
+            d.transactionstate = bd.status.upper()
+            d.comment = bd.metadata.get('Your comment', '')
+            d.clean()
+            d.save()
+            incentive = bd.metadata.get('Incentive', '')
+            if incentive:
+                if isinstance(incentive, list):
+                    incentive = incentive[0]
+                bid = None
+                parts = incentive.split('-')
+                if len(parts) == 3:
+                    run = SpeedRun.objects.filter(
+                        event=event,
+                        name__iexact=parts[0].strip(),
+                    ).first()
+                    if run:
+                        parent = Bid.objects.filter(
+                            speedrun=run,
+                            name__iexact=parts[1].strip(),
+                            istarget=False,
+                        ).first()
+                        if parent:
+                            bid = Bid.objects.filter(
+                                name__iexact=parts[2].strip(),
+                                istarget=True,
+                                parent=parent,
+                            ).first()
+                elif len(parts) == 2:
+                    parent = Bid.objects.filter(
+                        event=event,
+                        name__iexact=parts[0].strip(),
+                        istarget=False,
+                    ).first()
+                    if parent:
+                        bid = Bid.objects.filter(
+                            name__iexact=parts[1].strip(),
+                            istarget=True,
+                            parent=parent,
+                        ).first()
+                    else:
+                        run = SpeedRun.objects.filter(
+                            event=event,
+                            name__iexact=parts[0].strip(),
+                        ).first()
+                        if run:
+                            bid = Bid.objects.filter(
+                                speedrun=run,
+                                name__iexact=parts[1].strip(),
+                                istarget=True,
+                            ).first()
+                elif len(parts) == 1:
+                    bid = Bid.objects.filter(
+                        event=event, name__iexact=parts[0].strip(), istarget=True
+                    ).first()
+                if bid:
+                    DonationBid.objects.get_or_create(
+                        bid=bid, donation=d, defaults={'amount': d.amount}
+                    )
+                else:
+                    tracker_log(
+                        'bcause',
+                        f'Could not find incentive with name `{incentive}`, not attaching bid',
+                    )
+            bd.donation = d
+            bd.raw = request.raw.decode('utf-8')
+            bd.save()
+            post_donation_to_postbacks(d)
+            return HttpResponse(str(bd.id))
+        except Exception as e:
+            try:
+                bd = BcauseDonation.objects.create(
+                    error=True,
+                    raw=request.raw.decode('utf-8'),
+                )
+                tracker_log(
+                    'bcause',
+                    f"Error processing BcauseDonation: {e}, raw payload saved with id {bd.id}",
+                )
+            except Exception as e2:
+                print(e2)
+                tracker_log(
+                    'bcause',
+                    f"Couldn't create BcauseDonation with payload {request.raw.decode('utf-8')}: {e2}, {e}",
+                )
+            raise
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

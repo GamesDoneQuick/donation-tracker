@@ -27,7 +27,7 @@ const NavRoutes = {
   MILESTONES: (eventId: string | number) => `/tracker/milestones/${eventId}`,
   PRIZES: (eventId: string | number) => `/tracker/prizes/${eventId}`,
   RUNS: (eventId: string | number) => `/tracker/runs/${eventId}`,
-  LOGOUT: `/tracker/user/logout/`,
+  LOGOUT: `/tracker/user/logout_form/`,
   SELF_SERVICE: `/tracker/user/index/`,
 
   ADMIN_HOME: `/`,

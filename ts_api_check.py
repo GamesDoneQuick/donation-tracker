@@ -41,6 +41,12 @@ def ts_check():
                     parts = parts[:-1]
                 if parts[-2] == 'donations' and parts[-1] in {'flagged', 'unprocessed'}:
                     parts = parts[:-1]
+                if (
+                    parts[-3] == 'donations'
+                    and parts[-1] == 'bids'
+                    and r['method'] == 'POST'
+                ):
+                    parts = ['donationBid']
                 method = r['method'].lower().capitalize()
                 if parts[-1][-1] == 's':
                     parts[-1] = parts[-1][:-1]

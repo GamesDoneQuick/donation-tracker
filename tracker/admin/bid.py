@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.admin import display, register
 from django.contrib.auth.decorators import permission_required
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import path, reverse
@@ -130,7 +131,7 @@ class BidAdmin(EventArchivedMixin, CustomModelAdmin):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        if obj and obj.parent:
+        if obj and obj.parent and obj.parent_id != 20634:
             if 'state' in form.base_fields:
                 form.base_fields['state'].choices = [
                     (obj.parent.state, 'Inherit Parent State'),
@@ -150,7 +151,7 @@ class BidAdmin(EventArchivedMixin, CustomModelAdmin):
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = super().get_readonly_fields(request, obj)
         if obj and obj.parent:
-            if not obj.parent.allowuseroptions:
+            if not obj.parent.allowuseroptions and obj.parent_id != 20634:
                 readonly_fields = readonly_fields + ('state',)
             if obj.chain:
                 readonly_fields = readonly_fields + ('istarget',)
@@ -267,13 +268,13 @@ class BidAdmin(EventArchivedMixin, CustomModelAdmin):
             )
         queryset = queryset.filter(event__archived=False)
         if not recursive:
-            unchanged = queryset.filter(level__gt=0)
+            unchanged = queryset.filter(level__gt=0).exclude(parent=20634)
             if unchanged.exists():
                 messages.warning(
                     request,
                     f'{unchanged.count()} bid(s) possibly unchanged because you can only use the dropdown on top level bids.',
                 )
-            queryset = queryset.filter(level=0)
+            queryset = queryset.filter(Q(level=0) | Q(parent=20634))
         total = queryset.count()
         for b in queryset:
             b.state = value

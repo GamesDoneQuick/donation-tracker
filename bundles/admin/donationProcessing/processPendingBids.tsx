@@ -65,9 +65,13 @@ export default React.memo(function ProcessPendingBids() {
     error: bidError,
     refetch: refetchBids,
     isFetching: bidFetching,
-  } = useBidTreeQuery({
-    urlParams: { ...eventFilter, feed: 'pending' },
-  });
+  } = useBidTreeQuery(
+    {
+      urlParams: { ...eventFilter, feed: 'pending' },
+      listen: true,
+    },
+    {},
+  );
   const {
     data: event,
     error: eventError,

@@ -403,10 +403,18 @@ export default React.memo(function TotalWatch() {
                   </div>
                 )}
                 {bid.options
-                  ?.toSorted((a, b) => b.total - a.total)
+                  ?.toSorted((a, b) => {
+                    if (a.state === 'OPENED' && b.state !== 'OPENED') {
+                      return -1;
+                    }
+                    if (b.state === 'OPENED' && a.state !== 'OPENED') {
+                      return 1;
+                    }
+                    return b.total - a.total;
+                  })
                   .map(o => (
                     <h4 key={o.id}>
-                      {o.name} ${format.format(o.total)} {bid.allowuseroptions && `(${o.state})`}
+                      {o.name} ${format.format(o.total)} {`(${o.state})`}
                     </h4>
                   ))}
               </React.Fragment>

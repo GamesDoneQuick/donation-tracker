@@ -523,10 +523,10 @@ def generate_donation(
     donation.timereceived = random_time(rand, min_time, max_time)
     donation.currency = 'USD'
     donation.transactionstate = transactionstate or 'COMPLETED'
-    if donation.domain == 'LOCAL':
+    if donation.domain in ['LOCAL', 'TWITCH']:
         assert (
             donation.transactionstate == 'COMPLETED'
-        ), 'Local donations must be specified as COMPLETED'
+        ), 'Local or Twitch donations must be specified as COMPLETED'
 
     if not no_donor:
         if donor is None:
@@ -546,11 +546,12 @@ def generate_donation_for_prize(
     if min_amount or min_time or max_time:
         warnings.warn('ignored parameter passed to generate_donation_for_prize')
     event = kwargs.pop('event', prize.event)
+    runs = event.speedrun_set.exclude(order=None)
     return generate_donation(
         rand,
         min_amount=prize.minimumbid,
-        min_time=prize.start_draw_time(),
-        max_time=prize.end_draw_time(),
+        min_time=prize.start_draw_time(runs),
+        max_time=prize.end_draw_time(runs),
         event=event,
         **kwargs,
     )

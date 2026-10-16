@@ -28,6 +28,7 @@ function appendTree(path: string, tree?: number | { tree?: boolean }) {
 }
 
 const Endpoints = {
+  DONATE: 'donate/',
   DONATIONS: (params: number | { eventId?: number; state?: DonationState } = {}) =>
     appendState(prependEvent('donations', params), params),
   DONATIONS_UNPROCESS: (donationId: number) => `donations/${donationId}/unprocess/`,

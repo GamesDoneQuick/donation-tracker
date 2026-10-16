@@ -171,7 +171,7 @@ const PrizeDetail = (props: PrizeProps) => {
                       {event != null ? (
                         <React.Fragment>
                           <strong className={styles.summaryItem}>
-                            <Anchor href={`/tracker/event/${event.id}`}>{event.name}</Anchor>
+                            <Anchor href={TrackerRoutes.EVENT_DONATE(eventPath)}>{event.name}</Anchor>
                           </strong>
                           &nbsp;&middot;&nbsp;
                         </React.Fragment>

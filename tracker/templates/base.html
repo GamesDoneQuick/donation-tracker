@@ -102,7 +102,7 @@
 
           {% if user and user.is_authenticated %}
             <li><a href="{% url 'tracker:user_index' %}">{% trans "Self Service" %}</a></li>
-            <li><a href="{% url 'tracker:logout' %}">{% trans "Log Out" %}</a></li>
+            <li><a href="{% url 'tracker:logout_form' %}">{% trans "Log Out" %}</a></li>
           {% endif %}
         </ul>
       </div>

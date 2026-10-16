@@ -81,6 +81,11 @@ urlpatterns = [
         name='logout',
     ),
     path(
+        'user/logout_form/',
+        user.logout_form,
+        name='logout_form',
+    ),
+    path(
         'user/password_reset/',
         PasswordResetView.as_view(
             template_name='tracker/password_reset.html',
